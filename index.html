@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gry</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<style>
+:root{--bg:#9fe3f5;--card:#fdfcf7;--ink:#173a5e;--edge:#0f2a47}
+@media (prefers-color-scheme:dark){:root{--bg:#0f2a47;--card:#213f63;--ink:#fdfcf7;--edge:#06121f}}
+body{margin:0;background:var(--bg);color:var(--ink);font:700 18px/1.3 ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;padding:16px calc(16px + env(safe-area-inset-right)) 32px calc(16px + env(safe-area-inset-left))}
+h1{margin:8px 0 16px;font-size:34px}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+a{display:block;background:var(--card);border-radius:18px;box-shadow:0 5px 0 var(--edge);color:inherit;text-decoration:none;overflow:hidden;transition:transform .12s}
+a:hover,a:focus-visible{transform:translateY(-3px)}
+img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:var(--edge)}
+h2{margin:10px 14px 2px;font-size:21px}
+p{margin:0 14px 12px;font-weight:500;font-size:15px;opacity:.8}
+</style>
+</head>
+<body>
+<h1>🎮 Gry</h1>
+<main id="list"></main>
+<script>
+// Tiles from gry.json: own games link to ./<id>/, the rest to their own pages
+fetch('gry.json').then(r => r.json()).then(gry => {
+  list.innerHTML = gry.map(g => `<a href="${g.url ?? g.id + '/'}">
+    <img src="shots/${g.id}.jpg" alt="" loading="lazy"><h2>${g.emoji} ${g.title}</h2><p>${g.opis}</p></a>`).join('');
+});
+</script>
+</body>
+</html>

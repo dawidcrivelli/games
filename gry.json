@@ -1,0 +1,13 @@
+[
+  { "id": "ciuchcia", "title": "Ciuchcia! Układamy tory", "emoji": "🚂", "opis": "Układaj tory, prowadź pociąg, przestawiaj zwrotnice." },
+  { "id": "taxi", "title": "Taxi Ciuchciowo!", "emoji": "🚕", "opis": "Szalone taksówki po mieście: klienci, turbo, policja." },
+  { "id": "zniwa", "title": "Żniwa! Kombajn i Ursus", "emoji": "🚜", "opis": "Kombajn, traktor, prasa — zbierz zboże z pola." },
+  { "id": "pralnia", "title": "Pralnia Zoo", "emoji": "🧽", "opis": "Myj, susz i strój zwierzaki z zoo." },
+  { "id": "arka", "title": "9. pasażer Arki Noego", "emoji": "🚢", "opis": "Pilnuj arki: wygoń szczury za burtę." },
+  { "id": "rafa", "title": "Rafa koralowa", "emoji": "🐠", "opis": "Pływaj po rafie i zbieraj zwierzęta do albumu." },
+  { "id": "egzorcysta-vs-cholota", "title": "Egzorcysta vs Chołota", "emoji": "🧟", "opis": "Obrona zagrody przed chołotą (2D).", "url": "https://dawidcrivelli.github.io/egzorcysta-vs-cholota/" },
+  { "id": "lowca-pokemonow", "title": "Łowca Pokémonów", "emoji": "⚡", "opis": "2D.", "url": "https://dawidcrivelli.github.io/lowca-pokemonow/" },
+  { "id": "lowca-dinozaurow", "title": "Łowca Dinozaurów", "emoji": "🦖", "opis": "2D.", "url": "https://dawidcrivelli.github.io/lowca-dinozaurow/" },
+  { "id": "kosmopatologia", "title": "Kosmopatologia", "emoji": "🚀", "opis": "2D.", "url": "https://dawidcrivelli.github.io/kosmopatologia/" },
+  { "id": "zoopatologia", "title": "Zoopatologia", "emoji": "🦒", "opis": "2D.", "url": "https://dawidcrivelli.github.io/zoopatologia/" }
+]
