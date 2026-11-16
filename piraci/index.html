@@ -67,7 +67,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .it{background:#fff;border-radius:16px;box-shadow:0 4px 0 #d9c9a6;padding:5px 4px 6px;font-size:13px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:pan-y}
 .it big{font-size:30px;line-height:1.1}.it small{opacity:.7;font-size:12px}.it u{text-decoration:none;background:var(--gold);border-radius:99px;padding:2px 10px 0;margin-top:2px;font-size:14px}
 .it.sel{background:#d8f7d0;box-shadow:0 4px 0 #6fbf5f}.it.no u{background:#ddd;opacity:.7}.it.max u{background:#cfe9ff}
-#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6vh;padding:12px;text-align:center;color:#4a2c12;font-weight:800;z-index:6;background:linear-gradient(rgba(20,60,110,.15),rgba(10,40,80,.5))}
+#start{position:fixed;inset:0;bottom:auto;height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6vh;padding:12px;text-align:center;color:#4a2c12;font-weight:800;z-index:6;background:linear-gradient(rgba(20,60,110,.15),rgba(10,40,80,.5))}
 #start h1{margin:0;font-size:clamp(34px,9vw,80px);line-height:.95;color:#fff;-webkit-text-stroke:3px #4a2c12;paint-order:stroke fill;text-shadow:0 6px 0 #4a2c12}
 #start .row{font-size:clamp(22px,5vw,44px);letter-spacing:.04em;line-height:1.1}
 #start .modes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
@@ -76,6 +76,9 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .mb.dad{background:#ff9d7a;box-shadow:0 8px 0 #c75a35}
 .mc{display:flex;flex-direction:column;align-items:center;gap:10px}
 .rs{background:rgba(255,248,232,.85);border-radius:99px;padding:3px 12px 1px;font-size:14px;touch-action:manipulation}.rs.sure{background:var(--red);color:#fff}
+/* niski ekran (telefon poziomo z paskiem przeglądarki): wszystko liczone od wysokości, żeby nic nie wyszło pod dolną krawędź */
+@media (max-height:520px){#start{gap:1.5vh;padding:6px 12px;overflow:auto}#start h1{font-size:min(9vw,14vh);-webkit-text-stroke-width:2px;text-shadow:0 .9vh 0 #4a2c12}#start .row{font-size:min(5vw,8vh)}
+  .mb{width:auto;min-width:30vh;padding:1.2vh 3vh .8vh;font-size:5vh;border-radius:5vh;box-shadow:0 1.6vh 0 #c79a00}.mb.dad{box-shadow:0 1.6vh 0 #c75a35}.mb big{font-size:14vh;line-height:1.05}.mc{gap:3vh}.rs{font-size:max(11px,4vh);padding:.4vh 2.4vh .1vh}}
 #rot{position:fixed;inset:0;z-index:9;background:#12466e;color:#fff;display:none;place-items:center;text-align:center;font-size:26px;font-weight:800;padding:20px}
 #rot big{display:block;font-size:80px;animation:spin 1.6s ease-in-out infinite alternate}
 @media (orientation:portrait) and (max-width:700px){#rot{display:grid}}
