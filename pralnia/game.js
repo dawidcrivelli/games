@@ -1,5 +1,7 @@
 'use strict';
 const T=THREE,$=id=>document.getElementById(id);
+// zwierzęta i helpery 3D: models/zwierzeta.js
+const {rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,MK}=ZOO;
 
 const PI=Math.PI;
 let W=innerWidth,H=innerHeight;
@@ -18,16 +20,8 @@ const camT=new T.PerspectiveCamera(42,1,.5,420);
 scene.background=canvasTex(8,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#4fb7ec');gr.addColorStop(.55,'#a8e4fa');gr.addColorStop(1,'#e6f9ff');g.fillStyle=gr;g.fillRect(0,0,w,h);})||new T.Color(0x9fe3f5);
 
 /* ---------- geometry & material helpers ---------- */
-const mats={};
-
-const G={sph:new T.SphereGeometry(1,22,16),lo:new T.SphereGeometry(1,10,8),box:new T.BoxGeometry(1,1,1),cone:new T.ConeGeometry(1,1,14)};
-G.sphX=new T.SphereGeometry(1,22,16);G.sphX.rotateZ(PI/2);
-const cgC={};
-function mesh(g,m,par,x,y,z,sx,sy,sz){const o=new T.Mesh(g,m);o.position.set(x||0,y||0,z||0);if(sx!==undefined)o.scale.set(sx,sy===undefined?sx:sy,sz===undefined?sx:sz);o.castShadow=true;if(par)par.add(o);return o;}
 
 /* ---------- textures ---------- */
-const texGir=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#f7e3b1';g.fillRect(0,0,w,h);g.fillStyle='#b8672a';for(let gy=0;gy<6;gy++)for(let gx=0;gx<6;gx++){const cx=(gx+.5+(gy%2?.5:0))*w/6+rnd(-5,5),cy=(gy+.5)*h/6+rnd(-5,5);g.beginPath();for(let i=0;i<7;i++){const an=i/7*6.283+rnd(-.25,.25),r=rnd(13,18);const px=cx+Math.cos(an)*r,py=cy+Math.sin(an)*r;i?g.lineTo(px,py):g.moveTo(px,py);}g.closePath();g.fill();}},{repeat:[1,1]});
-const texZeb=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#fbfbfb';g.fillRect(0,0,w,h);g.fillStyle='#1d1d24';for(let i=0;i<8;i++){const y0=i*h/8;g.beginPath();g.moveTo(0,y0+3);for(let x=0;x<=w;x+=16)g.lineTo(x,y0+3+Math.sin(x/w*6.283*2+i)*4);for(let x=w;x>=0;x-=16)g.lineTo(x,y0+h/16+5+Math.sin(x/w*6.283*3+i*2)*3);g.closePath();g.fill();}},{repeat:[1,1]});
 const texCroc=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#63b04d';g.fillRect(0,0,w,h);g.strokeStyle='#4a9340';g.lineWidth=2;for(let y=0;y<9;y++)for(let x=0;x<9;x++){g.beginPath();g.arc(x*16+(y%2?8:0),y*16,7,0,PI);g.stroke();}},{repeat:[4,2]});
 const tileTex=(rx,ry)=>canvasTex(64,64,(g)=>{g.fillStyle='#ffffff';g.fillRect(0,0,64,64);g.fillStyle='#eef4f7';g.fillRect(3,3,58,58);g.strokeStyle='#c4d3dc';g.lineWidth=3;g.strokeRect(0,0,64,64);},{repeat:[rx,ry]});
 const stripeTex=(n)=>canvasTex(64,64,(g)=>{g.fillStyle='#fff';g.fillRect(0,0,64,64);g.fillStyle='#b8b8b8';g.fillRect(0,0,32,64);},{repeat:[n,1]});
@@ -102,27 +96,7 @@ function startMusic(){const step=60/116/2;let nt=AC.currentTime+.1,i=0;
       i++;nt+=step;}},120);}
 
 /* ---------- animals ---------- */
-const mW=M(0xffffff,{roughness:.3}),mK=M(0x16161d,{roughness:.3});
-const MV=new T.MeshStandardMaterial({vertexColors:true,roughness:.8});
-const lgC={};
-// smooth "lofted" body part: sections [x,y,rTop,rSide,rBottom] along a spine in the XY plane
 
-// flat outline (ears, manes) with soft edges
-
-let giMat=null;
-
-let zeMat=null;
-
-let crScute=null,crTU=null,crTL=null;
-
-let liTuft=null,liWh=null;
-
-const texTig=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);g.fillStyle='#1b1410';for(let i=0;i<9;i++){const y0=i*h/9;for(let k=0;k<3;k++){const x0=rnd(w),len=rnd(60,150),bend=rnd(-4,4);for(const off of [0,-w]){g.beginPath();g.moveTo(x0+off,y0+6);g.quadraticCurveTo(x0+off+len/2,y0-2+bend,x0+off+len,y0+7);g.quadraticCurveTo(x0+off+len/2,y0+16,x0+off,y0+6);g.fill();}}}},{repeat:[1,1]});
-const FOOT=[[-.15,0],[-.05,.14],[.2,.2],[.42,.17],[.24,.1],[.5,.05],[.28,0],[.5,-.05],[.24,-.1],[.42,-.17],[.2,-.2],[-.05,-.14]];
-let whG=null;
-let tiMat=null;
-
-const MK={elephant:mkElephant,giraffe:mkGiraffe,zebra:mkZebra,hippo:mkHippo,crocodile:mkCroc,lion:mkLion,tiger:mkTiger,panda:mkPanda,penguin:mkPenguin,kangaroo:mkKangaroo};
 const TYPES=Object.keys(MK),VAL={elephant:6,giraffe:6,hippo:5,zebra:4,lion:4,crocodile:4,tiger:5,panda:5,penguin:3,kangaroo:5},NSP={elephant:10,giraffe:9,hippo:9,zebra:8,lion:8,crocodile:7,tiger:8,panda:8,penguin:6,kangaroo:8};
 
 /* ---------- spots (flat dirt, drops, stars) ---------- */
@@ -325,19 +299,8 @@ function machine(st,a,run,dt){const len=a?a.dims.len:4,hw=a?a.dims.hw:1.6,hh=a?a
       if(run&&Math.random()<dt*14){ar.tool.getWorldPosition(tv);if(s>0)P.puff.add(tv.x,tv.y,tv.z,rnd(-2.5,-.5),rnd(-1,.5),rnd(.5,2),rnd(.2,.35),.8,0);else P.spark.add(tv.x,tv.y,tv.z,rnd(-1,1),rnd(.5,2),rnd(-1,1),.09,.5,-3);}}
     if(run){a.tickle=Math.max(a.tickle,.3);if(Math.random()<dt*10)P.spark.add(st.x+rnd(-len/2,len/2),rnd(.5,hh+.5),rnd(-hw,hw+.3),0,rnd(.3,1.2),0,.1,.7,0);}}
 }
-function anim(a,dt){a.t+=dt;const walk=a.moving&&!a.slide;if(walk)a.ph+=dt*a.gait;
-  for(const L of a.legs){const tg=walk?Math.sin(a.ph+L.ph)*a.swing:0;L.p.rotation.z+=(tg-L.p.rotation.z)*Math.min(1,dt*14);}
-  a.tickle=Math.max(0,a.tickle-dt*2.5);a.blowT-=dt;a.blown+=((a.blowT>0?1:0)-a.blown)*Math.min(1,dt*5);
-  let y=walk?Math.abs(Math.sin(a.ph))*(a.hopH||.05):Math.sin(a.t*2.2)*.015;const happy=a.jumpT>0;if(happy){a.jumpT-=dt*1.1;y+=Math.abs(Math.sin(a.jumpT*PI*2))*.5;}
-  a.body.position.y=y;a.body.rotation.x=Math.sin(a.t*28)*.035*a.tickle+a.blown*.06+(walk&&a.waddle?Math.sin(a.ph)*a.waddle:0);a.body.rotation.z=Math.sin(a.t*23)*.02*a.tickle;
-  const wag=(a.state==='done'||happy)?2.2:1;if(a.tail)a.tail.rotation.x=Math.sin(a.t*5*wag+a.seed)*.35*wag+a.blown*Math.sin(a.t*30)*.5;
-  for(const e of a.ears){const f=Math.sin(a.t*(e.fast||3)+a.seed+e.s)*.12+a.blown*Math.sin(a.t*26+e.s)*.4+a.tickle*.2;if(e.ax==='x')e.p.rotation.x=(e.bx||0)+e.s*f*1.2;else e.p.rotation.y=e.base+e.s*f;}
-  if(a.head){a.head.rotation.z=a.headBase+Math.sin(a.t*1.3+a.seed)*.04+(happy?.15:0);const look=a.state==='work'?-.28:0;a.head.rotation.y+=(look+Math.sin(a.t*.7+a.seed)*.12-a.head.rotation.y)*Math.min(1,dt*4);a.head.rotation.x=Math.sin(a.t*25)*.05*a.tickle;}
-  if(a.neck)a.neck.rotation.z=a.neckBase+Math.sin(a.t*.9+a.seed)*.04+a.blown*.08;
-  a.blink-=dt;if(a.blink<-.12)a.blink=rnd(2,5);const by=(a.blink<0||a.tickle>.6)?.15:1;for(const e of a.eyes)e.scale.y=by;
-  const op=happy?1:(a.tickle>.3?.6:(Math.sin(a.t*.5+a.seed)>.93?.8:0));a.open+=(op-a.open)*Math.min(1,dt*8);if(a.jaw)a.jaw.rotation.z=-a.open*.55;
-  for(let i=0;i<a.trunk.length;i++){const g=a.trunk[i],lift=happy?(i===0?.5:i<5?.38:.1):0;g.rotation.z+=(g.userData.b+lift+Math.sin(a.t*1.8+i*.5)*.05+a.tickle*Math.sin(a.t*20+i)*.04-g.rotation.z)*Math.min(1,dt*8);}
-  for(let i=0;i<a.ctail.length;i++)a.ctail[i].rotation.y=Math.sin(a.t*2.2-i*.6)*.13*(walk?1.6:1)*(happy?2:1);
+// wspólna animacja (ZOO) + pralnia: muchy, czapka, kapiąca woda
+function anim(a,dt){ZOO.anim(a,dt);
   if(a.flies){const c=a.flies.children;for(let i=0;i<c.length;i++){const an=a.t*(3+i)+i*2;c[i].position.set(Math.cos(an)*(.7+i*.25),Math.sin(an*1.7)*.3,Math.sin(an)*(.5+i*.2));}}
   if(a.hatM&&a.hatPop<1){a.hatPop=Math.min(1,a.hatPop+dt*2.5);a.hatM.scale.setScalar(a.hatS*(1+Math.sin(a.hatPop*PI)*.6)*Math.min(1,a.hatPop*3));}
   if(a.wet&&Math.random()<dt*7)P.water.add(a.root.position.x+rnd(a.dims.x0,a.dims.x1),rnd(.4,a.dims.h*.7),rnd(-a.dims.hw,a.dims.hw),0,0,0,.07,.5,-9,[1,1.6,1]);
