@@ -74,6 +74,8 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .mb{width:clamp(128px,26vw,190px);border-radius:26px;background:var(--gold);box-shadow:0 8px 0 #c79a00;padding:8px 6px 6px;font-size:clamp(16px,2.6vw,22px);line-height:1.1;color:#4a2c12;touch-action:manipulation}
 .mb big{display:block;font-size:clamp(38px,7vw,64px);line-height:1.1}.mb small{display:block;font-size:.8em;opacity:.75}
 .mb.dad{background:#ff9d7a;box-shadow:0 8px 0 #c75a35}
+.mc{display:flex;flex-direction:column;align-items:center;gap:10px}
+.rs{background:rgba(255,248,232,.85);border-radius:99px;padding:3px 12px 1px;font-size:14px;touch-action:manipulation}.rs.sure{background:var(--red);color:#fff}
 #rot{position:fixed;inset:0;z-index:9;background:#12466e;color:#fff;display:none;place-items:center;text-align:center;font-size:26px;font-weight:800;padding:20px}
 #rot big{display:block;font-size:80px;animation:spin 1.6s ease-in-out infinite alternate}
 @media (orientation:portrait) and (max-width:700px){#rot{display:grid}}
@@ -148,8 +150,8 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   <h1>Piraci!<br>Bitwa morska</h1>
   <div class="row">⛵💥🏴‍☠️ ⚔️ 🐙⭐🐡🦀🦈</div>
   <div class="modes">
-    <button class="mb" id="bKid"><big>🦜</big>Spokojnie<small id="sKid">poziom 1</small></button>
-    <button class="mb dad" id="bDad"><big>☠️</big>Na serio<small id="sDad">poziom 1</small></button>
+    <div class="mc"><button class="mb" id="bKid"><big>🦜</big>Spokojnie<small id="sKid">poziom 1</small></button><button class="rs" id="rKid" hidden>🗑️ od nowa</button></div>
+    <div class="mc"><button class="mb dad" id="bDad"><big>☠️</big>Na serio<small id="sDad">poziom 1</small></button><button class="rs" id="rDad" hidden>🗑️ od nowa</button></div>
   </div>
 </div>
 <div id="rot"><div><big>📱</big>Obróć telefon poziomo</div></div>

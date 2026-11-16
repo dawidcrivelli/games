@@ -574,7 +574,12 @@ $('bSail').onclick=()=>{initAudio();goFS();$('shop').hidden=true;fadeTo(startLev
 function begin(k){kid=k;S=SAVE[k?'kid':'dad'];initAudio();goFS();try{screen.orientation.lock('landscape').catch(()=>{});}catch(e){}
   $('start').hidden=true;if(S.lvl>1||S.gold>0)openShop();else{startLevel();if(!localStorage.getItem(KEY+'-help')){try{localStorage.setItem(KEY+'-help','1');}catch(e){}}}}
 $('bKid').onclick=()=>begin(true);$('bDad').onclick=()=>begin(false);
-$('sKid').textContent='poziom '+SAVE.kid.lvl;$('sDad').textContent='poziom '+SAVE.dad.lvl;
+// ekran startowy: stan obu zapisów + „od nowa” (dwa stuknięcia, kasuje tylko ten jeden tryb)
+function startInfo(){for(const [m,k] of [['kid','Kid'],['dad','Dad']]){const d=SAVE[m],r=$('r'+k);$('s'+k).textContent='poziom '+d.lvl+(d.gold?' · '+d.gold+' 🪙':'');
+  r.hidden=JSON.stringify(d)===JSON.stringify(fresh());r.classList.remove('sure');r.textContent='🗑️ od nowa';}}
+for(const [m,k] of [['kid','Kid'],['dad','Dad']])$('r'+k).onclick=e=>{const r=e.currentTarget;if(!r.classList.contains('sure')){r.classList.add('sure');r.textContent='Na pewno? Stuknij jeszcze raz';setTimeout(startInfo,4000);return;}
+  SAVE[m]=fresh();save();startInfo();};
+startInfo();
 let helpWas=false;
 $('bHelp').onclick=()=>{helpWas=paused;paused=true;$('help').hidden=false;};$('bHelpX').onclick=()=>{$('help').hidden=true;paused=helpWas;};
 $('bMus').onclick=()=>{initAudio();muted=!muted;if(master)master.gain.value=muted?0:1;$('bMus').textContent=muted?'🔇':'🔊';};
