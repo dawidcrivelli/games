@@ -22,11 +22,27 @@ p{margin:0 14px 12px;font-weight:500;font-size:15px;opacity:.8}
 <h1>🎮 Gry <a href="galeria/" style="display:inline;background:none;box-shadow:none;font-size:20px">· 🐘 galeria modeli 3D</a></h1>
 <main id="list"></main>
 <script>
-// Tiles from gry.json: own games link to ./<id>/, the rest to their own pages
-fetch('gry.json').then(r => r.json()).then(gry => {
-  list.innerHTML = gry.map(g => `<a href="${g.url ?? g.id + '/'}">
+// Tiles from gry.json: own games link to ./<id>/, the rest to their own pages.
+// Order: last played first (click time in localStorage), never played keep gry.json order.
+const KEY = 'gry-ostatnio';
+const played = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+let gry = [];
+function render() {
+  const t = played();
+  list.innerHTML = gry.map((g, i) => [g, i]).sort(([a, i], [b, j]) => (t[b.id] || 0) - (t[a.id] || 0) || i - j)
+    .map(([g]) => `<a href="${g.url ?? g.id + '/'}" data-id="${g.id}">
     <img src="shots/${g.id}.jpg" alt="" loading="lazy"><h2>${g.emoji} ${g.title}</h2><p>${g.opis}</p></a>`).join('');
-});
+}
+function remember(e) {
+  const a = e.target.closest('a[data-id]');
+  if (!a) return;
+  const t = played(); t[a.dataset.id] = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(t)); } catch (e) {}
+}
+list.addEventListener('click', remember);
+list.addEventListener('auxclick', remember); // middle click = new tab
+addEventListener('pageshow', e => e.persisted && render()); // back button from a game
+fetch('gry.json').then(r => r.json()).then(g => { gry = g; render(); });
 </script>
 </body>
 </html>
