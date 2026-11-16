@@ -38,14 +38,24 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #msg big{display:block;font-size:28px;line-height:1.15}
 .fl{position:absolute;font-size:26px;font-weight:800;color:#fff;-webkit-text-stroke:1.5px #2e1a09;paint-order:stroke fill;transform:translate(-50%,-50%);animation:rise .9s ease-out forwards;white-space:nowrap;pointer-events:none}
 .fl.big{font-size:40px;color:var(--gold)}.fl.bad{color:#ff8a7a}
-.who{display:flex;flex-direction:column;font-size:15px;line-height:1.1;color:#fff;text-shadow:0 2px 0 #2e1a09}.who.r{align-items:flex-end}
-.who .bar{width:clamp(120px,30vw,280px);height:18px;border:2px solid #2e1a09}.who.r .bar i{left:auto;right:0;background:linear-gradient(#ff9a8a,#e03a2a)}.who.r .bar.en i{background:linear-gradient(#8fe9ff,#2aa8ff)}
-#tele{position:absolute;transform:translate(-50%,-100%);font-size:54px;line-height:1;filter:drop-shadow(0 3px 0 #2e1a09);animation:pulse .18s infinite alternate}
-#dL,#dR{position:absolute;bottom:calc(12px + var(--sb));display:flex;gap:10px;align-items:flex-end}
-#dL{left:calc(12px + var(--sl))}#dR{right:calc(12px + var(--sr));flex-direction:column}
-#dR .fb{width:92px;height:76px;border-radius:26px}
-.fb.off{opacity:.5}
-#dSw{position:absolute;left:calc(12px + var(--sl));bottom:calc(108px + var(--sb));height:34px;border-radius:99px;background:var(--panel);box-shadow:0 3px 0 var(--edge);font-size:15px;padding:2px 12px 0}
+.dt{align-items:flex-start;gap:10px;padding-top:calc(8px + var(--st))}
+.hb{flex:1;display:flex;flex-direction:column;gap:2px;font-size:17px;line-height:1.05;color:#fff;-webkit-text-stroke:3px #2e1a09;paint-order:stroke fill;min-width:0;white-space:nowrap}.hb.r{align-items:flex-end}
+.hbar{width:100%;height:24px;border-radius:99px;background:#efe6d2;border:3px solid #2e1a09;box-shadow:0 3px 0 #2e1a09;position:relative;overflow:hidden}
+.hbar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(#8fe07a,#4fbf4a);transition:width .12s}
+.hbar .gh{background:#fff3a0;transition:width .7s .25s}.hb.r .hbar i{left:auto;right:0;background:linear-gradient(#ff8a7a,#e0453a)}.hb.r .hbar .gh{background:#fff3a0}
+.lv{background:var(--panel);border-radius:99px;border:3px solid #2e1a09;padding:3px 12px 0;font-size:15px;white-space:nowrap;line-height:1.3}
+#tele{position:absolute;transform:translate(-50%,-100%);font-size:58px;line-height:1;filter:drop-shadow(0 3px 0 #2e1a09);animation:pulse .16s infinite alternate;white-space:nowrap}#tele.still{animation:none;font-size:44px}
+#dL,#dR{position:absolute;bottom:calc(10px + var(--sb));display:grid;gap:10px;align-items:end;justify-items:end}
+#dL{left:calc(12px + var(--sl));grid-template-columns:auto}#dR{right:calc(12px + var(--sr));grid-template-columns:auto auto}
+.db{width:82px;height:82px;border-radius:50%;border:3px solid #2e1a09;box-shadow:0 6px 0 #2e1a09;font-size:15px;line-height:1;padding:0;position:relative;overflow:hidden;color:#2e1a09}
+.db big{display:block;font-size:34px;line-height:1.05;position:relative}.db span{position:relative}
+.db.dn,.db:active{transform:translateY(4px);box-shadow:0 2px 0 #2e1a09}
+.db.ki{background:#7fd66a}.db.pu{background:#ffd23f}.db.wp{background:#ff6a5c}.db.bl{background:#7cc4ff}.db.sp{background:#4a3a66;color:#fff}
+.db .cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(46,26,9,.55);pointer-events:none}
+.db .fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#c77dff,#8b5cf6);transition:height .15s}
+.db.sp.full{animation:pulse .3s infinite alternate}.db.sp.full .fill{background:linear-gradient(#fff39a,#ffb300)}.db.sp.full{color:#2e1a09}
+.db.hot{animation:pulse .22s infinite alternate;outline:5px solid #fff}
+#dSw{width:44px;height:44px;border-radius:50%;background:var(--panel);border:3px solid #2e1a09;box-shadow:0 3px 0 #2e1a09;font-size:18px;padding:0;justify-self:end;align-self:center}
 .ov{position:fixed;inset:0;background:rgba(10,30,50,.62);display:grid;place-items:center;pointer-events:auto;padding:10px;z-index:5}
 .card{background:var(--panel);border-radius:24px;box-shadow:0 7px 0 var(--edge);padding:12px 16px;max-width:680px;width:100%;max-height:100%;overflow:auto;touch-action:pan-y;font-size:16px;line-height:1.25;font-weight:700;color:var(--ink);text-align:center}
 .card h2{margin:0 0 4px;font-size:26px;line-height:1.1}.card p{margin:5px 0}
@@ -98,20 +108,21 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   </div>
 </div>
 <div id="duel" hidden>
-  <div class="top">
-    <div class="who"><span id="pName">Ty</span><div class="bar"><i id="pHp"></i></div><div class="bar en" id="pEnB"><i id="pEn"></i></div></div>
-    <div class="sp"></div>
-    <div class="who r"><span id="eName">Wróg</span><div class="bar"><i id="eHp"></i></div><div class="bar en" id="eEnB"><i id="eEn"></i></div></div>
+  <div class="top dt">
+    <div class="hb"><div class="hbar"><i class="gh" id="pGh"></i><i id="pHp"></i></div><span id="pName">Ty</span></div>
+    <div class="lv" id="dLv">Poziom 1</div>
+    <div class="hb r"><div class="hbar"><i class="gh" id="eGh"></i><i id="eHp"></i></div><span id="eName">Wróg</span></div>
   </div>
-  <div id="tele" hidden>⬆️</div>
-  <button id="dSw" aria-label="Zmień zwierzaka">🔁 zmień</button>
+  <div id="tele" hidden>❗</div>
   <div id="dL">
-    <button class="fb" id="dCh" aria-label="Ładuj energię"><big>⚡</big>ładuj</button>
-    <button class="fb off" id="dSp" aria-label="Atak specjalny"><big id="dSpE">🐟</big>rzut!</button>
+    <button class="db ki" id="dKi" aria-label="Kop"><big>🦶</big>Kop</button>
+    <button class="db pu" id="dPu" aria-label="Cios"><big>👊</big>Cios</button>
   </div>
   <div id="dR">
-    <button class="fb" id="dHi" aria-label="Cios górny"><big>⬆️</big>góra</button>
-    <button class="fb" id="dLo" aria-label="Cios dolny"><big>⬇️</big>dół</button>
+    <button id="dSw" aria-label="Zmień zwierzaka">🔁</button>
+    <button class="db sp" id="dSp" aria-label="Super: rzut morskim zwierzakiem"><div class="fill" id="dSpF"></div><big id="dSpE">🐟</big><span>Super</span></button>
+    <button class="db bl" id="dBl" aria-label="Blok"><big>🛡️</big>Blok</button>
+    <button class="db wp" id="dWp" aria-label="Broń"><big id="dWpE">🗡️</big>Broń<div class="cd"></div></button>
   </div>
 </div>
 <div id="floaters" style="position:fixed;inset:0;pointer-events:none;z-index:3"></div>
@@ -120,8 +131,9 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <div class="ov" id="help" hidden><div class="card" style="text-align:left">
   <h2>Piraci! Bitwa morska</h2>
   <p><b>Na morzu:</b> lewy kciuk – joystick ⛵ (do przodu = pełne żagle, w bok = skręt). Prawy kciuk – 💥 salwa z lewej albo prawej burty. Ustaw się bokiem do wroga! Przycisk świeci na żółto, gdy wróg jest na celowniku. 💨 – wiatr w żagle (szybki zryw, taranowanie boli wroga). Beczki 🛢️ naprawiają statek, skrzynie dają złoto.</p>
-  <p><b>Abordaż:</b> gdy okręt kapitana ☠️ dymi, podpłyń do niego. Pojedynek: ⬆️ cios górny, ⬇️ cios dolny – bij tam, gdzie wróg się NIE zasłania. Gdy wróg bierze zamach (strzałka nad głową), wciśnij ten sam kierunek = parada! ⚡ przytrzymaj, żeby ładować energię (uwaga, wtedy jesteś odsłonięty), pełny pasek = rzut morskim zwierzakiem.</p>
-  <p><b>Klawiatura:</b> strzałki / WASD, Q i E – burty, spacja – wiatr. W pojedynku: ↑ ↓ ciosy, spacja – ładuj, Enter – rzut.</p>
+  <p><b>Abordaż:</b> gdy okręt kapitana ☠️ dymi, podpłyń do niego. Pojedynek: 👊 Cios (szybki), 🦶 Kop (mocniejszy, przełamuje gardę), ⚔️ Broń (najmocniejsza, chwilę się odnawia). Każde trafienie ładuje przycisk Super — gdy się zapełni, rzucasz morskim zwierzakiem. Seria trafień bez oberwania to COMBO (mocniejsze ciosy).</p>
+  <p><b>Obrona:</b> ❗ nad wrogiem znaczy, że zaraz uderzy — przytrzymaj 🛡️ Blok. Wciśnięty w ostatniej chwili daje PARADĘ (wróg ogłuszony). Gdy wróg stoi za tarczą 🛡️, zwykłe ciosy się odbijają — kopnij go.</p>
+  <p><b>Klawiatura:</b> strzałki / WASD, Q i E – burty, spacja – wiatr. W pojedynku: J cios, K kop, L broń, spacja – blok, Enter – Super.</p>
   <div style="text-align:center"><button class="go" id="bHelpX">OK</button></div>
 </div></div>
 <div class="ov" id="shop" hidden><div class="card">
