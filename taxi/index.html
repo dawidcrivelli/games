@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Taxi Ciuchciowo!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Baloo 2","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --sky:#8fcdf0; --plate:#fff4d6; --plate-edge:#c9a35a; --ink:#3b2a17;
+  --taxi:#f7c81a; --taxi-edge:#b58a08; --blue:#1f5fa8; --blue-edge:#123a6b;
+  --panel:rgba(255,246,222,.94); --shade:rgba(60,35,5,.35); --title:#1c1c1e;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){ --plate:#4a3a26; --plate-edge:#241a0e; --ink:#fdeecb; --panel:rgba(43,32,20,.94); --shade:rgba(0,0,0,.5); --title:#f7c81a; }
+}
+:root[data-theme="dark"]{ --plate:#4a3a26; --plate-edge:#241a0e; --ink:#fdeecb; --panel:rgba(43,32,20,.94); --shade:rgba(0,0,0,.5); --title:#f7c81a; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);font-family:var(--font);color:var(--ink);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;overscroll-behavior:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.btn{font:800 1.15rem/1 var(--font);color:var(--ink);background:var(--plate);border:0;border-radius:20px;padding:0;margin:0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:0 5px 0 var(--plate-edge),0 9px 14px var(--shade);transition:transform .06s, box-shadow .06s}
+.btn:active,.btn.on{transform:translateY(4px);box-shadow:0 1px 0 var(--plate-edge),0 3px 6px var(--shade)}
+.btn:focus-visible{outline:4px solid var(--taxi);outline-offset:3px}
+.btn small{font-size:.72rem;font-weight:600;line-height:1;white-space:nowrap}
+.btn .ico{font-size:1.7rem;line-height:1}
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud>*{pointer-events:auto;position:absolute}
+#stats{top:calc(10px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));
+  display:flex;gap:5px;flex-wrap:nowrap;max-width:calc(100% - 80px);pointer-events:none!important}
+.stat{background:var(--panel);border-radius:16px;padding:4px 11px 4px 8px;height:38px;display:flex;align-items:center;gap:5px;
+  font-weight:800;font-size:1.3rem;box-shadow:0 3px 0 var(--plate-edge);font-variant-numeric:tabular-nums}
+.stat small{font-size:.85rem;font-weight:600;opacity:.7}
+.stat .e{font-size:1.25rem}
+.stat{white-space:nowrap}
+@media (max-width:520px){.stat{font-size:1.15rem;padding:4px 8px 4px 5px;gap:3px}.stat small{display:none}.stat .e{font-size:1.1rem}}
+#clockBox.low{background:#e23b2b;color:#fff;animation:pulse .5s ease-in-out infinite alternate}
+#mini{top:calc(56px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));
+  width:clamp(104px,30vmin,150px);height:clamp(104px,30vmin,150px);border-radius:50%;
+  box-shadow:0 0 0 4px var(--plate),0 0 0 6px var(--plate-edge),0 8px 16px var(--shade);background:#6fae52}
+#mini.big{width:min(86vmin,520px);height:min(86vmin,520px);left:50%;top:50%;transform:translate(-50%,-50%);border-radius:28px;z-index:6}
+#jobBox{top:calc(56px + env(safe-area-inset-top,0px));left:calc(24px + env(safe-area-inset-left,0px) + clamp(104px,30vmin,150px));
+  max-width:calc(100% - 44px - clamp(104px,30vmin,150px));background:var(--panel);border-radius:16px;padding:5px 12px 7px;
+  font-weight:800;font-size:1.05rem;line-height:1.15;box-shadow:0 3px 0 var(--plate-edge);pointer-events:none!important}
+#jobTxt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#jobBar{height:9px;border-radius:6px;background:rgba(120,90,40,.28);overflow:hidden;margin-top:4px;min-width:120px}
+#jobBar i{display:block;height:100%;width:100%;background:#3f9a4a;border-radius:6px}
+#bMenu{top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:52px;height:46px;border-radius:16px}
+#cpL{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;
+  grid-template-columns:repeat(2,clamp(74px,22vmin,112px));gap:8px}
+#cpL .btn{height:clamp(74px,22vmin,104px);font-size:2rem;background:var(--blue);color:#fff;box-shadow:0 5px 0 var(--blue-edge),0 9px 14px var(--shade)}
+#cpR{right:calc(22px + env(safe-area-inset-right,0px) + clamp(58px,16vmin,76px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+#cpR .btn{width:clamp(74px,21vmin,104px);height:clamp(58px,17vmin,84px);color:#fff}
+#cpR .btn .ico{font-size:1.5rem}#cpR .btn small{font-size:.9rem;font-weight:800}
+#cGo{background:#2f9a4a;box-shadow:0 5px 0 #1d6a31,0 9px 14px var(--shade)}
+#cBk{background:#d9432a;box-shadow:0 5px 0 #9c2a18,0 9px 14px var(--shade)}
+#cTurbo{background:#ff8a1a;box-shadow:0 5px 0 #b3560a,0 9px 14px var(--shade);height:clamp(46px,13vmin,60px)!important}
+#cTurbo.cd{filter:grayscale(.9);opacity:.6}
+#cpL .btn:active,#cpL .btn.on,#cpR .btn:active,#cpR .btn.on{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35),0 3px 6px var(--shade)}
+#acts{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+#acts .btn{width:clamp(58px,16vmin,76px);height:clamp(52px,14.5vmin,68px)}
+#bSwap{background:var(--taxi)!important;color:#3b2a17!important;box-shadow:0 5px 0 var(--taxi-edge),0 9px 14px var(--shade)!important}
+body.train #cpL,body.train #cTurbo{display:none}
+#pick{left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:min(94vw,500px);z-index:7;
+  background:var(--panel);padding:14px;border-radius:24px;box-shadow:0 6px 0 var(--plate-edge),0 16px 36px var(--shade)}
+#pick .btn{width:104px;height:88px;font-size:.98rem}#pick .btn[aria-pressed="true"]{background:var(--taxi);color:#3b2a17}
+#pick .btn small{white-space:normal;text-align:center;line-height:1.05}
+.em{font-size:1.9rem;line-height:1}
+#evBox{top:calc(112px + env(safe-area-inset-top,0px));left:calc(24px + env(safe-area-inset-left,0px) + clamp(104px,30vmin,150px));background:#e23b2b;color:#fff;border-radius:14px;padding:4px 12px;font-weight:800;font-size:1.05rem;box-shadow:0 3px 0 #9c2a18;pointer-events:none!important;font-variant-numeric:tabular-nums}
+#toast{left:50%;bottom:calc(128px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);padding:7px 16px;border-radius:14px;
+  font-weight:800;font-size:1.05rem;max-width:80vw;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none!important;box-shadow:0 3px 0 var(--plate-edge)}
+#toast.show{opacity:1}
+#big{left:50%;top:30%;transform:translate(-50%,-50%) scale(.6);font-weight:800;font-size:clamp(2rem,9vmin,3.6rem);color:#fff;white-space:nowrap;
+  text-shadow:0 4px 0 #b3560a,0 0 18px rgba(0,0,0,.45);opacity:0;pointer-events:none!important;-webkit-text-stroke:2px #7a3a00;paint-order:stroke fill}
+#big.show{animation:bigpop 1.3s ease-out}
+@keyframes bigpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-6deg)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}30%{transform:translate(-50%,-50%) scale(1) rotate(-2deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+@keyframes pulse{to{transform:scale(1.1)}}
+@media (max-height:440px){#acts{gap:6px}#cpR{gap:6px}}
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(rgba(143,205,240,.15),rgba(247,200,26,.25));overflow:auto}
+.card{background:var(--panel);border-radius:28px;padding:14px 18px 18px;width:min(470px,100%);box-shadow:0 7px 0 var(--plate-edge),0 18px 40px var(--shade);text-align:center}
+.chk{height:14px;border-radius:7px;margin:0 0 8px;background:repeating-linear-gradient(90deg,#1c1c1e 0 14px,#f7c81a 14px 28px)}
+h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:800;color:var(--title);letter-spacing:-.01em;text-shadow:0 3px 0 var(--taxi-edge)}
+.sub{margin:4px 0 10px;font-size:1.05rem;font-weight:600}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.go{height:76px;font-size:1.35rem;color:#fff}
+.go small{font-size:.8rem;font-weight:600;opacity:.95}
+#bGo{background:#2f9a4a;box-shadow:0 6px 0 #1d6a31,0 10px 16px var(--shade)}
+#bArc{background:#d9432a;box-shadow:0 6px 0 #9c2a18,0 10px 16px var(--shade)}
+#bBack{width:100%;height:60px;margin-top:12px;font-size:1.4rem;background:var(--taxi);box-shadow:0 6px 0 var(--taxi-edge),0 10px 16px var(--shade);color:#3b2a17}
+#bNew{width:100%;height:50px;margin-top:12px;font-size:1.15rem;flex-direction:row;gap:8px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+#bSnd{width:64px;height:48px;flex:none}
+.foot p{margin:0;font-size:.82rem;font-weight:600;opacity:.8;text-align:left;line-height:1.25}
+@media (orientation:landscape) and (max-height:480px){
+  .card{width:min(680px,100%);padding:8px 16px 12px}
+  h1{font-size:2rem;display:inline}.sub{display:inline;margin-left:10px}
+  .go{height:60px}#bBack{height:50px;margin-top:8px}#bNew{height:44px;margin-top:8px}.row{margin-top:8px}.foot{margin-top:8px}
+}
+@media (prefers-reduced-motion:reduce){#big.show{animation:none;opacity:1}#clockBox.low{animation:none}}
+#bGar{width:100%;height:50px;margin-top:12px;font-size:1.15rem;flex-direction:row;gap:8px}
+#garage{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(40,25,5,.45);overflow:auto}
+#garage .card{max-height:100%;overflow:auto;width:min(520px,100%)}
+#garage h2{margin:0;font-size:1.8rem;line-height:1}
+.gh{font-weight:800;text-align:left;margin:10px 0 6px;font-size:1rem}
+.gr{display:flex;flex-wrap:wrap;gap:8px}
+.gr .btn{flex:1 1 86px;min-width:86px;height:58px;font-size:.95rem}
+.gr .btn[aria-pressed="true"]{background:var(--taxi);color:#3b2a17;box-shadow:0 5px 0 var(--taxi-edge),0 9px 14px var(--shade)}
+#gBack{width:100%;height:52px;margin-top:14px;font-size:1.2rem;background:var(--taxi);color:#3b2a17;box-shadow:0 6px 0 var(--taxi-edge),0 10px 16px var(--shade)}
+@media (orientation:landscape) and (max-height:480px){#bGar{height:44px;margin-top:8px}.gr .btn{height:46px}.gh{margin:6px 0 4px}}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:1.2rem;font-weight:600;background:var(--sky);color:#3b2a17}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" hidden>
+  <div id="stats">
+    <div class="stat"><span class="e">⭐</span><span id="score">0</span></div>
+    <div class="stat"><span class="e" id="spdIco">🚕</span><span id="spd">0</span><small>km/h</small></div>
+    <div class="stat"><span class="e">💥</span><span id="chaos">0</span></div>
+    <div class="stat" id="clockBox" hidden><span class="e">⏱</span><span id="clock">60</span></div>
+  </div>
+  <span id="wx" hidden></span>
+  <canvas id="mini" width="300" height="300" aria-label="Mapa miasta"></canvas>
+  <div id="evBox" hidden></div>
+  <div id="jobBox"><span id="jobTxt">🙋 Szukaj pasażera</span><div id="jobBar" hidden><i></i></div></div>
+  <button class="btn" id="bMenu" aria-label="Menu"><span class="ico" style="font-size:1.4rem">⚙️</span></button>
+  <div id="cpL"><button class="btn" id="cL" aria-label="Skręć w lewo">◀</button><button class="btn" id="cR" aria-label="Skręć w prawo">▶</button></div>
+  <div id="cpR">
+    <button class="btn" id="cTurbo" aria-label="Turbo"><span class="ico">🔥</span></button>
+    <button class="btn" id="cGo" aria-label="Gaz"><span class="ico">▲</span><small>gaz</small></button>
+    <button class="btn" id="cBk" aria-label="Hamulec i wsteczny"><span class="ico">▼</span><small>hamulec</small></button>
+  </div>
+  <div id="acts">
+    <button class="btn" id="bHorn" aria-label="Klakson"><span class="ico">📯</span></button>
+    <button class="btn" id="bCam" aria-label="Zmień widok"><span class="ico">🎥</span></button>
+    <button class="btn" id="bSwap" aria-label="Zmień pojazd"><span class="ico" id="swapIco">🚕</span><small>pojazd</small></button>
+  </div>
+  <div id="pick" hidden></div>
+  <div id="toast" role="status"></div>
+  <div id="big"></div>
+</div>
+
+<div id="menu">
+  <div class="card">
+    <div class="chk"></div>
+    <h1 id="mTitle">Taxi Ciuchciowo!</h1>
+    <p class="sub" id="mSub">Miasto, wieś, kury i pociągi</p>
+    <button class="btn" id="bBack" hidden>Wracamy do jazdy!</button>
+    <div class="row">
+      <button class="btn go" id="bGo">Jedziemy!<small>spokojnie, bez zegara</small></button>
+      <button class="btn go" id="bArc">Na czas! ⏱<small id="bestTxt">zdąż przed zegarem</small></button>
+    </div>
+    <button class="btn" id="bGar"><span class="ico" style="font-size:1.3rem">🔧</span>Garaż · ⭐ <span id="bGarN">0</span></button>
+    <button class="btn" id="bNew"><span class="ico" style="font-size:1.3rem">🎲</span>Nowe miasto</button>
+    <div class="foot">
+      <p>Zielona strzałka prowadzi do pasażera, żółta do celu. Zatrzymaj się w świetlistym kole. Skocznie, drifty i demolka dają napiwki, a gwiazdki wydasz w garażu.</p>
+      <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.4rem">🔊</span></button>
+    </div>
+  </div>
+</div>
+<div id="garage" hidden><div class="card"><div class="chk"></div><h2>Garaż</h2><p class="sub">Masz ⭐ <b id="gBank">0</b> · <span id="gJump"></span></p><div id="gList"></div><button class="btn" id="gBack">Gotowe</button></div></div>
+<div id="err">Nie udało się wczytać silnika 3D. Sprawdź internet i odśwież stronę.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa.js"></script>
+<script src="../lib/ciuchcia-taxi.js"></script>
+<script src="../models/budynki.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/ludzie.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/pojazdy.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/pociagi.ciuchcia-taxi.js"></script>
+<script src="../models/pojazdy.ciuchcia-taxi.js"></script>
+<script src="../models/rolnicze.ciuchcia-taxi.js"></script>
+<script src="../models/budynki.taxi.js"></script>
+<script src="../models/ludzie.taxi.js"></script>
+<script src="../models/pojazdy.taxi.js"></script>
+<script src="../models/rolnicze.taxi.js"></script>
+<script src="../models/zwierzeta.taxi.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

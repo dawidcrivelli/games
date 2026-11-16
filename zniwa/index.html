@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Żniwa! Kombajn i Ursus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Baloo 2","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --sky:#8fcdf0;
+  --plate:#fff4d6;        /* emaliowana tabliczka */
+  --plate-edge:#c9a35a;
+  --ink:#3b2a17;
+  --ursus:#d9432a;
+  --ursus-edge:#9c2a18;
+  --wheat:#f2b632;
+  --leaf:#3f8f3a;
+  --panel:rgba(255,246,222,.94);
+  --shade:rgba(60,35,5,.35);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --plate:#4a3a26; --plate-edge:#241a0e; --ink:#fdeecb;
+    --panel:rgba(43,32,20,.94); --shade:rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --plate:#4a3a26; --plate-edge:#241a0e; --ink:#fdeecb;
+  --panel:rgba(43,32,20,.94); --shade:rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);
+  font-family:var(--font);color:var(--ink);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  touch-action:none;overscroll-behavior:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- przyciski ---------- */
+.btn{font:800 1.15rem/1 var(--font);color:var(--ink);background:var(--plate);
+  border:0;border-radius:20px;padding:0;margin:0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:0 5px 0 var(--plate-edge),0 9px 14px var(--shade);
+  transition:transform .06s, box-shadow .06s}
+.btn:active,.btn.on{transform:translateY(4px);box-shadow:0 1px 0 var(--plate-edge),0 3px 6px var(--shade)}
+.btn:focus-visible{outline:4px solid var(--wheat);outline-offset:3px}
+.btn small{font-size:.72rem;font-weight:600;line-height:1}
+.btn .ico{font-size:1.7rem;line-height:1}
+.btn svg{display:block}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;
+  padding:calc(10px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px))
+          calc(14px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px))}
+#hud[hidden]{display:none}
+#hud>*{pointer-events:auto;position:absolute}
+#stats{top:calc(10px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));
+  display:flex;gap:8px;flex-wrap:wrap;max-width:calc(100% - 96px);pointer-events:none}
+.stat{background:var(--panel);border-radius:16px;padding:4px 12px 4px 8px;height:40px;
+  display:flex;align-items:center;gap:6px;font-weight:800;font-size:1.35rem;
+  box-shadow:0 3px 0 var(--plate-edge)}
+.stat small{font-size:.9rem;font-weight:600;opacity:.7}
+.stat .e{font-size:1.35rem}
+.bar{width:84px;height:16px;border-radius:9px;background:rgba(120,90,40,.28);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--leaf);border-radius:9px;transition:width .25s}
+.bale{width:24px;height:17px;border-radius:4px;background:
+  linear-gradient(90deg,transparent 22%,#9a6b1c 22% 30%,transparent 30% 70%,#9a6b1c 70% 78%,transparent 78%),var(--wheat);
+  box-shadow:inset 0 -3px 0 rgba(120,70,0,.3)}
+#bMenu{top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));
+  width:52px;height:48px;border-radius:16px}
+#pad{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  --k:clamp(58px,17vmin,86px);display:grid;gap:6px;
+  grid-template:repeat(3,var(--k))/repeat(3,var(--k))}
+#pad .btn{width:var(--k);height:var(--k);background:var(--ursus);color:#fff;
+  box-shadow:0 5px 0 var(--ursus-edge),0 9px 14px var(--shade)}
+#pad .btn:active,#pad .btn.on{box-shadow:0 1px 0 var(--ursus-edge),0 3px 6px var(--shade)}
+#pU{grid-area:1/2}#pL{grid-area:2/1}#pR{grid-area:2/3}#pD{grid-area:3/2}
+#bCal{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  width:76px;height:76px}
+#acts{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+#acts .btn{width:clamp(66px,18vmin,84px);height:clamp(60px,16vmin,76px)}
+#bSwap{background:var(--wheat)!important;color:#3b2a17!important}
+#bTool{background:#cfe3ff!important;color:#17324f!important}
+.grain{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe27a,#e0a51c);box-shadow:inset 0 -2px 0 rgba(120,70,0,.3)}
+#pick{left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:min(94vw,560px);
+  background:var(--panel);padding:14px;border-radius:24px;box-shadow:0 6px 0 var(--plate-edge),0 16px 36px var(--shade)}
+#pick .btn{width:96px;height:84px}#pick .btn[aria-pressed="true"]{background:var(--wheat);color:#3b2a17}
+.em{font-size:1.9rem;line-height:1}.btn small{white-space:nowrap}
+@media (max-height:440px){#acts{gap:7px}#acts .btn{height:clamp(50px,14.5vmin,64px)}}
+#bSwap.pulse{animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.14) rotate(-3deg)}}
+#toast{left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);
+  background:var(--panel);padding:8px 16px;border-radius:14px;font-weight:600;font-size:1rem;
+  max-width:86vw;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none!important;
+  box-shadow:0 3px 0 var(--plate-edge)}
+#toast.show{opacity:1}
+body.tilt #pad{display:none}
+body:not(.tilt) #bCal{display:none}
+
+/* ---------- menu ---------- */
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(rgba(143,205,240,.15),rgba(242,182,50,.28));overflow:auto}
+#menu[hidden]{display:none}
+.card{background:var(--panel);border-radius:28px;padding:14px 18px 18px;width:min(460px,100%);
+  box-shadow:0 7px 0 var(--plate-edge),0 18px 40px var(--shade);text-align:center}
+h1{font-size:clamp(2.3rem,11vmin,3.6rem);line-height:.95;margin:0;font-weight:800;color:var(--ursus);
+  letter-spacing:-.01em;text-shadow:0 3px 0 var(--plate-edge)}
+.sub{margin:2px 0 10px;font-size:1.05rem;font-weight:600}
+.q{font-size:1rem;font-weight:600;margin:10px 0 6px;text-align:left}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick{height:66px;font-size:1.15rem;flex-direction:row;gap:8px}
+.pick .ico{font-size:1.9rem}
+.pick[aria-pressed="true"]{background:var(--wheat);color:#3b2a17;
+  box-shadow:0 5px 0 #b07a12,0 9px 14px var(--shade)}
+#bGo{width:100%;height:68px;margin-top:16px;font-size:1.7rem;background:var(--ursus);color:#fff;
+  box-shadow:0 6px 0 var(--ursus-edge),0 10px 16px var(--shade)}
+#bNew{width:100%;height:56px;margin-top:12px;font-size:1.25rem}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+#bSnd{width:64px;height:48px;flex:none}
+.foot p{margin:0;font-size:.82rem;font-weight:600;opacity:.75;text-align:left;line-height:1.25}
+@media (orientation:landscape) and (max-height:480px){
+  .card{width:min(680px,100%);padding:8px 16px 12px}
+  h1{font-size:2rem;display:inline}.sub{display:inline;margin-left:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .pick{height:54px}#bGo{height:54px;margin-top:10px;font-size:1.4rem}#bNew{height:46px;margin-top:8px}
+  .foot{margin-top:8px}
+}
+@media (prefers-reduced-motion:reduce){#bSwap.pulse{animation:none;outline:4px solid #fff}}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;
+  text-align:center;font-size:1.2rem;font-weight:600;background:var(--sky);color:#3b2a17}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" hidden>
+  <div id="stats">
+    <div class="stat"><span class="e" id="cropIco">🌾</span><div class="bar"><i id="barFill"></i></div></div>
+    <div class="stat"><span class="bale"></span><span id="trailerN">0</span><small id="trailerCap">/16</small></div>
+    <div class="stat"><span class="e">🏠</span><span id="barnN">0</span></div>
+    <div class="stat"><span class="grain"></span><span id="grainN">0</span></div>
+    <div class="stat" style="padding:4px 9px"><span class="e" id="wx">☀️</span></div>
+  </div>
+  <button class="btn" id="bMenu" aria-label="Menu"><span class="ico" style="font-size:1.4rem">⚙️</span></button>
+  <div id="pad">
+    <button class="btn" id="pU" data-k="up" aria-label="Do przodu"></button>
+    <button class="btn" id="pL" data-k="left" aria-label="W lewo"></button>
+    <button class="btn" id="pR" data-k="right" aria-label="W prawo"></button>
+    <button class="btn" id="pD" data-k="down" aria-label="Do tyłu"></button>
+  </div>
+  <button class="btn" id="bCal" aria-label="Ustaw środek przechylania"><span class="ico">🎯</span><small>środek</small></button>
+  <div id="pick" hidden></div>
+  <div id="acts">
+    <button class="btn" id="bTool" aria-label="Zmień narzędzie" hidden><span class="ico" id="toolIco">🟤</span><small id="toolLbl">Pług</small></button>
+    <button class="btn" id="bHorn" aria-label="Klakson"><span class="ico">📯</span></button>
+    <button class="btn" id="bCam" aria-label="Zmień widok"><span class="ico">🎥</span><small id="camLbl">z góry</small></button>
+    <button class="btn" id="bSwap" aria-label="Zmień pojazd"><span id="swapIco"></span><small id="swapLbl">Ursus</small></button>
+  </div>
+  <div id="toast" role="status"></div>
+</div>
+
+<div id="menu">
+  <div class="card">
+    <h1 id="mTitle">Żniwa!</h1>
+    <p class="sub" id="mSub">Żniwa, orka, siew i zwierzaki</p>
+    <div class="grid2">
+      <div>
+        <p class="q">Co zbieramy?</p>
+        <div class="row">
+          <button class="btn pick" data-crop="wheat" aria-pressed="true"><span class="ico">🌾</span>Zboże</button>
+          <button class="btn pick" data-crop="corn" aria-pressed="false"><span class="ico">🌽</span>Kukurydza</button>
+        </div>
+      </div>
+      <div>
+        <p class="q">Jak kierujemy?</p>
+        <div class="row">
+          <button class="btn pick" data-ctrl="arrows" aria-pressed="true"><span class="ico">🕹️</span>Strzałki</button>
+          <button class="btn pick" data-ctrl="tilt" aria-pressed="false"><span class="ico">📱</span>Przechylanie</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="bGo">Jedziemy!</button>
+    <button class="btn" id="bNew" hidden>Nowe pole</button>
+    <div class="foot">
+      <p>Skoś pole i zawieź kostki słomy do stodoły. Reszta (ziarno, prasa, orka, siew) jest dla chętnych.</p>
+      <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.4rem">🔊</span></button>
+    </div>
+  </div>
+</div>
+<div id="err">Nie udało się wczytać silnika 3D. Sprawdź internet i odśwież stronę.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa.js"></script>
+<script src="../lib/ciuchcia-zniwa.js"></script>
+<script src="../lib/zniwa-rafa.js"></script>
+<script src="../models/budynki.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/ludzie.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/pojazdy.ciuchcia-taxi-zniwa.js"></script>
+<script src="../models/przyroda.zniwa.js"></script>
+<script src="../models/rolnicze.zniwa.js"></script>
+<script src="../models/zwierzeta.zniwa.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

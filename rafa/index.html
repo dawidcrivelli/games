@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Rafa koralowa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Fredoka","Baloo 2","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --abyss:#04345c;        /* głęboka woda */
+  --lagoon:#0a86b8;
+  --foam:#eafcff;
+  --coral:#ff6a55;
+  --coral-edge:#b93a2c;
+  --sun:#ffd23f;
+  --panel:rgba(5,48,88,.78);
+  --panel-line:rgba(190,240,255,.45);
+  --ink:#f3fdff;
+  --shade:rgba(0,20,45,.45);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){ --panel:rgba(3,30,58,.84); --shade:rgba(0,8,20,.6); }
+}
+:root[data-theme="dark"]{ --panel:rgba(3,30,58,.84); --shade:rgba(0,8,20,.6); }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--abyss);
+  font-family:var(--font);color:var(--ink);font-weight:500;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  touch-action:none;overscroll-behavior:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 52%,rgba(0,16,42,.5) 100%)}
+
+/* ---------- przyciski-bąbelki ---------- */
+.btn{font:700 1.1rem/1 var(--font);color:var(--ink);border:2px solid rgba(255,255,255,.75);
+  background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.75),rgba(255,255,255,.16) 42%,rgba(90,210,255,.28) 100%);
+  -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);
+  border-radius:50%;padding:0;margin:0;cursor:pointer;text-shadow:0 1px 3px rgba(0,30,60,.7);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  box-shadow:0 6px 14px var(--shade),inset 0 -6px 10px rgba(0,90,150,.25);
+  transition:transform .07s}
+.btn:active,.btn.on{transform:scale(.9);background:radial-gradient(circle at 30% 22%,#fff,rgba(255,255,255,.4) 42%,rgba(120,230,255,.55) 100%)}
+.btn:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
+.btn small{font-size:.7rem;font-weight:500;line-height:1}
+.btn .ico{font-size:1.55rem;line-height:1}
+.btn svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,30,60,.6))}
+.wide{border-radius:22px}
+.go{background:linear-gradient(#ff8a6b,var(--coral));border-color:#ffd0c4;
+  box-shadow:0 6px 0 var(--coral-edge),0 12px 18px var(--shade);text-shadow:0 2px 0 var(--coral-edge)}
+.go:active{transform:translateY(4px);background:linear-gradient(#ff8a6b,var(--coral));box-shadow:0 2px 0 var(--coral-edge),0 5px 8px var(--shade)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud>*{position:absolute}
+#stats{top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));
+  display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 80px)}
+.stat{font:700 1.25rem/1 var(--font);color:var(--ink);background:var(--panel);border:1.5px solid var(--panel-line);
+  border-radius:20px;padding:0 12px 0 8px;height:40px;display:flex;align-items:center;gap:5px;margin:0;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.stat small{font-size:.85rem;font-weight:500;opacity:.75}
+.stat .e{font-size:1.25rem}
+.stat.bump{animation:bump .45s}
+@keyframes bump{40%{transform:scale(1.25)}}
+button.stat{pointer-events:auto;cursor:pointer;border-color:var(--sun)}
+.pearl{width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#fff 0 18%,#ffe9f6 38%,#c9b7e8 72%,#8fa6d6);box-shadow:0 0 8px rgba(255,255,255,.8)}
+#bMenu{top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));
+  width:48px;height:48px;pointer-events:auto}
+#pad{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  --k:clamp(56px,17vmin,82px);display:grid;gap:4px;pointer-events:auto;
+  grid-template:repeat(3,var(--k))/repeat(3,var(--k))}
+#pad .btn{width:var(--k);height:var(--k)}
+#pU{grid-area:1/2}#pL{grid-area:2/1}#pR{grid-area:2/3}#pD{grid-area:3/2}
+#tiltBox{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  display:flex;gap:10px;pointer-events:auto}
+#tiltBox .btn{width:74px;height:74px}
+#acts{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  --k:clamp(58px,17vmin,80px);display:grid;gap:8px;pointer-events:auto;grid-template-columns:var(--k) var(--k);align-items:end}
+#acts .btn{width:var(--k);height:var(--k)}
+#pUp,#pDn{background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.8),rgba(255,210,63,.35) 45%,rgba(255,170,40,.5) 100%)}
+body.tilt #pad{display:none}
+body:not(.tilt) #tiltBox{display:none}
+#hint{left:50%;top:50%;width:0;height:0;opacity:0;transition:opacity .4s}
+#hint.show{opacity:.9}
+#hint i{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#fff 0 20%,#ffe9f6 45%,#b9a7e0);box-shadow:0 0 14px 4px rgba(255,255,255,.75);
+  animation:tw 1s ease-in-out infinite alternate}
+#hint i::after{content:"";position:absolute;left:5px;top:-15px;border:8px solid transparent;border-bottom:12px solid #fff;border-top:0}
+@keyframes tw{to{box-shadow:0 0 22px 9px rgba(255,255,255,.9)}}
+#toast{left:50%;top:calc(158px + env(safe-area-inset-top,0px));transform:translateX(-50%);
+  background:var(--panel);border:1.5px solid var(--panel-line);padding:8px 16px;border-radius:16px;font-size:1rem;
+  max-width:86vw;text-align:center;opacity:0;transition:opacity .3s}
+#toast.show{opacity:1}
+#found{left:50%;top:calc(62px + env(safe-area-inset-top,0px));transform:translate(-50%,-30px) scale(.6);opacity:0;
+  display:flex;align-items:center;gap:12px;background:var(--panel);border:2px solid var(--sun);border-radius:24px;
+  padding:8px 18px 8px 8px;transition:transform .45s cubic-bezier(.2,1.6,.4,1),opacity .3s;max-width:92vw;
+  box-shadow:0 0 30px rgba(255,210,63,.45)}
+#found.show{transform:translate(-50%,0) scale(1);opacity:1}
+#found img{width:76px;height:76px;border-radius:18px;display:block}
+#found b{display:block;font-size:1.35rem;line-height:1.1;color:var(--sun)}
+#found span{font-size:.9rem;opacity:.9}
+
+/* ---------- panele ---------- */
+.veil{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:auto;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));
+  background:radial-gradient(ellipse at 50% 0%,rgba(80,220,255,.12),rgba(2,30,60,.45))}
+.card{background:var(--panel);border:1.5px solid var(--panel-line);border-radius:30px;padding:14px 18px 18px;
+  width:min(460px,100%);margin:auto;box-shadow:0 18px 50px var(--shade);text-align:center;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+h1{font-size:clamp(2.2rem,10.5vmin,3.4rem);line-height:.95;margin:0;font-weight:700;color:var(--sun);
+  letter-spacing:-.01em;text-shadow:0 3px 0 var(--coral),0 6px 16px rgba(0,20,50,.6)}
+.sub{margin:6px 0 8px;font-size:1.02rem}
+.q{font-size:1rem;margin:10px 0 6px;text-align:left;opacity:.9}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick{height:78px;font-size:1.1rem;flex-direction:row;gap:8px;border-radius:22px;
+  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.35);box-shadow:none}
+.pick img{width:62px;height:62px;border-radius:16px}
+.pick .ico{font-size:1.8rem}
+.pick[aria-pressed="true"]{background:rgba(255,210,63,.28);border-color:var(--sun);box-shadow:0 0 0 2px var(--sun),0 0 22px rgba(255,210,63,.4)}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.row3 .pick{height:50px;font-size:.95rem;gap:4px}.full{grid-column:1/-1}
+.pick.sm{height:58px;font-size:.98rem;gap:5px}.pick.sm .ico{font-size:1.45rem}
+#bGo{width:100%;height:66px;font-size:1.6rem;margin-top:14px;border-radius:24px}
+#bNew{width:100%;height:50px;margin-top:10px;border-radius:20px;font-size:1.05rem}
+.foot{display:flex;align-items:center;gap:10px;margin-top:12px;text-align:left}
+.foot p{margin:0;font-size:.88rem;line-height:1.3;opacity:.85;flex:1}
+#bSnd{width:50px;height:50px;flex:none}
+#albumCard{width:min(560px,100%)}
+#albumCard h2{margin:0 0 2px;font-size:1.7rem;color:var(--sun);font-weight:700}
+#grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px}
+.an{background:rgba(255,255,255,.1);border-radius:16px;padding:6px 4px 7px;font-size:.82rem;line-height:1.15;position:relative}
+.an img{width:100%;aspect-ratio:1;border-radius:12px;display:block;margin-bottom:4px}
+.an.lock img{filter:brightness(.28) saturate(.3) blur(3px)}
+.an.lock::before{content:"?";position:absolute;left:0;right:0;top:18%;font:700 2.6rem var(--font);color:var(--foam);opacity:.85}
+.an.lock{opacity:.85}
+.an b{display:block;font-size:.9rem}
+#bAlbumX{width:100%;height:54px;border-radius:20px;font-size:1.2rem}
+@media (orientation:landscape) and (max-height:520px){
+  .card{width:min(700px,100%);padding:8px 16px 12px}
+  h1{font-size:2rem;display:inline}.sub{display:inline;margin-left:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .pick{height:60px}.pick img{width:48px;height:48px}.pick.sm{height:60px}
+  #bGo{height:52px;margin-top:10px;font-size:1.35rem}#bNew{height:44px;margin-top:8px}
+  .foot{margin-top:8px}
+  #grid{grid-template-columns:repeat(8,1fr)}.row3 .pick{height:44px}
+  #albumCard{width:min(800px,100%)}
+}
+@media (prefers-reduced-motion:reduce){#hint i{animation:none}#found{transition:opacity .3s}}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;
+  text-align:center;font-size:1.2rem;background:var(--abyss);color:var(--ink)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig" aria-hidden="true"></div>
+
+<div id="hud" hidden>
+  <div id="stats">
+    <div class="stat" id="sPearl"><span class="pearl"></span><span id="nPearl">0</span><small id="tPearl">/16</small></div>
+    <div class="stat" id="sShell"><span class="e">🐚</span><span id="nShell">0</span><small id="tShell">/10</small></div>
+    <button class="stat" id="bAlbum" aria-label="Album zwierząt"><span class="e">📖</span><span id="nAlbum">0</span><small id="tAlbum">/15</small></button>
+  </div>
+  <button class="btn" id="bMenu" aria-label="Menu"><span class="ico" style="font-size:1.3rem">⚙️</span></button>
+  <div id="pad">
+    <button class="btn" id="pU" data-k="up" aria-label="Do przodu"></button>
+    <button class="btn" id="pL" data-k="left" aria-label="W lewo"></button>
+    <button class="btn" id="pR" data-k="right" aria-label="W prawo"></button>
+    <button class="btn" id="pD" data-k="down" aria-label="Do tyłu"></button>
+  </div>
+  <div id="tiltBox">
+    <button class="btn" id="bCal" aria-label="Ustaw środek przechylania"><span class="ico">🎯</span><small>środek</small></button>
+    <button class="btn" id="bStop" aria-label="Zatrzymaj się albo płyń"><span class="ico" id="stopIco">✋</span><small id="stopLbl">stój</small></button>
+  </div>
+  <div id="acts">
+    <button class="btn" id="bCam" aria-label="Zmień widok"><span class="ico">🎥</span><small id="camLbl">z tyłu</small></button>
+    <button class="btn" id="pUp" data-k="rise" aria-label="W górę"></button>
+    <button class="btn" id="bDash" aria-label="Przyspiesz"><span class="ico">💨</span><small>szybko</small></button>
+    <button class="btn" id="pDn" data-k="dive" aria-label="W dół"></button>
+  </div>
+  <div id="hint" aria-hidden="true"><i></i></div>
+  <div id="toast" role="status"></div>
+  <div id="found" role="status"><img id="foundImg" alt=""><div><span>Nowe zwierzę w albumie</span><b id="foundName"></b></div></div>
+</div>
+
+<div id="load" class="veil"><p style="font-size:1.4rem;text-align:center;margin:auto">Wczytuję rafę…</p></div>
+<div id="menu" class="veil" hidden>
+  <div class="card">
+    <h1 id="mTitle">Rafa koralowa</h1>
+    <p class="sub" id="mSub">Zbieraj perły i muszle, odkrywaj zwierzęta</p>
+    <div class="grid2">
+      <div>
+        <p class="q">Kim płyniesz?</p>
+        <div class="row">
+          <button class="btn pick" data-who="clown" aria-pressed="true"><img id="imClown" alt="">Błazenek</button>
+          <button class="btn pick" data-who="turtle" aria-pressed="false"><img id="imTurtle" alt="">Żółw</button>
+        </div>
+      </div>
+      <div>
+        <p class="q">Jak sterujesz?</p>
+        <div class="row">
+          <button class="btn pick sm" data-ctrl="arrows" aria-pressed="true"><span class="ico">🕹️</span>Strzałki</button>
+          <button class="btn pick sm" data-ctrl="tilt" aria-pressed="false"><span class="ico">📱</span>Przechylanie</button>
+        </div>
+      </div>
+      <div class="full">
+        <p class="q">Pora dnia</p>
+        <div class="row3">
+          <button class="btn pick sm" data-mood="day" aria-pressed="true"><span class="ico">☀️</span>Dzień</button>
+          <button class="btn pick sm" data-mood="sunset" aria-pressed="false"><span class="ico">🌅</span>Zachód</button>
+          <button class="btn pick sm" data-mood="night" aria-pressed="false"><span class="ico">🌙</span>Noc</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn go" id="bGo">Płyniemy!</button>
+    <button class="btn wide" id="bNew" hidden>Nowa rafa</button>
+    <div class="foot">
+      <p id="mFoot">Podpłyń do perły albo muszli, żeby ją zebrać. Podpłyń do zwierzęcia, żeby trafiło do albumu.</p>
+      <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.3rem">🔊</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="album" class="veil" hidden>
+  <div class="card" id="albumCard">
+    <h2>Album zwierząt</h2>
+    <div id="grid"></div>
+    <button class="btn go" id="bAlbumX">Płyniemy dalej</button>
+  </div>
+</div>
+<div id="err">Nie udało się wczytać silnika 3D. Sprawdź internet i odśwież stronę.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-arka-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
+<script src="../lib/pralnia-arka-rafa.js"></script>
+<script src="../lib/arka-rafa.js"></script>
+<script src="../lib/zniwa-rafa.js"></script>
+<script src="../models/morze.arka-rafa.js"></script>
+<script src="../models/morze.rafa.js"></script>
+<script src="../models/rafa.rafa.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
