@@ -46,7 +46,7 @@ const MODELE = [
     ['EU07', 'buildEU07()'], ['pendolino czoło', 'buildPend(1)'], ['pendolino środek', 'buildPend(0)'], ['pendolino tył', 'buildPend(-1)']]
     .map(([typ, js]) => ({ kat: 'pociągi', typ, gra: 'ciuchcia', plik: 'ciuchcia-taxi', js })),
 
-  // Piraci! — wojownicy z bronią (zwierzaki z ZOO + czapka i opaska), ludziki, czapki
+  // Piraci! — wojownicy z bronią (zwierzaki z ZOO + czapka), ludziki, czapki
   ...[['pirat junior', 'human', 'wood'], ['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe'], ['majtek', 'majtek', 'saber'], ['majtek', 'majtek2', 'bow']]
     .map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', 1, '${w}')` })),
   ...ZOO.map(([typ, f], i) => ({ kat: 'piraci', typ: 'pirat ' + typ, gra: 'piraci', js: `mkFighter('${f}', 1, '${['saber', 'sword', 'axe', 'rapier', 'katana', 'bow', 'anchor', 'trident', 'wood', 'swordfish'][i]}')` })),

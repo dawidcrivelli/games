@@ -16,20 +16,18 @@ function mkHat(style, col) { const p = [], bk = col || 0x1d1d24, go = 0xffc93c, 
       p.push({ g:G.box, p:[x, .16, z], s:[.92, .26, .05], r:[0, a, 0], c:bk }, { g:G.box, p:[x*1.02, .29, z*1.02], s:[.9, .035, .06], r:[0, a, 0], c:go }); }
     p.push({ g:S, p:[.3, .22, 0], s:[.05, .08, .08], c:wh }, { g:G.cone, p:[-.1, .5, .26], s:[.05, .55, .1], r:[.45, 0, .25], c:0xe2483d }); }
   return new T.Mesh(mergeC(p), MVC); }
-// czapka + opaska na oko dla zwierzaka z ZOO (a = MK.x(), jeszcze bez rodzica; głowa +x). side: po której stronie (z) opaska
+// czapka dla zwierzaka z ZOO (a = MK.x(), jeszcze bez rodzica; głowa +x); opaskę na oko mają tylko ludziki
 function pirateGear(a, side, style) { if (!a.head) return; const top = a.root; top.updateMatrixWorld(true);
   const b = new T.Box3().setFromObject(a.head), c = b.getCenter(new T.Vector3()), sz = b.getSize(new T.Vector3()), hq = a.head.getWorldQuaternion(new T.Quaternion()).invert(), ws = a.head.getWorldScale(new T.Vector3()).x;
   const mx = a.dims.h*.42, w = clamp(Math.min(sz.x, sz.z)*.95, mx*.7, mx*1.15), hat = mkHat(style);
-  let hx = c.x, hy = b.max.y - sz.y*.1, e = null;
-  for (const q of a.eyes || []) { const z = q.getWorldPosition(new T.Vector3()).z*side; if (!e || z > e.z) e = { q, z }; }
-  if (e) { const q = e.q, ep = q.getWorldPosition(new T.Vector3()), r = q.children[0].getWorldScale(new T.Vector3()).x, par = q.parent, ps = par.getWorldScale(new T.Vector3()).x, bk = M(0x15151a);
-    hx = clamp(ep.x - r*1.2, c.x - sz.x*.2, c.x + sz.x*.25); q.visible = false;
-    const pm = new T.Mesh(lo8(), bk); pm.position.copy(par.worldToLocal(ep.clone().add(new T.Vector3(r*.25, 0, side*r*.3)))); pm.scale.set(r*.75/ps, r*1.5/ps, r*1.4/ps); pm.quaternion.copy(par.getWorldQuaternion(new T.Quaternion()).invert()); par.add(pm);
-    // pasek: pierścień przez oko, ukośnie przez czoło
-    const R = Math.min(sz.y, sz.z)*.5, cc = new T.Vector3(ep.x - R*.2, ep.y - R*.55, c.z), d = ep.clone().sub(cc), rad = d.length(); d.normalize();
-    const n = new T.Vector3().crossVectors(d, new T.Vector3(-.75, .65, 0).normalize()).normalize();
-    const st = new T.Mesh(new T.TorusGeometry(rad, r*.2, 5, 22), bk); st.position.copy(a.head.worldToLocal(cc.clone())); st.scale.setScalar(1/ws);
-    st.quaternion.copy(hq).multiply(new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 0, 1), n)); a.head.add(st); }
+  // nad oczami, lekko z tyłu; wysokość = powierzchnia czaszki (promień w dół, bez uszu i oczu), czapka wciśnięta na głowę
+  let hx = c.x, hy = b.max.y - sz.y*.1, n = 0, ex = 0, er = 0;
+  for (const q of a.eyes || []) { ex += q.getWorldPosition(new T.Vector3()).x; er = q.children[0].getWorldScale(new T.Vector3()).x; n++; }
+  if (n) hx = clamp(ex/n - er*1.6, c.x - sz.x*.25, c.x + sz.x*.25);
+  const skip = new Set([...(a.ears || []).map(e => e.p), ...(a.eyes || [])]), ms = [];
+  (function walk(o) { if (skip.has(o)) return; if (o.isMesh) ms.push(o); o.children.forEach(walk); })(a.head);
+  const hit = new T.Raycaster(new T.Vector3(hx, b.max.y + 1, c.z), new T.Vector3(0, -1, 0)).intersectObjects(ms, false)[0];
+  if (hit) hy = hit.point.y - w*.1;
   hat.position.copy(a.head.worldToLocal(new T.Vector3(hx, hy, c.z))); hat.scale.setScalar(w/ws); hat.quaternion.copy(hq); a.head.add(hat); }
 // zwierzak-pirat ustawiony przodem +z, wysokość h (jak ZOO.fit) — do stania na statku
 function fitPirate(kind, h, side, style) { const a = MK[kind](); pirateGear(a, side, style); const g = new T.Group(), w = grp(g), k = h/a.dims.h; w.add(a.root); a.root.position.x = -a.cx; w.rotation.y = -PI/2; w.scale.setScalar(k); return { g, a, k }; }

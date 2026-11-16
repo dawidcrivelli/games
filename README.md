@@ -43,7 +43,7 @@ flowchart LR
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
 | `models/bron.piraci.js` | 38 | bladeGeo mkWeapon (miecze, szabla, katana, topór, łuk…) mkArrow starGeo mkStar |
-| `models/piraci.piraci.js` | 79 | mkHat pirateGear (czapka + opaska dla zwierzaka z ZOO) fitPirate mkHuman mkFighter |
+| `models/piraci.piraci.js` | 79 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman mkFighter |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
