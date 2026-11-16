@@ -915,8 +915,10 @@ const beacon = new T.Group(), outP = pedMats(0xf08a2a), arrow = new T.Group();
   const geo = new T.ExtrudeGeometry(s, { depth:.4, bevelEnabled:false }); geo.rotateX(Math.PI/2);
   arrow.userData.m = new T.MeshBasicMaterial({ color:0x35e04a, fog:false, depthTest:false, transparent:true }); const edge = new T.MeshBasicMaterial({ color:0x1c1c1e, fog:false, depthTest:false, transparent:true });
   const dial = new T.Group(), e = new T.Mesh(geo, edge); e.scale.set(1.2, 1, 1.12); e.position.y = -.14; e.renderOrder = 9; dial.add(e); const a = new T.Mesh(geo, arrow.userData.m); a.renderOrder = 10; dial.add(a); arrow.add(dial); arrow.userData.dial = dial; arrow.rotation.order = 'YXZ'; arrow.visible = false; scene.add(arrow); }
-const ZOOA = [{ name:'Żyrafa', ico:'🦒', g:mkGiraffe(), s:.8, rs:.4, top:5.6, snd:'hum' }, { name:'Słoń', ico:'🐘', g:mkElephant(), s:.75, rs:.36, top:3.4, snd:'trumpet' }, { name:'Lew', ico:'🦁', g:mkLion(), s:1.15, rs:.62, top:2.2, snd:'roar' },
-  { name:'Pingwin', ico:'🐧', g:mkPenguin(), s:1.9, rs:1.1, top:2.4, snd:'peep' }, { name:'Krowa', ico:'🐄', g:cloneTpl(cowTpl[0], true), s:1.1, rs:.55, top:2.6, snd:'moo' }];
+// zwierzęta z Pralni (models/zwierzeta.js), dopasowane wysokością; ruch przez anims
+const zoo = (type, h) => { const { g, a } = ZOO.fit(type, h); let last = 0; anims.push(t => { ZOO.anim(a, Math.min(.1, t - last)); last = t; }); return g; };
+const ZOOA = [{ name:'Żyrafa', ico:'🦒', g:zoo('giraffe', 6.2), s:.8, rs:.4, top:5.6, snd:'hum' }, { name:'Słoń', ico:'🐘', g:zoo('elephant', 3.15), s:.75, rs:.36, top:3.4, snd:'trumpet' }, { name:'Lew', ico:'🦁', g:zoo('lion', 1.4), s:1.15, rs:.62, top:2.2, snd:'roar' },
+  { name:'Pingwin', ico:'🐧', g:zoo('penguin', .9), s:1.9, rs:1.1, top:2.4, snd:'peep' }, { name:'Krowa', ico:'🐄', g:cloneTpl(cowTpl[0], true), s:1.1, rs:.55, top:2.6, snd:'moo' }];
 ZOOA.forEach(a => { a.g.visible = false; a.busy = false; scene.add(a.g); });
 const ROOF = { taxi:[1.74, -.35], race:[1.2, -1.75], bus:[2.98, -.5], ursus:[1.22, .75], police:[1.74, -1.1], plane:[2.3, .6] };
 function mountAnimal(a, i) { const r = ROOF[AK]; pc.inner.add(a.g); a.g.position.set(0, r[0], r[1] + (AK === 'bus' ? ((i || 0) - 1)*2.6 : 0)); a.g.rotation.set(0, 0, 0); a.g.scale.setScalar(a.rs/(AK === 'ursus' ? 1.35 : 1)); a.g.visible = true; }
@@ -1102,7 +1104,7 @@ function hoopsStep(dt) {
    WYDARZENIA W MIEŚCIE: ucieczka pingwinów, złodziej lodów, deszcz gwiazdek
    ===================================================================== */
 const evPeng = [], evStars = [];
-for (let k = 0; k < 6; k++) { const g = mkPenguin(); g.scale.setScalar(2.1); g.visible = false; scene.add(g); evPeng.push({ g, on:false, x:0, z:0, h:0 }); }
+for (let k = 0; k < 6; k++) { const g = zoo('penguin', .9); g.scale.setScalar(2.1); g.visible = false; scene.add(g); evPeng.push({ g, on:false, x:0, z:0, h:0 }); }
 for (let k = 0; k < 18; k++) { const m = new T.Mesh(starGeo, starMat); m.visible = false; scene.add(m); evStars.push({ m, on:false, x:0, z:0 }); }
 const thief = { g:vc(aiModel(0x8e3fc2, 2)), R:2, vmax:13.5, thief:true, off:true };
 { const pk = new T.MeshBasicMaterial({ color:0xff8fc8 }), wf = new T.MeshBasicMaterial({ color:0xe0a85a }), rd = new T.MeshBasicMaterial({ color:0xff2a1a, fog:false });

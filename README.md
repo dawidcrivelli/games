@@ -19,7 +19,7 @@ flowchart LR
 
 - Zwykłe skrypty, wspólny zasięg globalny; kolejność w `<gra>/index.html`.
 - Nazwa pliku = gry, które go używają. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
-- Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka), `models/morze.js` → `MORZE` (rafa, arka; `MORZE_CFG={water:false}` nad wodą).
+- Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa), `models/morze.js` → `MORZE` (rafa, arka; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
@@ -54,9 +54,8 @@ flowchart LR
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
 | `models/rolnicze.taxi.js` | 13 | buildKombajn |
 | `models/rolnicze.zniwa.js` | 357 | makeScrew buildCombine buildPlough buildSeeder buildBaler buildBigTractor buildTractor buildTrailer |
-| `models/zwierzeta.js` | 206 | ZOO: MK.elephant…kangaroo, anim, cfg {scale, cast} |
-| `models/zwierzeta.taxi.js` | 50 | mkGiraffe mkElephant mkLion mkPenguin |
-| `models/zwierzeta.zniwa.js` | 65 | buildGiraffe buildElephant |
+| `models/zwierzeta.js` | 209 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast} |
+| `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
 
 ## Narzędzia
 

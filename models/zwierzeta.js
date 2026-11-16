@@ -4,6 +4,7 @@
 const ZOO = (() => {
 'use strict';
 const T=THREE,PI=Math.PI,cfg={scale:1,cast:true};
+const lerp=(a,b,t)=>a+(b-a)*t;
 const rnd=(a=1,b)=>b===undefined?Math.random()*a:a+Math.random()*(b-a);
 const pick=a=>a[Math.random()*a.length|0];
 const V=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
@@ -199,8 +200,10 @@ function anim(a,dt){a.t+=dt;const walk=a.moving&&!a.slide;if(walk)a.ph+=dt*a.gai
   if(a.neck)a.neck.rotation.z=a.neckBase+Math.sin(a.t*.9+a.seed)*.04+a.blown*.08-ek*(a.type==='giraffe'?1.05:.55);
   a.blink-=dt;if(a.blink<-.12)a.blink=rnd(2,5);const by=(a.blink<0||a.tickle>.6)?.15:1;for(const e of a.eyes)e.scale.y=by;
   const op=happy?1:(a.tickle>.3?.6:(Math.sin(a.t*.5+a.seed)>.93?.8:0));a.open+=(op-a.open)*Math.min(1,dt*8);if(a.jaw)a.jaw.rotation.z=-a.open*.55;
-  for(let i=0;i<a.trunk.length;i++){const g=a.trunk[i],lift=happy?(i===0?.5:i<5?.38:.1):0;g.rotation.z+=(g.userData.b+lift+Math.sin(a.t*1.8+i*.5)*.05+a.tickle*Math.sin(a.t*20+i)*.04-g.rotation.z)*Math.min(1,dt*8);}
+  for(let i=0;i<a.trunk.length;i++){const g=a.trunk[i],lift=(happy?1:a.lift||0)*(i===0?.5:i<5?.38:.1);g.rotation.z+=(g.userData.b+lift+Math.sin(a.t*1.8+i*.5)*.05+a.tickle*Math.sin(a.t*20+i)*.04-g.rotation.z)*Math.min(1,dt*8);}
   for(let i=0;i<a.ctail.length;i++)a.ctail[i].rotation.y=Math.sin(a.t*2.2-i*.6)*.13*(walk?1.6:1)*(happy?2:1);}
 const MK={elephant:mkElephant,giraffe:mkGiraffe,zebra:mkZebra,hippo:mkHippo,crocodile:mkCroc,lion:mkLion,tiger:mkTiger,panda:mkPanda,penguin:mkPenguin,kangaroo:mkKangaroo};
-return {cfg,MK,anim,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig};
+// model dla innych gier: przód +Z, środek długości w 0, wysokość h; k = skala świata
+function fit(type,h){const a=MK[type](),g=new T.Group(),w=grp(g),k=h/a.dims.h;w.add(a.root);a.root.position.x=-a.cx;w.rotation.y=-PI/2;w.scale.setScalar(k);return {g,a,k:k*a.root.scale.x};}
+return {cfg,MK,fit,anim,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig};
 })();

@@ -449,23 +449,13 @@ function updateLugs(P, t) { let i = 0;
 /* =====================================================================
    ŻYRAFA (trzeci „pojazd”: zjada łan, jedzie się na grzbiecie)
    ===================================================================== */
-const girTex = tex(256, 256, (g, w) => { g.fillStyle = '#f3deb0'; g.fillRect(0, 0, w, w);
-  const n = 6, c = w/n;
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const cx = (i + .5)*c + rr(-7, 7), cy = (j + .5)*c + rr(-7, 7), k = 6 + ((rnd()*3) | 0);
-    g.fillStyle = ['#9a5a22', '#8a4c1a', '#a8642a'][(i + j*2) % 3]; g.beginPath();
-    for (let q = 0; q < k; q++) { const a = q/k*6.283 + rr(-.2, .2), r = c*rr(.36, .47), x = cx + Math.cos(a)*r, y = cy + Math.sin(a)*r; q ? g.lineTo(x, y) : g.moveTo(x, y); }
-    g.closePath(); g.fill(); } }, 2, 2);
-Object.assign(M, { gir:lam(0xffffff, { map:girTex }), girL:lam(0xf3deb0), girD:lam(0x5a3414), hoof:lam(0x2d2118), tongue:lam(0x6b4a86), eyeW:new T.MeshBasicMaterial({ color:0xffffff }) });
 
 const uncutAt = (x, z) => { const cx = Math.floor(x - X0), cz = Math.floor(z - Z0); return cx >= 0 && cz >= 0 && cx < FW && cz < FD && !cut[cz*FW + cx]; };
 function updateGiraffe(dt) {
-  const G = veh.giraffe, P = G.P, on = S.active === 'giraffe', sp = Math.abs(G.v), amt = Math.min(1, sp/1.5);
-  G.walk += sp*dt*1.5;
-  P.legs.forEach((L, i) => { const ph = G.walk + (i % 2 ? Math.PI : 0) + (i > 1 ? .5 : 0);
-    L.hip.rotation.x = Math.sin(ph)*.42*amt; L.knee.rotation.x = Math.max(0, Math.sin(ph + 1.3))*.75*amt; });
-  P.body.position.y = Math.abs(Math.sin(G.walk))*.07*amt;
+  const G = veh.giraffe, a = G.a, on = S.active === 'giraffe', sp = Math.abs(G.v), amt = Math.min(1, sp/1.5);
+  G.walk += sp*dt*1.5; a.moving = amt > .1; a.gait = sp*3;
   const stepN = Math.floor(G.walk/Math.PI); if (stepN !== G.stepN) { G.stepN = stepN; if (on && amt > .2) sfx.step(); }
-  P.tail.rotation.z = Math.sin(time*2.3)*.35; P.ears[0].rotation.x = Math.sin(time*3.1)*.2; P.ears[1].rotation.x = Math.sin(time*2.6 + 2)*.2;
+  ZOO.anim(a, dt);
   let want = 0;                                    // czy przed pyskiem coś rośnie?
   if (on) { const sh = Math.sin(G.h), ch = Math.cos(G.h);
     const R = 5.4; let best = 1e9;                 // szuka najbliższej rośliny dookoła, nie tylko z przodu
@@ -474,36 +464,34 @@ function updateGiraffe(dt) {
       const sc = d + Math.abs(an)*.9; if (sc < best) { best = sc; want = 1; G.tx = wx; G.tz = wz; G.ta = an; G.td = d; } } }
   G.eat += (want - G.eat)*Math.min(1, dt*6);
   G.yaw += ((want ? G.ta : 0) - G.yaw)*Math.min(1, dt*7); const near = 1 - clamp((G.td - 1.5)/3, 0, 1);
-  P.neck.rotation.set(.36 + G.eat*(1.75 + near*.55) + Math.sin(G.walk*2)*.03*amt, G.yaw*G.eat + Math.sin(time*5)*.07*G.eat, 0);
-  P.head.rotation.x = .32 - G.eat*1.3;
+  // szyja w dół, do najbliższej rośliny (ZOO.anim ustawia tylko pochylenie bazowe)
+  a.neck.rotation.z -= G.eat*(1.6 + near*.5); a.neck.rotation.y = G.yaw*G.eat + Math.sin(time*5)*.07*G.eat; a.head.rotation.z += G.eat*1.1;
   if (on && want && G.eat > .7 && Math.abs(G.yaw - G.ta) < .6) {
     const hx = G.tx, hz = G.tz, before = cutCount;
     for (let a = -1.1; a <= 1.11; a += 1.1) for (let b = -1.1; b <= 1.11; b += 1.1) harvestAt(hx + a, hz + b);
     if (cutCount > before) { G.chew = 1; if (time - G.lastCrunch > .14) { G.lastCrunch = time; sfx.crunch(); } } }
   G.chew = Math.max(0, G.chew - dt*1.1);
-  P.jaw.rotation.x = Math.abs(Math.sin(time*11))*.4*Math.min(1, G.chew*3);
+  a.open = Math.max(a.open, Math.abs(Math.sin(time*11))*Math.min(1, G.chew*3));
 }
 
 /* =====================================================================
    DUŻY TRAKTOR Z NARZĘDZIAMI (pług, siewnik, prasa) I SŁOŃ
    ===================================================================== */
-Object.assign(M, { bBlue:pho(0x1f5fb8), bBlueD:pho(0x174a90), eleph:lam(0x8f9199), elephD:lam(0x73757c), ivory:lam(0xf5efdc), blanket:lam(0xc23b2e),
+Object.assign(M, { bBlue:pho(0x1f5fb8), bBlueD:pho(0x174a90), blanket:lam(0xc23b2e),
   imp:pho(0xd8301f), impY:pho(0xf2c21f), soilP:lam(0x4e3520) });
 
 const TOOLS = ['plough', 'seeder', 'baler'], TOOL_Z = { plough:-4.3, seeder:-4.0, baler:-3.3 }, TOOL_LBL = { plough:['🟤', 'Pług'], seeder:['🌱', 'Siewnik'], baler:['🌀', 'Prasa'] };
 
-const TRUNK = { rest:[-.25, -.1, .15, .35, .5], reach:[-1.0, -.25, 0, .1, .25], lift:[-2.3, -.5, -.45, -.35, -.25] };
+// uniesienie trąby (ZOO a.lift) w fazach chwytania beli: sięga w dół, podnosi, wraca
+const TRUNK = { rest:0, reach:-.6, lift:2.2 };
 function updateElephant(dt) {
-  const E = veh.elephant, P = E.P, on = S.active === 'elephant', sp = Math.abs(E.v), amt = Math.min(1, sp/1.5);
-  E.walk += sp*dt*1.15;
-  P.legs.forEach((L, i) => { L.rotation.x = Math.sin(E.walk + (i === 0 || i === 3 ? 0 : Math.PI))*.3*amt; });
-  P.body.position.y = Math.abs(Math.sin(E.walk))*.06*amt; P.body.rotation.z = Math.sin(E.walk)*.025*amt;
+  const E = veh.elephant, a = E.a, on = S.active === 'elephant', sp = Math.abs(E.v), amt = Math.min(1, sp/1.5);
+  E.walk += sp*dt*1.15; a.moving = amt > .1; a.gait = sp*2.3;
   const stepN = Math.floor(E.walk/Math.PI); if (stepN !== E.stepN) { E.stepN = stepN; if (on && amt > .2) sfx.estep(); }
-  P.tail.rotation.z = Math.sin(time*1.8)*.3; P.ears[0].rotation.y = -.45 - Math.sin(time*2.2)*.3; P.ears[1].rotation.y = .45 + Math.sin(time*2.2 + .6)*.3;
   E.grab = Math.max(0, E.grab - dt*1.3); const p = E.grab > 0 ? 1 - E.grab : 1;
-  let a = TRUNK.rest, b = TRUNK.rest, k = 0; if (p < .3) { b = TRUNK.reach; k = p/.3; } else if (p < .65) { a = TRUNK.reach; b = TRUNK.lift; k = (p - .3)/.35; } else if (p < 1) { a = TRUNK.lift; k = (p - .65)/.35; }
-  const sway = Math.sin(time*1.5)*.08; P.trunk.forEach((g, i) => { g.rotation.x = a[i] + (b[i] - a[i])*k + (i > 1 ? sway : 0); });
-  P.head.rotation.x = Math.sin(E.walk*2)*.03*amt;
+  const lerp = T.MathUtils.lerp;
+  a.lift = p < .3 ? lerp(TRUNK.rest, TRUNK.reach, p/.3) : p < .65 ? lerp(TRUNK.reach, TRUNK.lift, (p - .3)/.35) : lerp(TRUNK.lift, TRUNK.rest, Math.min(1, (p - .65)/.35));
+  ZOO.anim(a, dt);
 }
 
 /* =====================================================================

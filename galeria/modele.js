@@ -10,14 +10,17 @@ const MORZE = [['delfin', 'Dolphin'], ['wieloryb', 'Whale'], ['rekin', 'Shark'],
 
 const MODELE = [
   ...ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'pralnia', plik: '', js: `ZOO.MK.${f}()` })),
+  // pojazdy w żniwach: ten sam model + siedzisko
+  { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', js: 'buildElephant()' },
+  { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', js: 'buildGiraffe()' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },
 
   ...MORZE.map(([typ, f]) => ({ kat: 'morze', typ, gra: 'rafa', plik: '', js: `make${f}()` })),
-  ...['Clown', 'Puffer', 'Crab', 'Octo', 'Moray'].map(f => ({ kat: 'morze', typ: f.toLowerCase(), gra: 'rafa', js: `make${f}()` })),
-  { kat: 'morze', typ: 'konik morski', gra: 'rafa', js: 'seahorseGeo()' },
-  { kat: 'morze', typ: 'meduza', gra: 'rafa', js: 'jellyGeos()' },
-  ...RAFA_RYBY.map(k => ({ kat: 'morze', typ: 'ryba ' + k, gra: 'rafa', js: `speciesGeo('${k}')` })),
+  ...['Clown', 'Puffer', 'Crab', 'Octo', 'Moray'].map(f => ({ kat: 'morze', typ: f.toLowerCase(), gra: 'rafa', plik: '', js: `make${f}()` })),
+  { kat: 'morze', typ: 'konik morski', gra: 'rafa', plik: '', js: 'seahorseGeo()' },
+  { kat: 'morze', typ: 'meduza', gra: 'rafa', plik: '', js: 'jellyGeos()' },
+  ...RAFA_RYBY.map(k => ({ kat: 'morze', typ: 'ryba ' + k, gra: 'rafa', plik: '', js: `speciesGeo('${k}')` })),
 
   { kat: 'ludzie', typ: 'rolnik', gra: 'ciuchcia', plik: 'ciuchcia-taxi-zniwa', js: 'makeFarmer()' },
 
