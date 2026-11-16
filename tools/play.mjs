@@ -10,7 +10,7 @@ const TILE_W = 640;
 const URL_OF = Object.fromEntries(JSON.parse(fs.readFileSync('gry.json', 'utf8')).map(g => [g.id, g.url]));
 
 const PORT = 8767, PLAY_MS = 4000, VIEW = { width: 960, height: 600 };
-const START = { ciuchcia: '#bGo', taxi: '#bGo', zniwa: '#bGo', pralnia: '#bPlay', arka: '#bKid', rafa: '#bGo', piraci: '#bKid' };
+const START = { ciuchcia: '#bGo', taxi: '#bGo', zniwa: '#bGo', pralnia: '#bPlay', arka: '#bKid', rafa: '#bGo', piraci: '#bKid', 'zle-owoce': '#play' };
 const args = process.argv.slice(2), orig = ['--orig', '--dist'].find(f => args.includes(f))?.slice(2);
 const ids = args.filter(a => !a.startsWith('--'));
 const games = ids.length ? ids : orig ? GAMES : Object.keys(URL_OF);

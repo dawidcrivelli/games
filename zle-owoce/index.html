@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Złe Owoce</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2b1b14;--paper:#f3e7cb;--card:#fffaf0;--sun:#ffd23f;--berry:#e8404f;--leaf:#6fcf6a;--grape:#a878e8;
+  color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:#2b1b14;color:var(--ink);font-family:"Patrick Hand","Comic Sans MS","Chalkboard SE",cursive,sans-serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none;touch-action:none}
+#fit{position:relative;width:100%;height:100%;padding:0 env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:800px;height:450px;transform-origin:center;background:var(--paper);overflow:hidden;border-radius:14px}
+#c{position:absolute;inset:0;width:800px;height:450px}
+.scr{position:absolute;inset:0}
+[hidden]{display:none!important}
+button{font:inherit;color:var(--ink);cursor:pointer;border:3.5px solid var(--ink);border-radius:18px 14px 20px 13px/14px 20px 13px 18px;background:var(--card);box-shadow:2px 4px 0 var(--ink);touch-action:none}
+button:active{transform:translate(1px,3px);box-shadow:1px 1px 0 var(--ink)}
+button:focus-visible{outline:3px dashed var(--ink);outline-offset:2px}
+.big{font-size:30px;line-height:1.15;padding:2px 30px 4px;background:var(--berry);color:#fff}
+.mini{position:absolute;width:42px;height:42px;font-size:20px;border-radius:50%;padding:0;z-index:5}
+#fs{right:10px;top:10px}
+#title{text-align:center}
+#title h1{font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif;margin:10px 0 0;font-size:92px;line-height:1;color:var(--sun);transform:rotate(-4deg);
+  text-shadow:4px 4px 0 var(--ink),-3px -3px 0 var(--ink),3px -3px 0 var(--ink),-3px 3px 0 var(--ink),0 9px 0 var(--berry),0 13px 0 var(--ink)}
+#title p{font-size:26px;margin:20px 0 0}
+#title .big{position:absolute;left:50%;bottom:24px;margin-left:-110px;width:220px;font-size:40px}
+/* kreator */
+#hd{position:absolute;left:306px;top:4px;font-size:30px;line-height:44px}
+#mute{left:470px;top:5px}
+#wn{position:absolute;right:14px;top:4px;font-size:22px;line-height:44px;white-space:nowrap}
+#msg{position:absolute;left:10px;width:286px;top:8px;text-align:center;font-size:20px;line-height:1.1;background:var(--sun);border:3px solid var(--ink);border-radius:14px;padding:4px 6px;z-index:4}
+#slots{position:absolute;left:10px;top:10px;font-size:20px}
+#nm{position:absolute;left:6px;width:292px;top:368px;text-align:center;font-size:26px;line-height:1}
+#pw{position:absolute;left:22px;width:262px;top:404px;display:flex;align-items:center;gap:8px;font-size:24px}
+.bar{flex:1;height:22px;border:3.5px solid var(--ink);border-radius:12px 9px 13px 8px;background:#0002;overflow:hidden}
+.bar i{display:block;height:100%;width:50%;background:linear-gradient(90deg,var(--leaf),var(--sun),var(--berry));transition:width .25s}
+#panel{position:absolute;left:302px;right:8px;top:52px;bottom:8px;background:var(--card);border:3.5px solid var(--ink);border-radius:22px 16px 24px 15px/16px 24px 15px 22px;padding:7px}
+#tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+#tabs button{font-size:14px;line-height:1;padding:2px 0 3px;background:#e6dcc4;box-shadow:1px 3px 0 var(--ink)}
+#tabs button span{display:block;font-size:22px;line-height:1.15}
+#tabs button.on{background:var(--sun)}
+#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.it{height:57px;padding:0;position:relative;overflow:hidden;box-shadow:1px 3px 0 var(--ink)}
+.it canvas{width:62px;height:52px;display:block;margin:0 auto;pointer-events:none}
+.it b{position:absolute;right:4px;bottom:-1px;font-size:14px;font-weight:400}
+.it.on{background:var(--leaf)}
+.it.lock{background:#cfc6b2}
+.it.lock canvas{opacity:.25}
+.it.lock b{left:0;right:0;top:14px;bottom:auto;font-size:19px;text-align:center}
+#go{position:absolute;right:9px;bottom:8px}
+#clr{position:absolute;left:9px;bottom:8px;font-size:20px;padding:4px 14px}
+#rnd{position:absolute;left:126px;bottom:8px;font-size:20px;padding:4px 14px;background:var(--sun)}
+#bin{position:absolute;left:302px;right:8px;top:52px;bottom:8px;border-radius:22px;background:#e8404fdd;color:#fff;font-size:34px;display:flex;align-items:center;justify-content:center;text-align:center;z-index:3;pointer-events:none}
+/* walka */
+.hp{position:absolute;top:10px;width:320px}
+.hp .bar{height:26px;background:#fff8}.hp .bar i{background:var(--leaf);transition:width .15s}
+.hp span{display:block;font-size:20px;line-height:1.2;white-space:nowrap}
+#hpP{left:12px}#hpE{right:12px;text-align:right}#hpE .bar i{background:var(--berry);margin-left:auto}
+#lvl{position:absolute;left:0;right:0;top:50px;text-align:center;font-size:20px}
+#quit{left:331px;top:6px}#mute2{left:427px;top:6px}
+.act{position:absolute;width:88px;height:88px;border-radius:50%;font-size:17px;line-height:1;padding:0;overflow:hidden}
+.act span{display:block;font-size:34px;line-height:1.1}
+.act::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--cd,0)*100%);background:#2b1b14aa;pointer-events:none}
+#bC{left:12px;bottom:14px;background:var(--sun)}
+#bK{left:12px;bottom:116px;background:var(--leaf)}
+#bB{right:12px;bottom:14px;background:var(--berry);color:#fff}
+#bS{right:12px;bottom:116px;background:var(--grape);color:#fff}
+#bS.ready{animation:pulse .5s infinite alternate}
+@keyframes pulse{to{box-shadow:2px 4px 0 var(--ink),0 0 0 8px #ffd23f}}
+#result{display:flex;align-items:center;justify-content:center;background:#2b1b1499;z-index:6}
+#card{background:var(--card);border:4px solid var(--ink);border-radius:30px 22px 34px 20px/22px 34px 20px 30px;box-shadow:3px 7px 0 var(--ink);padding:8px 26px 20px;text-align:center;min-width:420px;max-width:660px}
+#card h2{font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif;margin:0;font-size:52px;line-height:1.1;color:var(--berry);text-shadow:3px 3px 0 var(--ink)}
+#card p{margin:2px 0;font-size:23px;line-height:1.2}
+#card .new{color:#6b2fd1}
+#card div{display:flex;gap:14px;justify-content:center;margin-top:14px}
+#card .big{font-size:26px;padding:2px 20px 4px}
+#card .alt{background:var(--sun);color:var(--ink)}
+#hint{position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom,0px));text-align:center;font-size:16px;color:#f3e7cb;opacity:.85;display:none}
+@media (orientation:portrait){#hint{display:block}}
+@media (prefers-reduced-motion:reduce){#bS.ready{animation:none}}
+</style>
+</head>
+<body>
+<div id="fit"><div id="stage">
+  <canvas id="c" width="1600" height="900"></canvas>
+  <section id="title" class="scr">
+    <h1>Złe Owoce</h1>
+    <p>Zbuduj groźnego owoca i pokonaj potwory</p>
+    <button class="mini" id="fs" aria-label="Pełny ekran" hidden>⤢</button>
+    <button class="big" id="play">Graj</button>
+  </section>
+  <section id="creator" class="scr" hidden>
+    <div id="slots"></div>
+    <div id="msg" hidden></div>
+    <div id="hd">Zbuduj owoca</div>
+    <button class="mini" id="mute" aria-label="Dźwięk">🔊</button>
+    <div id="wn"></div>
+    <div id="nm"></div>
+    <div id="pw"><span>💪</span><div class="bar"><i id="pwf"></i></div><span id="pwn"></span></div>
+    <div id="panel">
+      <div id="tabs"></div>
+      <div id="grid"></div>
+      <button id="clr">🧽 Od nowa</button>
+      <button id="rnd">🎲 Losuj</button>
+      <button class="big" id="go">Walcz!</button>
+    </div>
+    <div id="bin" hidden>🗑️<br>Upuść tutaj, żeby wyrzucić</div>
+  </section>
+  <section id="fight" class="scr" hidden>
+    <div class="hp" id="hpP"><div class="bar"><i id="hpPf"></i></div><span id="hpPn"></span></div>
+    <div class="hp" id="hpE"><div class="bar"><i id="hpEf"></i></div><span id="hpEn"></span></div>
+    <button class="mini" id="quit" aria-label="Wróć do budowania">🔧</button>
+    <button class="mini" id="mute2" aria-label="Dźwięk">🔊</button>
+    <div id="lvl"></div>
+    <button class="act" id="bK"><span>🦶</span>Kop</button>
+    <button class="act" id="bC"><span>👊</span>Cios</button>
+    <button class="act" id="bS"><span>💥</span>Super</button>
+    <button class="act" id="bB"><span>🪓</span>Broń</button>
+  </section>
+  <section id="result" class="scr" hidden><div id="card"></div></section>
+</div></div>
+<div id="hint">Obróć telefon bokiem, będzie większe</div>
+
+<script src="kreska.js"></script>
+<script src="postacie.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
