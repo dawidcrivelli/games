@@ -42,6 +42,8 @@ flowchart LR
 | `models/budynki.taxi.js` | 248 | buildLandmarks spinners placeAt groundPad ramp nameBoard buildStation roofPrism bldg shop barn house |
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
+| `models/bron.piraci.js` | 38 | bladeGeo mkWeapon (miecze, szabla, katana, topór, łuk…) mkArrow starGeo mkStar |
+| `models/piraci.piraci.js` | 79 | mkHat pirateGear (czapka + opaska dla zwierzaka z ZOO) fitPirate mkHuman mkFighter |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
@@ -54,6 +56,7 @@ flowchart LR
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
 | `models/rolnicze.taxi.js` | 13 | buildKombajn |
 | `models/rolnicze.zniwa.js` | 357 | makeScrew buildCombine buildPlough buildSeeder buildBaler buildBigTractor buildTractor buildTrailer |
+| `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 209 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast} |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
 

@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
 // kategoria → prefiks pliku w models/
-const KAT_PLIK = { 'zwierzęta': 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi' };
+const KAT_PLIK = { 'zwierzęta': 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -45,4 +45,22 @@ const MODELE = [
   ...[['parowóz', 'buildLoco()'], ['tender', 'buildTender()'], ['wagon osobowy', 'buildCoach()'], ['wagon towarowy', 'buildWagon()'],
     ['EU07', 'buildEU07()'], ['pendolino czoło', 'buildPend(1)'], ['pendolino środek', 'buildPend(0)'], ['pendolino tył', 'buildPend(-1)']]
     .map(([typ, js]) => ({ kat: 'pociągi', typ, gra: 'ciuchcia', plik: 'ciuchcia-taxi', js })),
+
+  // Piraci! — wojownicy z bronią (zwierzaki z ZOO + czapka i opaska), ludziki, czapki
+  ...[['pirat junior', 'human', 'wood'], ['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe'], ['majtek', 'majtek', 'saber'], ['majtek', 'majtek2', 'bow']]
+    .map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', 1, '${w}')` })),
+  ...ZOO.map(([typ, f], i) => ({ kat: 'piraci', typ: 'pirat ' + typ, gra: 'piraci', js: `mkFighter('${f}', 1, '${['saber', 'sword', 'axe', 'rapier', 'katana', 'bow', 'anchor', 'trident', 'wood', 'swordfish'][i]}')` })),
+  ...['trójgraniasta', 'kapitańska', 'marynarska'].map((typ, i) => ({ kat: 'piraci', typ: 'czapka ' + typ, gra: 'piraci', js: `mkHat(${i})` })),
+
+  { kat: 'statki', typ: 'okręt gracza', gra: 'piraci', js: `buildShip({ ...PSHIP(), guns: 3, masts: 2, cap: 'human', crew: [.4, 3.6] })` },
+  ...[['slup', 1, 2], ['bryg', 2, 3], ['galeon', 3, 4]].map(([typ, masts, guns]) =>
+    ({ kat: 'statki', typ, gra: 'piraci', js: `buildShip({ hull: 0x33302f, trim: 0xb02a2a, bot: 0x7a2a22, sail: '#2a2a31', stripe: '#8a1f1f', emb: '☠️', flagEmb: '☠️', fig: 'skull', guns: ${guns}, masts: ${masts}, cap: 'crocodile', crew: [1] })` })),
+  { kat: 'statki', typ: 'eskorta', gra: 'piraci', js: `buildShip({ hull: 0x5a4636, trim: 0x9aa0a8, bot: 0xcfc7b4, sail: '#b9b3a6', flagEmb: '☠️', fig: 'skull', guns: 2, masts: 1, crew: [1] })` },
+  { kat: 'statki', typ: 'pokład pojedynku', gra: 'piraci', js: `buildShip({ hull: 0x33302f, trim: 0xb02a2a, bot: 0x7a2a22, sail: '#2a2a31', stripe: '#8a1f1f', emb: '☠️', fig: 'skull', guns: 0, arena: 1, rail: .16, balu: 1 })` },
+  { kat: 'statki', typ: 'armata', gra: 'piraci', js: 'mkCannon()' },
+  { kat: 'statki', typ: 'armata', gra: 'piraci', js: 'mkCannon(0xb8862b)' },
+
+  ...['wood', 'saber', 'bow', 'sword', 'rapier', 'axe', 'katana', 'anchor', 'trident', 'swordfish'].map(id => ({ kat: 'broń', typ: id, gra: 'piraci', js: `mkWeapon('${id}')` })),
+  { kat: 'broń', typ: 'strzała', gra: 'piraci', js: 'mkArrow()' },
+  { kat: 'broń', typ: 'rozgwiazda', gra: 'piraci', js: 'mkStar()' },
 ];
