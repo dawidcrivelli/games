@@ -18,7 +18,8 @@ flowchart LR
 ```
 
 - Zwykłe skrypty, wspólny zasięg globalny; kolejność w `<gra>/index.html`.
-- Nazwa pliku = gry, które go używają. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie (np. słoń w `zwierzeta.pralnia.js`, `zwierzeta.arka.js`, `zwierzeta.taxi.js`, `zwierzeta.zniwa.js`) leżą obok siebie jako warianty — do wybrania najlepszego.
+- Nazwa pliku = gry, które go używają. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
+- Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka), `models/morze.js` → `MORZE` (rafa, arka; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
@@ -26,7 +27,6 @@ flowchart LR
 
 | plik | linie | zawiera |
 |---|---|---|
-| `lib/arka-rafa.js` | 10 | sstep setCol tf |
 | `lib/ciuchcia-taxi-zniwa-arka-rafa.js` | 8 | hash2 vnoise |
 | `lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa.js` | 6 | clamp |
 | `lib/ciuchcia-taxi-zniwa-rafa.js` | 11 | $ rnd rr tap |
@@ -34,7 +34,7 @@ flowchart LR
 | `lib/ciuchcia-taxi.js` | 68 | signMat ell cone cloneTpl applyWeather puff updatePuffs burst initAudio holdBtn syncSnd |
 | `lib/ciuchcia-zniwa.js` | 6 | nextCam |
 | `lib/pralnia-arka-rafa.js` | 5 | lerp |
-| `lib/pralnia-arka.js` | 45 | rnd pick V canvasTex M MT cg ball box grp merge flat mergeC nloop tone nz sw roar mnote goFS |
+| `lib/pralnia-arka.js` | 23 | nloop tone nz sw roar mnote goFS |
 | `lib/zniwa-rafa.js` | 13 |  |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
@@ -42,23 +42,19 @@ flowchart LR
 | `models/budynki.taxi.js` | 248 | buildLandmarks spinners placeAt groundPad ramp nameBoard buildStation roofPrism bldg shop barn house |
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
-| `models/morze.arka-rafa.js` | 3 | hexCell |
-| `models/morze.arka.js` | 67 | rMerge rFlat rBall fishGeo SM makeDolphin makeWhale makeShark makeManta makeTurtle |
-| `models/morze.rafa.js` | 178 | fishGeo band clownCol speciesGeo speciesMat makeClown makeTurtle makeManta makeShark makePuffer seahorseGeo makeCrab makeOcto jellyGeos makeWhale makeDolphin makeMoray |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
 | `models/pojazdy.ciuchcia.js` | 26 | carFace buildTaxi |
 | `models/pojazdy.taxi.js` | 49 | carFace buildTaxi planeBody buildPlane buildPolice |
+| `models/morze.js` | 354 | MORZE: M (materiał podwodny) fishGeo speciesGeo makeClown makeTurtle makeManta makeShark makePuffer seahorseGeo makeCrab makeOcto jellyGeos makeWhale makeDolphin makeMoray |
 | `models/przyroda.pralnia.js` | 7 | duck tree palm |
 | `models/przyroda.zniwa.js` | 48 | tuftGeo |
 | `models/rafa.rafa.js` | 118 | branchGeo brainGeo tableGeo tubesGeo platesGeo pillarsGeo anemoneGeo kelpGeo grassGeo nubGeo rockGeo urchinGeo clamGeo starGeo shellGeo makeWreck makeChest |
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
 | `models/rolnicze.taxi.js` | 13 | buildKombajn |
 | `models/rolnicze.zniwa.js` | 357 | makeScrew buildCombine buildPlough buildSeeder buildBaler buildBigTractor buildTractor buildTrailer |
-| `models/zwierzeta.arka.js` | 148 | loft base eye finish mkElephant mkGiraffe mkZebra mkHippo mkCroc mkLion whiskers mkTiger mkPanda mkPenguin mkKangaroo ratGeo |
-| `models/zwierzeta.pralnia-arka.js` | 5 | LEGS4 legs |
-| `models/zwierzeta.pralnia.js` | 145 | loft base eye finish mkElephant mkGiraffe mkZebra mkHippo mkCroc mkLion whiskers mkTiger mkPanda mkPenguin mkKangaroo |
+| `models/zwierzeta.js` | 206 | ZOO: MK.elephant…kangaroo, anim, cfg {scale, cast} |
 | `models/zwierzeta.taxi.js` | 50 | mkGiraffe mkElephant mkLion mkPenguin |
 | `models/zwierzeta.zniwa.js` | 65 | buildGiraffe buildElephant |
 

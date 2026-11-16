@@ -116,13 +116,11 @@ const FY=f=>f*RH,cx=c=>X0+CW*(c+.5),key=(f,c)=>f*100+c,valid=c=>c>=0&&c<NC;
 const ALLC=[];for(let f=0;f<NF;f++)for(let c=0;c<NC;c++)ALLC.push([f,c]);
 
 /* ---------- sea animals (models from Rafa koralowa) ---------- */
-const TAU=PI*2,C3=h=>{const c=new T.Color(h);return [c.r,c.g,c.b];};
-const mix3=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t],mul3=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
 
-const _m4=new T.Matrix4(),_q=new T.Quaternion(),_e=new T.Euler(),_v=V(),_v2=V();
 
-const uT={value:0};
 
+// zwierzęta morskie z Rafy (models/morze.js, tryb nad wodą)
+const {makeDolphin,makeWhale,makeShark,makeTurtle,makeManta}=MORZE,TAU=PI*2;
 const sea=[];
 function seaAdd(obj,o){scene.add(obj.g);if(o.s)obj.g.scale.setScalar(o.s);let th=o.th==null?rnd(TAU):o.th,ph=rnd(9),py=WATER+o.y;const d=o.dir||1;
   sea.push(dt=>{th+=d*o.sp/o.R*dt;ph+=dt*o.sp*(o.phK||1.2);const x=Math.cos(th)*o.R,z=(o.cz||0)+Math.sin(th)*o.Rz;
@@ -420,7 +418,7 @@ function update(dt){time+=dt;updWorld(dt);if(introT>0){introT-=dt;if(introT<=0){
   if(closed){}else if(phase==='play'){updPests(dt);social(dt);toolDrip(dt);}else if(phase==='won'||phase==='lost'){updPests(dt);}
   checkEnd(dt);if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').hidden=true;}
   updCam(dt);for(const k in P)P[k].up(dt);hud(dt);}
-function frame(now){const raw=(now-last)/1000;last=now;const dt=Math.min(.05,Math.max(0,raw));
+function frame(now){const raw=(now-last)/1000;last=now;const dt=Math.min(.05,Math.max(0,raw));MORZE.U.uTime.value=now/1000;
   if(running){update(dt);fAcc+=raw;fN++;if(fAcc>4){const fps=fN/fAcc;if(fps<27&&qStep<2){qStep++;if(qStep===1){pixelRatio=Math.min(pixelRatio,1.25);resize();}else{renderer.shadowMap.enabled=false;sun.castShadow=false;scene.traverse(o=>{if(o.material&&o.material.isMaterial)o.material.needsUpdate=true;});}}fAcc=0;fN=0;}}
   else{time+=dt;updWorld(dt);closed=true;shellOp=1;camG.pitch=.3;camG.dist=fullFit()*1.15;camG.yaw+=dt*.12;updCam(dt);for(const k in P)P[k].up(dt);}
   renderer.render(scene,camera);requestAnimationFrame(frame);}

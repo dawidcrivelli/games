@@ -65,7 +65,10 @@ function fromGame(gra, items) {
     f.onload = () => setTimeout(() => {
       for (const m of items) {
         // toJSON saves .matrix (game syncs it only at render); unused vehicles are hidden in game
-        try { const o = toObject(f.contentWindow.eval(m.js), f.contentWindow); o.visible = true; o.updateMatrixWorld(true); m.json = o.toJSON(); }
+        try { const o = toObject(f.contentWindow.eval(m.js), f.contentWindow); o.visible = true; o.updateMatrixWorld(true);
+          // parametric geometries (SphereGeometry…) serialize only params, losing edited vertices/colors
+          o.traverse(x => { if (x.geometry?.parameters) x.geometry = new f.contentWindow.THREE.BufferGeometry().copy(x.geometry); });
+          m.json = o.toJSON(); }
         catch (e) { m.err = e.message; }
       }
       f.remove(); done();
@@ -104,7 +107,7 @@ list.onclick = e => { const c = e.target.closest('.card'); if (c && MODELE[c.dat
 
 /* --- Podgląd: obracanie palcem/myszą, zoom kółkiem/szczypaniem --- */
 let big = null; const orbit = { yaw: 0, pitch: .45, zoom: 1 };
-function open(m) { big = m; Object.assign(orbit, { yaw: 0, pitch: .45, zoom: 1 }); bigHidden(false); document.getElementById('info').innerHTML = `${nazwa(m)}<small>models/${KAT_PLIK[m.kat]}.${plik(m)}.js · ${info(m)}</small>`; }
+function open(m) { big = m; Object.assign(orbit, { yaw: 0, pitch: .45, zoom: 1 }); bigHidden(false); document.getElementById('info').innerHTML = `${nazwa(m)}<small>models/${KAT_PLIK[m.kat]}${plik(m) && "." + plik(m)}.js · ${info(m)}</small>`; }
 const bigHidden = h => { document.getElementById('big').hidden = h; if (h) big = null; };
 x.onclick = () => bigHidden(true);
 addEventListener('keydown', e => e.key === 'Escape' && bigHidden(true));

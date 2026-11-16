@@ -3,20 +3,17 @@
 // kategoria → prefiks pliku w models/
 const KAT_PLIK = { 'zwierzęta': 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi' };
 const KATEGORIE = Object.keys(KAT_PLIK);
-const ZOO = [['słoń', 'Elephant'], ['żyrafa', 'Giraffe'], ['zebra', 'Zebra'], ['hipopotam', 'Hippo'], ['krokodyl', 'Croc'],
-  ['lew', 'Lion'], ['tygrys', 'Tiger'], ['panda', 'Panda'], ['pingwin', 'Penguin'], ['kangur', 'Kangaroo']];
+const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
+  ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
 const RAFA_RYBY = ['clown', 'blue', 'yellow', 'serg', 'chrom', 'anth', 'butt', 'parrot'];
 const MORZE = [['delfin', 'Dolphin'], ['wieloryb', 'Whale'], ['rekin', 'Shark'], ['manta', 'Manta'], ['żółw', 'Turtle']];
 
 const MODELE = [
-  ...['pralnia', 'arka'].flatMap(gra => ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra, js: `mk${f}()` }))),
-  ...['Elephant', 'Giraffe', 'Lion', 'Penguin'].map(f => ({ kat: 'zwierzęta', typ: ZOO.find(z => z[1] === f)[0], gra: 'taxi', js: `mk${f}()` })),
-  { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', js: 'buildElephant()' },
-  { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', js: 'buildGiraffe()' },
+  ...ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'pralnia', plik: '', js: `ZOO.MK.${f}()` })),
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },
 
-  ...['arka', 'rafa'].flatMap(gra => MORZE.map(([typ, f]) => ({ kat: 'morze', typ, gra, js: `make${f}()` }))),
+  ...MORZE.map(([typ, f]) => ({ kat: 'morze', typ, gra: 'rafa', plik: '', js: `make${f}()` })),
   ...['Clown', 'Puffer', 'Crab', 'Octo', 'Moray'].map(f => ({ kat: 'morze', typ: f.toLowerCase(), gra: 'rafa', js: `make${f}()` })),
   { kat: 'morze', typ: 'konik morski', gra: 'rafa', js: 'seahorseGeo()' },
   { kat: 'morze', typ: 'meduza', gra: 'rafa', js: 'jellyGeos()' },
