@@ -2,7 +2,7 @@
 
 Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -19,7 +19,7 @@ flowchart LR
 
 - Zwykłe skrypty, wspólny zasięg globalny; kolejność w `<gra>/index.html`.
 - Nazwa pliku = gry, które go używają. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
-- Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa), `models/morze.js` → `MORZE` (rafa, arka; `MORZE_CFG={water:false}` nad wodą).
+- Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa, piraci), `models/morze.js` → `MORZE` (rafa, arka, piraci; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
@@ -28,13 +28,13 @@ flowchart LR
 | plik | linie | zawiera |
 |---|---|---|
 | `lib/ciuchcia-taxi-zniwa-arka-rafa.js` | 8 | hash2 vnoise |
-| `lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa.js` | 6 | clamp |
+| `lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci.js` | 6 | clamp |
 | `lib/ciuchcia-taxi-zniwa-rafa.js` | 11 | $ rnd rr tap |
 | `lib/ciuchcia-taxi-zniwa.js` | 85 | wrap tex lam pho mesh box cylY cylX cylZ rboxGeo rbox hose mergeGeos bake setSky updateRain updateBirds emit updateParticles tone resize |
 | `lib/ciuchcia-taxi.js` | 68 | signMat ell cone cloneTpl applyWeather puff updatePuffs burst initAudio holdBtn syncSnd |
 | `lib/ciuchcia-zniwa.js` | 6 | nextCam |
-| `lib/pralnia-arka-rafa.js` | 5 | lerp |
-| `lib/pralnia-arka.js` | 23 | nloop tone nz sw roar mnote goFS |
+| `lib/pralnia-arka-rafa-piraci.js` | 5 | lerp |
+| `lib/pralnia-arka-piraci.js` | 23 | nloop tone nz sw roar mnote goFS |
 | `lib/zniwa-rafa.js` | 13 |  |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
