@@ -4,6 +4,8 @@ Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspóln
 
 **Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/).
 
+**Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
+
 ## Struktura
 
 ```mermaid
@@ -64,6 +66,7 @@ flowchart LR
 
 - `npm i` (puppeteer-core, acorn; Chrome z /Applications).
 - `node tools/play.mjs [id…]` — każda gra: start, kilka sekund jazdy, błędy JS, zrzut `shots/<id>.jpg` (kafelki launchera). `--orig` / `--dist` testuje `orig/` / `dist/`.
+- `node tools/galeria.mjs` — galeria: błędy budowania modeli, zrzuty `tmp/galeria-*.png`.
 - `node tools/build.mjs [gra…]` — `dist/<gra>.html`, jeden plik (artefakt Claude).
 - Lokalnie: `python3 -m http.server` → http://localhost:8000/.
 
