@@ -730,7 +730,7 @@ let sirenOn = false;
 Object.assign(AUTOS.taxi, { vmax:27, acc:10, off:.72, grip:9 }); Object.assign(AUTOS.race, { vmax:40, acc:15, off:.55, grip:10, jobs:1, sub:'najszybsza ⚡' });
 Object.assign(AUTOS.bus, { vmax:20, acc:6.5, off:.6, grip:10, sub:'3 pasażerów 🧍🧍🧍' }); Object.assign(AUTOS.ursus, { vmax:14, acc:7, off:1, grip:14, jobs:1, sub:'wszędzie 🌾' });
 Object.keys(AUTOS).forEach(k => Object.assign(AUTOS[k].car, { vx:0, vz:0, y:0, vy:0, air:false, tilt:0, pitch:0 }));
-let stuckT = 0, unstuckT = 0, unstuckS = 1;
+let stuckT = 0, unstuckT = 0;
 let AK = 'taxi', AV = AUTOS.taxi, pc = AV.car, offK = 0, bumpT = -9, turboT = 0, turboCD = 0, airT = 0, driftT = 0, shake = 0, hornT = 0, nearStop = false, splashT = 0, leafT = 0;
 let score = 0, chaos = 0, chaosStar = 0;
 function addScore(n) { score += n; $('score').textContent = score; if (n) { GAR.bank += n; save(); } }
@@ -792,7 +792,7 @@ function driveCar(dt) {
   let slow = 1; if (c.y < .4) for (let n = 0; n < slowZones.length; n++) { const q = slowZones[n], ax = (c.x - q.x)/(q.lake ? LAKE.rx/LAKE.rz : 1), az = c.z - q.z; if (ax*ax + az*az < q.r*q.r) { slow = .45;
     if (Math.hypot(c.vx, c.vz) > 3) { for (let i = 0; i < 3; i++) emit(c.x + rr(-1, 1), .3, c.z + rr(-1, 1), rr(-3, 3), rr(3, 8), rr(-3, 3), .7, .7, .88, 1, 14); if (time - splashT > .5) { splashT = time; sfx.splash(); if (airT > .3) chaosAdd(2); } } } }
   const vmax = A.vmax*(tb ? 1.5 : 1)*(1 - offK*(1 - A.off))*slow;
-  const stW = unstuckT > 0 ? (st || unstuckS) : st;
+  const stW = unstuckT > 0 ? -st : st;             // cofanie spod ściany: trzymasz ◀, tył idzie w prawo (nos obraca się w lewo); bez strzałki prosto do tyłu
   if (!c.air) c.steer += (stW - c.steer)*Math.min(1, dt*(stW ? 5 : 9));
   let fx = Math.sin(c.h), fz = Math.cos(c.h), vf = c.vx*fx + c.vz*fz;
   c.h = wrap(c.h + c.steer*A.turn*vf*.2/(1 + Math.abs(vf)*.09)*dt*(c.air ? .35 : 1));
@@ -807,7 +807,7 @@ function driveCar(dt) {
   }
   c.vx = fx*vf - fz*vl; c.vz = fz*vf + fx*vl; c.x += c.vx*dt; c.z += c.vz*dt;
   const hit = collide(c);
-  if (!c.air && unstuckT <= 0 && (IN.gas > .3 || tb) && Math.abs(vf) < 1.2) { stuckT += dt; if (stuckT > 1.1) { stuckT = 0; unstuckT = 1.2; unstuckS = st ? -Math.sign(st) : (Math.random() < .5 ? 1 : -1); toast('🔙 Cofamy spod ściany!'); } } else stuckT = 0;
+  if (!c.air && unstuckT <= 0 && (IN.gas > .3 || tb) && Math.abs(vf) < 1.2) { stuckT += dt; if (stuckT > 1.1) { stuckT = 0; unstuckT = 1.2; toast('🔙 Cofamy spod ściany!'); } } else stuckT = 0;
   if (hit > 4 && time - bumpT > .35) { bumpT = time; sfx.crash(Math.min(1, hit/16)); shake = Math.min(.6, hit*.03); for (let i = 0; i < 8; i++) emit(c.x + fx*2, .8, c.z + fz*2, rr(-4, 4), rr(2, 6), rr(-4, 4), .5, 1, .8, .3, 12); }
   // góra–dół: skocznie i lot
   const gy = groundH(c.x, c.z);
