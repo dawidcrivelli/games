@@ -520,26 +520,8 @@ slowZones.push({ x:LAKE.x, z:LAKE.z, r:LAKE.rz - 1, lake:1 });
 flatMesh(roadP, roadMat, .03); flatMesh(walkP, walkMat, .04); flatMesh(lineP, lineMat, .055); flatMesh(curbP, lam(0xf0ebdd, PO(2)), .05); flatMesh(manP, lam(0x2f3236, PO(3)), .056); Object.keys(innerP).forEach(k => flatMesh(innerP[k], INNER[k], k === 'sand' ? .045 : k === 'top' ? .085 : .065));
 { // łan zboża: niska złota bryła nad polem
   const g = new T.Group(), P = innerP.wheat; for (let k = 0; k < P.length; k += 18) box(P[k + 6] - P[k], .55, P[k + 5] - P[k + 2], INNER.wheat, (P[k] + P[k + 6])/2, .3, (P[k + 2] + P[k + 5])/2, g); const b = bake(g); b.children.forEach(m => { m.castShadow = false; }); scene.add(b); }
-const nPreCity = scene.children.length, spinners = buildLandmarks(PLOTS);
+const spinners = buildLandmarks(PLOTS);
 cityG.forEach(g => scene.add(bake(g))); scene.add(bake(outG));
-/* ---------- mapa wysokości zabudowy (siatka 1 m) z prawdziwych trójkątów: samolot nigdy nie wejdzie w budynek ---------- */
-const HM = (() => { const x0 = BND.x0 - 20, z0 = BND.z0 - 20, W = Math.ceil(BND.x1 + 20 - x0), D = Math.ceil(BND.z1 + 20 - z0), h = new Float32Array(W*D);
-  const set = (x, z, y) => { const i = Math.floor(x - x0), j = Math.floor(z - z0); if (i >= 0 && j >= 0 && i < W && j < D && y > h[j*W + i]) h[j*W + i] = y; };
-  const A = new T.Vector3(), B = new T.Vector3(), C = new T.Vector3(), add = m => {
-    const g = m.geometry, pa = g && g.attributes.position; if (!pa) return; const ix = g.index, n = ix ? ix.count : pa.count; m.updateWorldMatrix(true, false);
-    for (let t = 0; t + 2 < n; t += 3) { const a = ix ? ix.getX(t) : t, b = ix ? ix.getX(t + 1) : t + 1, c = ix ? ix.getX(t + 2) : t + 2;
-      A.fromBufferAttribute(pa, a).applyMatrix4(m.matrixWorld); B.fromBufferAttribute(pa, b).applyMatrix4(m.matrixWorld); C.fromBufferAttribute(pa, c).applyMatrix4(m.matrixWorld);
-      const top = Math.max(A.y, B.y, C.y); if (top < .6) continue;
-      const den = (B.z - C.z)*(A.x - C.x) + (C.x - B.x)*(A.z - C.z);
-      if (Math.abs(den) < .05) { [[A, B], [B, C], [C, A]].forEach(e => { const L = Math.hypot(e[1].x - e[0].x, e[1].z - e[0].z), k = Math.ceil(L/.5); for (let q = 0; q <= k; q++) set(e[0].x + (e[1].x - e[0].x)*q/k, e[0].z + (e[1].z - e[0].z)*q/k, top); }); continue; }      // ściana pionowa
-      [A, B, C].forEach(v => set(v.x, v.z, v.y));
-      for (let x = Math.floor(Math.min(A.x, B.x, C.x)); x <= Math.max(A.x, B.x, C.x); x++) for (let z = Math.floor(Math.min(A.z, B.z, C.z)); z <= Math.max(A.z, B.z, C.z); z++) {
-        const px = x + .5, pz = z + .5, u = ((B.z - C.z)*(px - C.x) + (C.x - B.x)*(pz - C.z))/den, v = ((C.z - A.z)*(px - C.x) + (A.x - C.x)*(pz - C.z))/den, w = 1 - u - v;
-        if (u > -.05 && v > -.05 && w > -.05) set(px, pz, u*A.y + v*B.y + w*C.y); } } };
-  scene.children.slice(nPreCity).forEach(o => o.traverse(m => { if (m.isMesh && !m.isInstancedMesh) add(m); }));
-  turbines.forEach(r => r.parent.children.forEach(m => { if (m.isMesh) add(m); }));
-  const at = (x, z) => { const i = Math.floor(x - x0), j = Math.floor(z - z0); return i >= 0 && j >= 0 && i < W && j < D ? h[j*W + i] : 0; };
-  return { at, r:(x, z, r) => Math.max(at(x, z), at(x + r, z), at(x - r, z), at(x, z + r), at(x, z - r)) }; })();
 
 { // kwiaty na trawnikach
   const pts = []; blocks.forEach(B => { if (['houses', 'villas', 'pond', 'forest', 'bloki'].includes(B.type)) for (let n = 0; n < 38; n++) pts.push([B.cx + rr(-20, 20), B.cz + rr(-20, 20)]); });
@@ -803,9 +785,9 @@ function placePlayer() {
   const c = pc; for (let j = 1; j <= NZ; j++) for (let i = 2; i < NX; i++) if (HE[j][i] && !c.placed) { c.x = stX(i) + PITCH/2 - 14; c.z = stZ(j) + 3.5; c.h = Math.PI/2; c.placed = 1; }
   c.vx = c.vz = c.vy = 0; c.y = 0; c.air = false;
 }
-function collide(c, noSolids) {
+function collide(c) {
   let hit = 0; const r = 1.15, wall = (nx, nz) => { const vn = c.vx*nx + c.vz*nz; if (vn < 0) { c.vx -= vn*1.3*nx; c.vz -= vn*1.3*nz; hit = Math.max(hit, -vn); } };
-  if (!noSolids) for (let n = 0; n < solids.length; n++) { const q = solids[n]; if (c.x > q.x0 - r && c.x < q.x1 + r && c.z > q.z0 - r && c.z < q.z1 + r && c.y < q.h - .8) {
+  for (let n = 0; n < solids.length; n++) { const q = solids[n]; if (c.x > q.x0 - r && c.x < q.x1 + r && c.z > q.z0 - r && c.z < q.z1 + r && c.y < q.h - .8) {
     const a = c.x - q.x0 + r, b = q.x1 + r - c.x, e = c.z - q.z0 + r, f = q.z1 + r - c.z, m = Math.min(a, b, e, f);
     if (m === a) { c.x = q.x0 - r; wall(-1, 0); } else if (m === b) { c.x = q.x1 + r; wall(1, 0); } else if (m === e) { c.z = q.z0 - r; wall(0, -1); } else { c.z = q.z1 + r; wall(0, 1); } } }
   const push = (ox, oz, rad) => { const dx = c.x - ox, dz = c.z - oz; if (Math.abs(dx) > rad || Math.abs(dz) > rad) return false; const d = Math.hypot(dx, dz); if (d < rad && d > .001) { c.x = ox + dx/d*rad; c.z = oz + dz/d*rad; wall(dx/d, dz/d); return true; } return false; };
@@ -861,19 +843,15 @@ function driveCar(dt) {
 }
 function flyPlane(dt) {                           // gaz: rozpędza się i wznosi; puszczony gaz: opada i ląduje (także na dachach)
   const A = AV, c = pc, st = IN.st, gas = IN.fwd > .2; turboT -= dt; turboCD -= dt; const tb = turboT > 0, vmax = A.vmax*(tb ? 1.4 : 1);
-  const PR = 2;                                   // promień samolotu do sprawdzania zabudowy (dziób, skrzydła)
-  let gy = Math.max(groundH(c.x, c.z), HM.r(c.x, c.z, PR) + .4); if (c.y < gy - 1.2) c.y = gy;      // gdyby jakimś cudem był w środku: od razu na dach
+  let gy = groundH(c.x, c.z); for (let n = 0; n < solids.length; n++) { const q = solids[n]; if (c.x > q.x0 && c.x < q.x1 && c.z > q.z0 && c.z < q.z1 && c.y >= q.h - .8) gy = Math.max(gy, q.h + .4); }
   const grounded = c.y <= gy + .05; let v = c.v || 0;
   if (gas || tb) v = Math.min(vmax, v + A.acc*dt); else if (grounded && IN.gas) v = Math.min(vmax*.3, v + A.acc*.6*dt); else if (IN.back) v = grounded ? Math.max(-4, v - 16*dt) : Math.max(9, v - 12*dt); else v -= Math.sign(v)*Math.min(Math.abs(v), (grounded ? (nearStop ? 20 : 7) : nearStop ? 9 : 3)*dt);
   if (v > vmax) v = Math.max(vmax, v - 10*dt);
   c.steer += (st - c.steer)*Math.min(1, dt*4); c.h = wrap(c.h + c.steer*(grounded ? Math.min(1, Math.abs(v)/6)*Math.sign(v || 1) : 1)*1.05*dt);
-  const want = (gas || tb) && v > 15 ? (c.y < 46 ? 9 : 0) : grounded ? 0 : IN.back ? -13 : nearStop ? -11 : -5.5; c.vy += (want - c.vy)*Math.min(1, dt*2.2); if (c.y >= 46 && c.vy > 0) c.vy *= .9;
-  const fx = Math.sin(c.h), fz = Math.cos(c.h); c.vx = fx*v; c.vz = fz*v; c.y += c.vy*dt;
-  const ox = c.x, oz = c.z, free = (x, z) => HM.r(x, z, PR) < c.y + 1;     // niższy uskok (do 1 m) samolot przeskakuje, wyższy to ściana
-  c.x += c.vx*dt; c.z += c.vz*dt; let hit = 0;
-  if (!free(c.x, c.z)) { hit = Math.abs(v); if (free(c.x, oz)) c.z = oz; else if (free(ox, c.z)) c.x = ox; else { c.x = ox; c.z = oz; } v *= .35; if (gas || tb) c.vy = Math.max(c.vy, 7); }      // ślizg wzdłuż ściany albo stop; z gazem wspina się nad dach
-  hit = Math.max(hit, collide(c, true)); if (hit > 3) { v = Math.min(v, c.vx*fx + c.vz*fz); if (time - bumpT > .35) { bumpT = time; sfx.crash(Math.min(1, hit/16)); shake = Math.min(.5, hit*.03); } }
-  gy = Math.max(groundH(c.x, c.z), HM.r(c.x, c.z, PR) + .4);
+  // z gazem wznosi się zawsze, także bez rozpędu (z ciasnego podwórka między blokami): wolno w miejscu, szybciej z prędkością
+  const want = gas || tb ? (c.y < 46 ? 3.5 + 5.5*clamp(v/15, 0, 1) : 0) : grounded ? 0 : IN.back ? -13 : nearStop ? -11 : -5.5; c.vy += (want - c.vy)*Math.min(1, dt*2.2); if (c.y >= 46 && c.vy > 0) c.vy *= .9;
+  const fx = Math.sin(c.h), fz = Math.cos(c.h); c.vx = fx*v; c.vz = fz*v; c.x += c.vx*dt; c.z += c.vz*dt; c.y += c.vy*dt;
+  const hit = collide(c); if (hit > 3) { v = c.vx*fx + c.vz*fz; if (time - bumpT > .35) { bumpT = time; sfx.crash(Math.min(1, hit/16)); shake = Math.min(.5, hit*.03); } }
   if (c.y <= gy) { if (c.vy < -7 && time - bumpT > .4) { bumpT = time; sfx.thud(); shake = .3; } if (!grounded && c.vy < -1) for (let i = 0; i < 8; i++) emit(c.x + rr(-1, 1), gy + .2, c.z + rr(-1, 1), rr(-3, 3), rr(1, 3), rr(-3, 3), .5, .75, .72, .62, 6); c.y = gy; if (c.vy < 0) c.vy = 0; }
   c.air = c.y > gy + .25; c.v = v; if (c.air) airT += dt; else airT = 0;
   c.tilt += ((c.air ? -c.steer*.55 : 0) - c.tilt)*Math.min(1, dt*4); c.pitch += ((c.air || c.vy > 1 ? -clamp(c.vy*.035, -.4, .4) : 0) - c.pitch)*Math.min(1, dt*5); c.inner.rotation.z = c.tilt; c.inner.rotation.x = c.pitch; c.prop.rotation.z += dt*(12 + Math.abs(v)*2 + (gas ? 30 : 0));
@@ -1279,17 +1257,11 @@ const PICKS = [['taxi', AUTOS.taxi], ['plane', AUTOS.plane], ['police', AUTOS.po
 function togglePick() { const p = $('pick'); if (!p.hidden) { p.hidden = true; return; } p.innerHTML = '';
   PICKS.forEach(q => { const b = document.createElement('button'); b.className = 'btn'; b.setAttribute('aria-pressed', String(S.veh === 'car' ? q[0] === AK : q[0] === TRkey)); b.innerHTML = '<span class="em">' + q[1].ico + '</span>' + q[1].name + '<small>' + q[1].sub + '</small>';
     b.addEventListener('click', () => selectVeh(q[0])); p.appendChild(b); }); p.hidden = false; }
-function nearestRoad(x, z) {
-  for (let r = 0; r < 200; r += 2) for (let n = 0, N = Math.max(1, Math.ceil(r)); n < N; n++) { const a = n/N*6.283, px = x + Math.cos(a)*r, pz = z + Math.sin(a)*r;
-    if (onRoad(px, pz) && HM.r(px, pz, 2.5) < .6) return { x:px, z:pz }; }
-  return { x:stX(1), z:stZ(1) };
-}
 function selectVeh(key) {
   $('pick').hidden = true; camSnap = true;
   if (AUTOS[key]) { const o = pc, was = S.veh === 'car'; if (was && key === AK) return; sirenOn = false; if (key === 'police' || AK === 'police') { clearCusts(); polReset(false); } o.g.visible = false; AK = key; AV = AUTOS[key]; pc = AV.car;
     if (was) Object.assign(pc, { x:o.x, z:o.z, h:o.h, y:o.y, vx:0, vz:0, vy:0, air:false, v:0 });
     else { let b = POIS[0], bd = 1e9; POIS.forEach(p => { const d = Math.hypot(p.x - lead.x, p.z - lead.z); if (d < bd) { bd = d; b = p; } }); Object.assign(pc, { x:b.x, z:b.z, h:b.h, y:0, vx:0, vz:0, vy:0, air:false }); S.veh = 'car'; document.body.classList.remove('train'); tV = 0; }
-    if (HM.r(pc.x, pc.z, 2.5) > .6) { const q = nearestRoad(pc.x, pc.z); pc.x = q.x; pc.z = q.z; pc.y = 0; }      // z dachu albo przy ścianie: na najbliższą ulicę
     pc.g.visible = true; pc.steer = 0; offK = 0; syncAuto(); if (AU.ctx) AU.mot.gain.setTargetAtTime(0, AU.ctx.currentTime, .1); if (rides.length > CAP()) { rides.splice(CAP()).forEach(r => freeAnimal(r.an)); toast('Do tego auta mieści się tylko jeden pasażer 🙂'); } remount(); if (key === 'police') { sirenOn = true; toast('🚓 Zamiast pasażerów dostaniesz zgłoszenia. Czerwona strzałka prowadzi do uciekiniera. Trąbka wyłącza syrenę.'); } else horn(); if (key === 'plane') toast('🛩️ Trzymaj gaz, żeby lecieć. Puść, a samolot sam opadnie i wyląduje.'); }
   else { if (rides.length) { endRides(); toast('Pasażerowie poczekają na następną taksówkę 🙂'); } S.veh = 'train'; setConsist(key); document.body.classList.add('train'); pc.vx = pc.vz = 0; tHold = 0; arrow.visible = false; horn(); toast('Puść gaz przed stacją, a pociąg sam stanie przy peronie 🚉');
     engineOff(); if (AU.ctx) { const t = AU.ctx.currentTime; AU.mot.gain.setTargetAtTime(0, t, .1); AU.roll.gain.setTargetAtTime(0, t, .1); } }
