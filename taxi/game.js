@@ -177,9 +177,6 @@ const AU = { ctx:null };
 const sfx = {
   chuff:(strong, vol) => { burst(strong ? 560 : 430, .17, vol*(strong ? 1 : .75), 0, .8, 'lowpass'); burst(1700, .09, vol*.22, 0, .8); },
   clack:() => { burst(1900, .04, .3, 0, 2); tone(150, .05, 'sine', .22, 80); burst(1700, .04, .26, .11, 2); tone(140, .05, 'sine', .2, 75, .11); },
-  whistle:() => { [[0, .22], [.3, .95]].forEach(p => { [[622, .15], [784, .13], [932, .09]].forEach(q => { tone(q[0], p[1], 'triangle', q[1], 0, p[0]); tone(q[0]*1.006, p[1], 'sine', q[1]*.6, 0, p[0]); }); burst(2800, p[1]*.8, .1, p[0], .5); }); },
-  hornE:() => { tone(311, .9, 'sawtooth', .15); tone(370, .9, 'sawtooth', .13); tone(312.5, .9, 'square', .05); },
-  hornP:() => { tone(440, .75, 'square', .1); tone(349, .75, 'square', .1); tone(441.5, .75, 'sawtooth', .07); },
   star:() => [784, 1047, 1319].forEach((f, i) => tone(f, .22, 'triangle', .26, 0, i*.09)),
   moo:() => { tone(150, .75, 'sawtooth', .2, 98); tone(226, .6, 'square', .05, 150, .05); },
   thud:() => tone(130, .25, 'sine', .5, 45),
@@ -745,8 +742,8 @@ sfx.roar = () => { tone(110, .9, 'sawtooth', .22, 55); burst(260, .9, .3, 0, .7,
 sfx.peep = () => { [0, .14, .28].forEach(d => tone(1100, .1, 'square', .07, 800, d)); };
 sfx.hum = () => { tone(196, .5, 'sine', .25, 262); tone(294, .5, 'triangle', .1, 392, .1); };
 /* ---------- silnik z biegami i klakson: stałe generatory, sterowane obrotami ---------- */
-const ENG = { taxi:{ idle:21, top:75, g:4, br:1, tr:.3, nz:.07, horn:[415, 523] }, race:{ idle:78, top:330, g:5, br:2.2, tr:.12, nz:.03, horn:[620, 784] }, bus:{ idle:15, top:48, g:4, br:.75, tr:.45, nz:.15, horn:[185, 233] }, ursus:{ idle:13, top:44, g:3, br:.9, tr:.9, nz:.1, horn:[340, 428] }, police:{ idle:24, top:86, g:4, br:1.1, tr:.28, nz:.07, horn:[415, 523] }, plane:{ idle:48, top:112, g:1, br:1.3, tr:.6, nz:.16, horn:[500, 630] } };
-let EN = null, rpm = 0, lastGear = 0, hornHeld = false, hornAt = 0, prevThr = 0, popN = 0, popT = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
+const ENG = { taxi:{ idle:21, top:75, g:4, br:1, tr:.3, nz:.07 }, race:{ idle:78, top:330, g:5, br:2.2, tr:.12, nz:.03 }, bus:{ idle:15, top:48, g:4, br:.75, tr:.45, nz:.15 }, ursus:{ idle:13, top:44, g:3, br:.9, tr:.9, nz:.1 }, police:{ idle:24, top:86, g:4, br:1.1, tr:.28, nz:.07 }, plane:{ idle:48, top:112, g:1, br:1.3, tr:.6, nz:.16 } };
+let EN = null, hornV = null, rpm = 0, lastGear = 0, hornHeld = false, hornAt = 0, prevThr = 0, popN = 0, popT = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
 sfx.bang = () => { burst(170, .07, .6, 0, .7, 'lowpass'); burst(1500, .04, .22, 0, 1); tone(95, .06, 'square', .28, 45); };
 function initEngine() {
   if (EN || !AU.ctx) return; const c = AU.ctx, osc = (t, f) => { const o = c.createOscillator(); o.type = t; o.frequency.value = f || 60; o.start(); return o; }, G = v => { const g = c.createGain(); g.gain.value = v; return g; };
@@ -755,10 +752,8 @@ function initEngine() {
   o1.connect(mix); o2.connect(g2); g2.connect(mix); o3.connect(g3); g3.connect(mix); mix.connect(sh); sh.connect(lp); lp.connect(trem); trem.connect(out); out.connect(AU.master); lfo.connect(lg); lg.connect(trem.gain);
   const nz = (type, f, q) => { const s = c.createBufferSource(), b = c.createBiquadFilter(), g = G(0); s.buffer = AU.noiseBuf; s.loop = true; b.type = type; b.frequency.value = f; b.Q.value = q; s.connect(b); b.connect(g); s.start(); return { g, b }; };
   const ex = nz('bandpass', 260, .8); ex.g.connect(trem); const skid = nz('bandpass', 1750, 7); skid.g.connect(AU.master); const sk2 = nz('bandpass', 2450, 9); sk2.g.connect(AU.master);
-  const h = [osc('sawtooth', 415), osc('sawtooth', 523), osc('square', 415), osc('square', 523)], hm = G(1), hp = c.createBiquadFilter(), hl = c.createBiquadFilter(), hg = G(0);
-  h.forEach((o, i) => { const g = G(i < 2 ? .5 : .16); o.connect(g); g.connect(hm); }); hp.type = 'peaking'; hp.frequency.value = 2300; hp.Q.value = 1; hp.gain.value = 9; hl.type = 'lowpass'; hl.frequency.value = 4200; hm.connect(hp); hp.connect(hl); hl.connect(hg); hg.connect(AU.master);
   const so = osc('sawtooth', 660), so2 = osc('square', 660), sl = c.createBiquadFilter(), sg = G(0); sl.type = 'bandpass'; sl.frequency.value = 1100; sl.Q.value = .6; so.connect(sl); const s2g = G(.35); so2.connect(s2g); s2g.connect(sl); sl.connect(sg); sg.connect(AU.master);
-  EN = { o1, o2, o3, lp, trem, out, lfo, lg, ex, skid, sk2, h, hg, so, so2, sg };
+  EN = { o1, o2, o3, lp, trem, out, lfo, lg, ex, skid, sk2, so, so2, sg };
 }
 function engineSound(dt, vf, air, skid, tb) {
   if (!EN) return; const t = AU.ctx.currentTime, E = ENG[AK], A = AV, fr = clamp(Math.abs(vf)/(A.vmax*(tb ? 1.5 : 1)), 0, 1), thr = IN.gas > .3 || tb ? 1 : 0, gi = Math.min(E.g - 1, (Math.pow(fr, .8)*E.g) | 0), lo = Math.pow(gi/E.g, 1.25), hi = Math.pow((gi + 1)/E.g, 1.25);
@@ -773,14 +768,14 @@ function engineSound(dt, vf, air, skid, tb) {
   AU.roll.gain.setTargetAtTime(air ? 0 : Math.min(.3, Math.abs(vf)/40*.3), t, .15);
   const sir = sirenOn && AK === 'police', sf = (time*1.5 % 1) < .5 ? 880 : 660; EN.sg.gain.setTargetAtTime(sir ? .1 : 0, t, .03); if (sir) { EN.so.frequency.setTargetAtTime(sf, t, .012); EN.so2.frequency.setTargetAtTime(sf, t, .012); }
 }
-function engineOff() { if (!EN) return; const t = AU.ctx.currentTime; [EN.out, EN.ex.g, EN.skid.g, EN.sk2.g, EN.hg, EN.sg].forEach(g => g.gain.setTargetAtTime(0, t, .08)); hornHeld = false; }
+function engineOff() { if (!EN) return; const t = AU.ctx.currentTime; [EN.out, EN.ex.g, EN.skid.g, EN.sk2.g, EN.sg].forEach(g => g.gain.setTargetAtTime(0, t, .08)); hornOff(); }
 function hornOn() {
-  initAudio(); initEngine(); if (S.veh === 'train') { if (TR.kind === 'steam') sfx.whistle(); else if (TR.kind === 'eu') sfx.hornE(); else sfx.hornP(); return; }
+  initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/ciuchcia-taxi.js
   if (AK === 'police') { sirenOn = !sirenOn; toast(sirenOn ? '🚨 Syrena włączona: wszyscy z drogi!' : 'Syrena wyłączona'); return; }
   if (GAR.horn !== 'h0') { hornT = 1.2; if (performance.now() - hornAt > 900) { hornAt = performance.now(); melody(GAR.horn); } return; }
-  hornHeld = true; hornAt = performance.now(); hornT = .7; if (!EN) return; const t = AU.ctx.currentTime, F = ENG[AK].horn; EN.h.forEach((o, i) => o.frequency.setValueAtTime(F[i % 2]*(i < 2 ? 1 : 1.003), t)); EN.hg.gain.cancelScheduledValues(t); EN.hg.gain.setTargetAtTime(.17, t, .012);
+  hornHeld = true; hornAt = performance.now(); hornT = .7; hornV = hornStart(AK);
 }
-function hornOff() { if (!hornHeld) return; hornHeld = false; if (!EN) return; const t = AU.ctx.currentTime + Math.max(0, .26 - (performance.now() - hornAt)/1000); EN.hg.gain.setTargetAtTime(0, t, .035); }
+function hornOff() { if (!hornHeld) return; hornHeld = false; hornStop(hornV, S.veh === 'train' ? .5 : .26); hornV = null; }
 function placePlayer() {
   const c = pc; for (let j = 1; j <= NZ; j++) for (let i = 2; i < NX; i++) if (HE[j][i] && !c.placed) { c.x = stX(i) + PITCH/2 - 14; c.z = stZ(j) + 3.5; c.h = Math.PI/2; c.placed = 1; }
   c.vx = c.vz = c.vy = 0; c.y = 0; c.air = false;

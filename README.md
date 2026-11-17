@@ -32,7 +32,7 @@ flowchart LR
 | `lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci.js` | 6 | clamp |
 | `lib/ciuchcia-taxi-zniwa-rafa.js` | 11 | $ rnd rr tap |
 | `lib/ciuchcia-taxi-zniwa.js` | 85 | wrap tex lam pho mesh box cylY cylX cylZ rboxGeo rbox hose mergeGeos bake setSky updateRain updateBirds emit updateParticles tone resize |
-| `lib/ciuchcia-taxi.js` | 68 | signMat ell cone cloneTpl applyWeather puff updatePuffs burst initAudio holdBtn syncSnd |
+| `lib/ciuchcia-taxi.js` | 96 | signMat ell cone cloneTpl applyWeather puff updatePuffs burst initAudio holdBtn syncSnd hornKind hornStart whistleStart trainHornStart hornStop hornTap |
 | `lib/ciuchcia-zniwa.js` | 6 | nextCam |
 | `lib/pralnia-arka-rafa-piraci.js` | 5 | lerp |
 | `lib/pralnia-arka-piraci.js` | 23 | nloop tone nz sw roar mnote goFS |

@@ -622,9 +622,6 @@ const AU = { ctx:null };
 const sfx = {
   chuff:(strong, vol) => { burst(strong ? 560 : 430, .17, vol*(strong ? 1 : .75), 0, .8, 'lowpass'); burst(1700, .09, vol*.22, 0, .8); },
   clack:() => { burst(1900, .04, .3, 0, 2); tone(150, .05, 'sine', .22, 80); burst(1700, .04, .26, .11, 2); tone(140, .05, 'sine', .2, 75, .11); },
-  whistle:() => { [[0, .22], [.3, .95]].forEach(p => { [[622, .15], [784, .13], [932, .09]].forEach(q => { tone(q[0], p[1], 'triangle', q[1], 0, p[0]); tone(q[0]*1.006, p[1], 'sine', q[1]*.6, 0, p[0]); }); burst(2800, p[1]*.8, .1, p[0], .5); }); },
-  hornE:() => { tone(311, .9, 'sawtooth', .15); tone(370, .9, 'sawtooth', .13); tone(312.5, .9, 'square', .05); },
-  hornP:() => { tone(440, .75, 'square', .1); tone(349, .75, 'square', .1); tone(441.5, .75, 'sawtooth', .07); },
   star:() => [784, 1047, 1319].forEach((f, i) => tone(f, .22, 'triangle', .26, 0, i*.09)),
   moo:() => { tone(150, .75, 'sawtooth', .2, 98); tone(226, .6, 'square', .05, 150, .05); },
   thud:() => tone(130, .25, 'sine', .5, 45),
@@ -643,9 +640,9 @@ const keys = { fwd:0, back:0, left:0, right:0 };                    // puszczeni
 holdBtn('pFwd', 'fwd'); holdBtn('pBack', 'back'); holdBtn('cGo', 'fwd'); holdBtn('cBk', 'back'); holdBtn('cL', 'left'); holdBtn('cR', 'right');
 const KEYMAP = { ArrowUp:'fwd', w:'fwd', ArrowDown:'back', s:'back', ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right' };
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = 1; e.preventDefault(); }
-  else if (S.running && !e.repeat) { if (S.mode === 'drive') { if (e.key === ' ') horn(); else if (e.key === 'c') nextCam(); else if (e.key === 't') switchNext(); else if (e.key === 'v') $('pick').hidden = !$('pick').hidden; else if (e.key === 'b') setMode('build'); }
+  else if (S.running && !e.repeat) { if (S.mode === 'drive') { if (e.key === ' ') { e.preventDefault(); hornDown(); } else if (e.key === 'c') nextCam(); else if (e.key === 't') switchNext(); else if (e.key === 'v') $('pick').hidden = !$('pick').hidden; else if (e.key === 'b') setMode('build'); }
     else if (e.key === 'b' || e.key === 'Enter') setMode('drive'); } });
-addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = 0; });
+addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = 0; else if (e.key === ' ' && hornV) hornUp(); });
 addEventListener('blur', () => { keys.fwd = keys.back = keys.left = keys.right = 0; });
 document.addEventListener('touchmove', e => { if (S.running) e.preventDefault(); }, { passive:false });
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -959,22 +956,6 @@ function loadRoads(arr) {                          // zapisane drogi: tylko popr
   for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const t = j*GW + i, m = arr[t] | 0; for (let k = 0; k < 4; k++) if (m >> k & 1) { const i2 = i + DX[k], j2 = j + DZ[k];
     if (!inGrid(i2, j2)) { if (!blocked[t] && !grid[t]) road[t] |= 1 << k; } else if (k < 2 && (arr[j2*GW + i2] >> ((k + 2) % 4) & 1)) connectRoad(i, j, i2, j2); } }
 }
-const hasRoad = (i1, j1, i2, j2) => { if (!inGrid(i1, j1) || !inGrid(i2, j2)) return false; for (let s = 0; s < 4; s++) if (i1 + DX[s] === i2 && j1 + DZ[s] === j2) return !!(road[j1*GW + i1] >> s & 1); return false; };
-function layRoad(i1, j1, i2, j2) {
-  const r = connectRoad(i1, j1, i2, j2);
-  if (r > 0) { rebuildTile(j1*GW + i1); rebuildTile(j2*GW + i2); sfx.pop(laid++ % 12); save(); }
-  else if (r === -2) refuse('Droga może przeciąć tor tylko prosto, w poprzek.');
-  else if (r < 0 && inGrid(i2, j2) && blocked[j2*GW + i2]) refuse('Tu nie da się położyć drogi. Omiń bokiem.');
-}
-function cutRoad(i1, j1, i2, j2) {
-  if (!hasRoad(i1, j1, i2, j2)) return; const a = j1*GW + i1, b = j2*GW + i2; let k = 0; while (!(i1 + DX[k] === i2 && j1 + DZ[k] === j2)) k++;
-  road[a] &= ~(1 << k); road[b] &= ~(1 << ((k + 2) % 4)); rebuildTile(a); rebuildTile(b); checkExtras(); sfx.wipe(); save();
-}
-function eraseRoadTile(i, j) {
-  const idx = j*GW + i; if (!road[idx]) return;
-  for (let k = 0; k < 4; k++) if (road[idx] >> k & 1) { const i2 = i + DX[k], j2 = j + DZ[k]; if (inGrid(i2, j2)) { const n = j2*GW + i2; road[n] &= ~(1 << ((k + 2) % 4)); rebuildTile(n); } }
-  road[idx] = 0; rebuildTile(idx); checkExtras(); sfx.wipe(); save();
-}
 // ---------- przejazdy: powstają same tam, gdzie tor przecina drogę
 const stripeMat = lam(0xffffff, { map:tex(64, 16, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#ffffff' : '#d8301f'; g.fillRect(k*8, 0, 8, h); } }) });
 const xLampOn = new T.MeshBasicMaterial({ color:0xff2a1a }), xLampOff = new T.MeshBasicMaterial({ color:0x3a0a08 });
@@ -1285,7 +1266,7 @@ function tileAt(e) {
 }
 let laid = 0, noT = -9;
 function refuse(msg) { if (time - noT < 1.2) return; noT = time; sfx.no(); toast(msg); }
-function eraseTile(i, j) { if (S.kind === 'road') eraseRoadTile(i, j); else eraseTrackTile(i, j); }
+function eraseTile(i, j) { eraseTrackTile(i, j); }
 function eraseTrackTile(i, j) {
   const idx = j*GW + i; if (!grid[idx]) return;
   if (occupied(idx)) { refuse('Tu stoi pociąg. Najpierw nim odjedź.'); return; }
@@ -1317,7 +1298,6 @@ function buildMove(e) {
   let guard = 0;
   while ((draw.i !== t.i || draw.j !== t.j) && guard++ < 24) { const di = t.i - draw.i, dj = t.j - draw.j, hor = Math.abs(di) >= Math.abs(dj), ni = draw.i + (hor ? Math.sign(di) : 0), nj = draw.j + (hor ? 0 : Math.sign(dj));
     if (S.tool === 'erase') eraseTile(ni, nj);
-    else if (S.tool === 'road') { if (draw.cut === null) draw.cut = hasRoad(draw.i, draw.j, ni, nj); if (draw.cut) cutRoad(draw.i, draw.j, ni, nj); else layRoad(draw.i, draw.j, ni, nj); }
     else { if (draw.cut === null) draw.cut = hasTrack(draw.i, draw.j, ni, nj);        // pierwszy ruch decyduje: po torze = zabieranie, po trawie = układanie
       if (draw.cut) cutTrack(draw.i, draw.j, ni, nj); else layTrack(draw.i, draw.j, ni, nj); }
     draw.i = ni; draw.j = nj; }
@@ -1336,11 +1316,11 @@ function panBy(sx, sy) { if (bcam.portrait) { bcam.tz += sx; bcam.tx -= sy; } el
 { const cv = $('c');
   cv.addEventListener('pointerdown', e => { if (!S.running) return;
     if (S.mode === 'build') { try { cv.setPointerCapture(e.pointerId); } catch (_) {} bptr.set(e.pointerId, { x:e.clientX, y:e.clientY });
-      if (bptr.size > 1) { draw.id = null; draw.i = -1; cursor.visible = false; } else buildDown(e); return; }
+      if (bptr.size > 1 || S.tool === 'pan') { draw.id = null; draw.i = -1; cursor.visible = false; } else buildDown(e); return; }
     tapS.id = e.pointerId; tapS.x = e.clientX; tapS.y = e.clientY; tapS.t = performance.now(); $('pick').hidden = true;
     if (S.cam === 0 || lookA.id !== null) return; lookA.id = e.pointerId; lookA.x = e.clientX; lookA.y = e.clientY; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
   cv.addEventListener('pointermove', e => { if (S.mode === 'build') { const q = bptr.get(e.pointerId);
-      if (bptr.size > 1 && q) { panBy(-(e.clientX - q.x)*bcam.upp/2, -(e.clientY - q.y)*bcam.upp/2); q.x = e.clientX; q.y = e.clientY; }   // dwa palce przesuwają planszę
+      if (q && (bptr.size > 1 || S.tool === 'pan')) { const f = bptr.size > 1 ? 2 : 1; panBy(-(e.clientX - q.x)*bcam.upp/f, -(e.clientY - q.y)*bcam.upp/f); q.x = e.clientX; q.y = e.clientY; }   // dwa palce albo ✋ jeden palec przesuwa planszę
       else if (S.running) buildMove(e); return; } if (e.pointerId !== lookA.id) return;
     lookA.yaw = clamp(lookA.yaw + (e.clientX - lookA.x)*.007, -2.7, 2.7); lookA.pitch = clamp(lookA.pitch + (e.clientY - lookA.y)*.005, -.5, .6);
     lookA.x = e.clientX; lookA.y = e.clientY; lookA.idle = 0; });
@@ -1393,18 +1373,21 @@ addEventListener('resize', resize); addEventListener('orientationchange', () => 
 const CAM_NAMES = ['z góry', 'z tyłu', 'kabina'];
 function hud() {
   const car = S.veh === 'car'; $('camLbl').textContent = car ? (S.cam === 2 ? 'kierownica' : CAM_NAMES[S.cam]) : S.cam === 2 && TR.kind === 'steam' ? 'przy kominie' : CAM_NAMES[S.cam]; $('swapIco').textContent = car ? AV.ico : TR.ico;
-  $('tDraw').setAttribute('aria-pressed', S.tool === 'draw'); $('tRoad').setAttribute('aria-pressed', S.tool === 'road'); $('tErase').setAttribute('aria-pressed', S.tool === 'erase');
+  const tl = TOOLS[S.tool] || TOOLS.draw; $('toolIco').textContent = tl[0]; $('toolLbl').textContent = tl[1]; $('tTool').dataset.tool = S.tool;
   document.querySelectorAll('#pick [data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === (S.veh === 'car' ? AK : TRkey)));
   document.body.classList.toggle('build', S.mode === 'build');
 }
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3600); }
-function horn() {
-  if (S.veh === 'car') { carHorn(); return; }
+let hornV = null;                                   // klakson i gwizdek z biblioteki lib/ciuchcia-taxi.js: gra, dopóki trzymasz
+function hornUp() { hornStop(hornV, S.veh !== 'car' && TR.kind === 'steam' ? .5 : .3); hornV = null; }
+function horn() { hornDown(); setTimeout(hornUp, 350); }
+function hornDown() {
+  hornStop(hornV); if (S.veh === 'car') { hornV = hornStart(AK); return; }
   if (shooCow()) { addScore(1); progress('cow'); toast('Muuu! Krowa zeszła z torów 🐄'); }
   if (xPrompt && S.mode === 'drive') { xPrompt.want = true; xPrompt = null; addScore(1); progress('xing'); }
-  if (TR.kind === 'eu') { sfx.hornE(); return; } if (TR.kind === 'pend') { sfx.hornP(); return; }
-  sfx.whistle(); steam.g.updateMatrixWorld(); steam.inner.localToWorld(tmpV.set(.3, 4.45, -.85)); for (let i = 0; i < 3; i++) puff(tmpV.x, tmpV.y, tmpV.z, rr(-.5, .5), 4 + i, rr(-.5, .5), 1.1, .7, 1);
+  hornV = trainHornStart(TR.kind); if (TR.kind !== 'steam') return;
+  steam.g.updateMatrixWorld(); steam.inner.localToWorld(tmpV.set(.3, 4.45, -.85)); for (let i = 0; i < 3; i++) puff(tmpV.x, tmpV.y, tmpV.z, rr(-.5, .5), 4 + i, rr(-.5, .5), 1.1, .7, 1);
 }
 
 let dayWX = null;
@@ -1414,7 +1397,7 @@ function setMode(m) {
   gridLines.visible = m === 'build'; cursor.visible = false; draw.id = null;
   clouds.forEach(c => { c.visible = m !== 'build'; }); birds.forEach(b => { b.g.visible = m !== 'build'; });
   if (m === 'build') { bptr.clear(); bcam.far = false; { const q = S.veh === 'car' ? pc : lead; bcam.x = bcam.tx = q.x; bcam.z = bcam.tz = q.z; } bcam.h = 0; $('zoomLbl').textContent = 'cała mapa'; trimPath(); if (WX !== WEATHERS[0]) applyWeather(WEATHERS[0]); scene.fog.near = 700; scene.fog.far = 1700;   // nad planszą zawsze jasno i bez mgły
-    S.kind = S.veh === 'car' ? 'road' : 'track'; S.tool = S.veh === 'car' ? 'road' : 'draw'; toast((S.veh === 'car' ? 'Rysuj drogę' : 'Rysuj tor') + ' palcem po trawie. Strzałki albo dwa palce przesuwają planszę.'); }
+    S.kind = 'track'; S.tool = 'draw'; toast('Rysuj tor palcem po trawie. Przycisk ✏️ zmienia na 🧽 gumkę i ✋ przesuwanie planszy.'); }
   else { refreshEnds(); applyWeather(dayWX); tone(70, .5, 'sawtooth', .16, 150); }
   hud();
 }
@@ -1432,10 +1415,11 @@ const VEH = Object.assign({}, TRAINS);                // w Ciuchci tylko pociąg
 $('pick').innerHTML = Object.keys(VEH).map(k => '<button class="btn" data-t="' + k + '"><span class="em">' + VEH[k].ico + '</span><small>' + VEH[k].name + '<br>' + VEH[k].sub + '</small></button>').join('');
 document.querySelectorAll('#pick [data-t]').forEach(b => press(b, () => selectTrain(b.dataset.t)));
 
-press($('bHorn'), horn); press($('bCam'), nextCam); press($('bBuild'), () => setMode('build')); press($('bDrive'), () => setMode('drive')); tap('bMenu', () => showMenu('pause'));
+{ const b = $('bHorn'); b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} hornDown(); }); ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, () => { if (hornV) hornUp(); })); } press($('bCam'), nextCam); press($('bBuild'), () => setMode('build')); press($('bDrive'), () => setMode('drive')); tap('bMenu', () => showMenu('pause'));
 press($('bSwap'), () => { $('pick').hidden = !$('pick').hidden; }); press($('pSw'), switchNext);
-press($('tDraw'), () => { S.tool = 'draw'; S.kind = 'track'; hud(); }); press($('tRoad'), () => { S.tool = 'road'; S.kind = 'road'; hud(); }); press($('bZoom'), () => { bcam.far = !bcam.far; $('zoomLbl').textContent = bcam.far ? 'bliżej' : 'cała mapa'; });
-[['panU', 0, -1], ['panD', 0, 1], ['panL', -1, 0], ['panR', 1, 0]].forEach(q => press($(q[0]), () => panBy(q[1]*5*TS, q[2]*5*TS))); press($('tErase'), () => { S.tool = 'erase'; hud(); toast(S.kind === 'road' ? 'Gumka: dotknij drogi, żeby ją zabrać' : 'Gumka: dotknij toru, żeby go zabrać'); });
+const TOOLS = { draw:['✏️', 'rysuj', 'Rysuj tor palcem po trawie'], erase:['🧽', 'kasuj', 'Gumka: przeciągnij po torze, żeby go zabrać'], pan:['✋', 'przesuń', 'Przesuwaj planszę palcem'] };
+press($('tTool'), () => { S.tool = S.tool === 'draw' ? 'erase' : S.tool === 'erase' ? 'pan' : 'draw'; S.kind = 'track'; draw.id = null; draw.i = -1; cursor.visible = false; hud(); toast(TOOLS[S.tool][2]); }); press($('bZoom'), () => { bcam.far = !bcam.far; $('zoomLbl').textContent = bcam.far ? 'bliżej' : 'cała mapa'; });
+
 
 tap('bSnd', () => { S.muted = !S.muted; if (AU.ctx) AU.master.gain.value = S.muted ? 0 : .7; syncSnd(); save(); });
 
