@@ -5,9 +5,9 @@ const T = THREE;
 /* =====================================================================
    USTAWIENIA I STAN
    ===================================================================== */
-const S = { ctrl:'joy', cam:0, veh:'car', muted:false, running:false, arcade:false, over:false, started:false, clock:0 };
+const S = { ctrl:'arrows', cam:0, veh:'car', muted:false, running:false, arcade:false, over:false, started:false, clock:0 };
 let best = 0; const GAR = { bank:0, own:['p0', 'h0'], paint:'p0', horn:'h0', jump:0 };
-try { const sv = JSON.parse(localStorage.getItem('taxiciuchciowo') || 'null'); if (sv) { S.muted = !!sv.muted; if (sv.ctrl === 'tilt') S.ctrl = 'tilt'; best = sv.best | 0; if (sv.gar && Array.isArray(sv.gar.own)) Object.assign(GAR, sv.gar); } } catch (e) {}
+try { const sv = JSON.parse(localStorage.getItem('taxiciuchciowo') || 'null'); if (sv) { S.muted = !!sv.muted; if (['arrows', 'joy', 'tilt'].includes(sv.ctrl)) S.ctrl = sv.ctrl; best = sv.best | 0; if (sv.gar && Array.isArray(sv.gar.own)) Object.assign(GAR, sv.gar); } } catch (e) {}
 const save = () => { try { localStorage.setItem('taxiciuchciowo', JSON.stringify({ muted:S.muted, ctrl:S.ctrl, best, gar:GAR })); } catch (e) {} };
 let seed = (/^#s(\d+)$/.test(location.hash) ? +location.hash.slice(2) : Math.random()*2147483647) | 0;
 
@@ -684,15 +684,14 @@ function crossingsStep(dt) {
    ===================================================================== */
 const keys = { fwd:0, back:0, left:0, right:0 };
 
-holdBtn('cGo', 'fwd'); holdBtn('cBk', 'back');
-const JOY = { on:false, id:-1, x:0, y:0, st:0, fwd:0, back:false, idle:0 };          // joystick: w bok skręca (i trochę dodaje gazu), w górę gaz, w dół hamulec i wsteczny
-{ const j = $('joy'), k = $('joyK'), ar = { u:j.querySelector('.u'), d:j.querySelector('.d'), l:j.querySelector('.l'), r:j.querySelector('.r') };
-  const set = e => { const b = j.getBoundingClientRect(), R = b.width/2; let x = (e.clientX - b.left - R)/(R*.62), y = (e.clientY - b.top - R)/(R*.62); const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
-    JOY.x = x; JOY.y = y; k.style.transform = `translate(${x*62}%, ${y*62}%)`;
-    const dz = v => Math.abs(v) < .2 ? 0 : (Math.abs(v) - .2)/.8*Math.sign(v);
-    JOY.st = -dz(x); JOY.fwd = Math.max(0, -dz(y)); JOY.back = y > .45;
-    ar.u.classList.toggle('on', JOY.fwd > 0); ar.d.classList.toggle('on', JOY.back); ar.l.classList.toggle('on', JOY.st > 0); ar.r.classList.toggle('on', JOY.st < 0); };
-  const end = e => { if (e.pointerId !== JOY.id) return; JOY.on = false; JOY.id = -1; JOY.x = JOY.y = JOY.st = JOY.fwd = 0; JOY.back = false; JOY.idle = 0; k.style.transform = ''; Object.values(ar).forEach(a => a.classList.remove('on')); };
+holdBtn('cGo', 'fwd'); holdBtn('cBk', 'back'); holdBtn('cL', 'left'); holdBtn('cR', 'right');
+const JOY = { on:false, id:-1, x:0, st:0, idle:0 };          // joystick tylko w bok: skręca (i trochę dodaje gazu); gaz i hamulec są przyciskami po prawej
+{ const j = $('joy'), k = $('joyK'), ar = { l:j.querySelector('.l'), r:j.querySelector('.r') };
+  const set = e => { const b = j.getBoundingClientRect(), R = b.width/2, x = clamp((e.clientX - b.left - R)/(R*.62), -1, 1);
+    JOY.x = x; k.style.transform = `translate(${x*62}%, 0)`;
+    JOY.st = -(Math.abs(x) < .15 ? 0 : (Math.abs(x) - .15)/.85*Math.sign(x));
+    ar.l.classList.toggle('on', JOY.st > 0); ar.r.classList.toggle('on', JOY.st < 0); };
+  const end = e => { if (e.pointerId !== JOY.id) return; JOY.on = false; JOY.id = -1; JOY.x = JOY.st = 0; JOY.idle = 0; k.style.transform = ''; Object.values(ar).forEach(a => a.classList.remove('on')); };
   j.addEventListener('pointerdown', e => { e.preventDefault(); try { j.setPointerCapture(e.pointerId); } catch (_) {} JOY.on = true; JOY.id = e.pointerId; j.classList.remove('hint'); initAudio(); set(e); });
   j.addEventListener('pointermove', e => { if (JOY.on && e.pointerId === JOY.id) set(e); });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => j.addEventListener(ev, end)); }
@@ -707,9 +706,10 @@ function onTilt(e) { tiltFromEvent(e, 17); }
 addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput(dt) {
   let tx = 0, ty = 0; if (tilt.on) { tx = tiltCurve(tilt.x, TILT_DEAD, TILT_FULL); ty = tiltCurve(tilt.y, TILT_DEAD + .05, TILT_FULL); }      // ~4° nic, ~14° pełny skręt
-  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st - tx, -1, 1); IN.back = !!keys.back || JOY.back || ty < -.5; IN.fwd = Math.max(keys.fwd ? 1 : 0, JOY.fwd, ty);
+  if (keys.fwd || keys.back) ty = 0;                 // przyciski gaz/hamulec mają pierwszeństwo przed przechyłem
+  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st - tx, -1, 1); IN.back = !!keys.back || ty < -.5; IN.fwd = Math.max(keys.fwd ? 1 : 0, ty);
   IN.gas = IN.back ? 0 : Math.max(IN.fwd, nearStop ? 0 : STEER_GAS*Math.abs(IN.st));
-  if (JOY.on || IN.gas || IN.back || tilt.on) JOY.idle = 0; else if ((JOY.idle += dt) > 7) $('joy').classList.add('hint');     // nikt nie steruje: kółko znów pokazuje, co robić
+  if (JOY.on || IN.gas || IN.back || S.ctrl !== 'joy') JOY.idle = 0; else if ((JOY.idle += dt) > 7) $('joy').classList.add('hint');     // nikt nie steruje: kółko znów pokazuje, co robić
 }
 const KEYMAP = { ArrowUp:'fwd', w:'fwd', ArrowDown:'back', s:'back', ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right' };
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = 1; e.preventDefault(); }
@@ -750,12 +750,17 @@ sfx.peep = () => { [0, .14, .28].forEach(d => tone(1100, .1, 'square', .07, 800,
 sfx.hum = () => { tone(196, .5, 'sine', .25, 262); tone(294, .5, 'triangle', .1, 392, .1); };
 /* ---------- silnik z biegami (lib/silnik.taxi.js) i klakson (lib/klaksony.ciuchcia-taxi.js) ---------- */
 let EN = null, hornV = null, hornHeld = false, hornAt = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
+let DSL = null, dslRpm = 0;                        // Ursus: niski diesel z Żniw (lib/diesel.taxi-zniwa.js)
 function initEngine() { if (!EN && AU.ctx) EN = engineCreate(); }
 function engineSound(dt, vf, air, skid, tb) {
-  if (!EN) return; if (engineStep(EN, dt, { kind:AK, fr:Math.abs(vf)/(AV.vmax*(tb ? 1.5 : 1)), vf, thr:IN.gas > .3 || tb, air, skid, siren:sirenOn && AK === 'police' })) popFlash = .09;
+  if (!EN) return;
+  if (AK === 'ursus') { if (!DSL) DSL = dieselCreate(dieselProfile('tractor')); engineMute(EN); const thr = IN.gas > .3 || tb ? 1 : 0;
+    dslRpm += (.12 + .88*Math.max(thr, Math.min(1, Math.abs(vf)/AV.vmax)) - dslRpm)*Math.min(1, dt*4); dieselSet(DSL, dslRpm, true);
+    AU.roll.gain.setTargetAtTime(air ? 0 : Math.min(.3, Math.abs(vf)/40*.3), AU.ctx.currentTime, .15); return; }
+  if (DSL) dieselSet(DSL, 0, false); if (engineStep(EN, dt, { kind:AK, fr:Math.abs(vf)/(AV.vmax*(tb ? 1.5 : 1)), vf, thr:IN.gas > .3 || tb, air, skid, siren:sirenOn && AK === 'police' })) popFlash = .09;
   AU.roll.gain.setTargetAtTime(air ? 0 : Math.min(.3, Math.abs(vf)/40*.3), AU.ctx.currentTime, .15);
 }
-function engineOff() { engineMute(EN); hornOff(); }
+function engineOff() { engineMute(EN); dieselSet(DSL, 0, false); hornOff(); }
 function hornOn() {
   initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/klaksony.ciuchcia-taxi.js
   if (AK === 'police') { sirenOn = !sirenOn; toast(sirenOn ? '🚨 Syrena włączona: wszyscy z drogi!' : 'Syrena wyłączona'); return; }
@@ -1260,19 +1265,18 @@ function showMenu(kind) {
   else { $('mTitle').textContent = 'Taxi Ciuchciowo!'; $('mSub').textContent = S.started ? 'Przerwa na lody 🍦' : 'Miasto, wieś, kury i pociągi'; }
   if (AU.ctx) { const t = AU.ctx.currentTime; [AU.mot, AU.hiss, AU.roll].forEach(n => n.gain.setTargetAtTime(0, t, .1)); } engineOff();
 }
-function syncTilt() { const on = S.ctrl === 'tilt'; $('bTilt').setAttribute('aria-pressed', on); $('tiltLbl').textContent = on ? 'wł.' : 'wył.'; }
-tap('bTilt', () => { S.ctrl = S.ctrl === 'tilt' ? 'joy' : 'tilt'; syncTilt(); save(); });
+function syncTilt() { document.querySelectorAll('[data-ctrl]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ctrl === S.ctrl)); ['arrows', 'joy', 'tilt'].forEach(c => document.body.classList.toggle('c-' + c, S.ctrl === c)); }
+document.querySelectorAll('[data-ctrl]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); S.ctrl = b.dataset.ctrl; syncTilt(); save(); }));      // przechylanie tylko z menu: w grze nie da się go włączyć przypadkiem
 tap('bCal', () => { tilt.cal = true; toast('🎯 Środek ustawiony'); });
 syncTilt();
 async function useTilt() {                        // przed jazdą: włącz albo wyłącz żyroskop (iPhone pyta o zgodę przy dotknięciu)
-  if (S.ctrl === 'tilt') { const ok = await enableTilt(); tilt.on = ok; if (!ok) { S.ctrl = 'joy'; syncTilt(); save(); setTimeout(() => toast('Przechylanie tu nie działa. Wracam do kółka.'), 300); } else setTimeout(() => toast('📱 Przechylaj telefon: w bok skręca, od siebie gaz. 🎯 ustawia środek.'), 2800); }
+  if (S.ctrl === 'tilt') { const ok = await enableTilt(); tilt.on = ok; if (!ok) { S.ctrl = 'arrows'; syncTilt(); save(); setTimeout(() => toast('Przechylanie tu nie działa. Włączam strzałki.'), 300); } else setTimeout(() => toast('📱 Przechylaj telefon: w bok skręca, od siebie gaz. 🎯 ustawia środek.'), 2800); }
   else tilt.on = false;
-  document.body.classList.toggle('tilt', tilt.on);
 }
 function startGame(arcade) {
   initAudio(); initEngine(); useTilt(); const fresh = !S.started || S.over || arcade !== S.arcade; S.arcade = arcade; S.over = false; S.started = true; S.running = true; $('menu').hidden = true; $('hud').hidden = false; $('clockBox').hidden = !arcade; camSnap = true;
   if (fresh) { score = 0; chaos = 0; chaosStar = 0; addScore(0); chaosAdd(0); S.clock = 75; endRides(); outFxs.forEach(o => { o.o.visible = false; }); outFxs.length = 0; custs.forEach(q => { q.on = false; q.g.visible = false; q.hop = 0; q.an = null; }); ZOOA.forEach(freeAnimal); endEvent(true); evT = 40; polReset(true); custT = .3; hudT = 0;
-    toast(arcade ? 'Zdąż z pasażerami, zanim skończy się czas!' : 'Przesuń żółte kółko ▲ ◀ ▶, żeby jechać. Zielona strzałka: pasażer.'); }
+    toast(arcade ? 'Zdąż z pasażerami, zanim skończy się czas!' : (S.ctrl === 'joy' ? 'Przesuń żółte kółko ◀ ▶, żeby skręcić.' : S.ctrl === 'arrows' ? 'Wciśnij ◀ albo ▶, żeby jechać.' : '') + ' Zielona strzałka: pasażer.'); }
 }
 tap('bGo', () => startGame(false)); tap('bArc', () => startGame(true)); tap('bBack', () => { initAudio(); initEngine(); useTilt(); S.running = true; $('menu').hidden = true; }); tap('bMenu', () => showMenu('pause'));
 tap('bNew', () => { try { location.reload(); } catch (e) { toast('Odśwież stronę, żeby wylosować nowe miasto'); } });

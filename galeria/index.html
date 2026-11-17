@@ -50,6 +50,7 @@ h3{margin:14px 0 6px;font-size:19px}
 <script src="../lib/ciuchcia-taxi.js"></script>
 <script src="../lib/klaksony.ciuchcia-taxi.js"></script>
 <script src="../lib/silnik.taxi.js"></script>
+<script src="../lib/diesel.taxi-zniwa.js"></script>
 <script>
 'use strict';
 const FOV = 35, VIEW_DIR = new THREE.Vector3(1, .55, 1.25).normalize(), SPIN = .5, FRAME_MS = 6000;
@@ -122,19 +123,24 @@ list.onclick = e => { const c = e.target.closest('.card'); if (c && MODELE[c.dat
 
 /* --- Dźwięki: klaksony (lib/klaksony.ciuchcia-taxi.js) i silnik z biegami (lib/silnik.taxi.js). Trzymaj przycisk. --- */
 const DZW = [
-  ['🚕', 'taxi', 'taksówka', 27, 10], ['🚓', 'police', 'radiowóz', 30, 11], ['🏎️', 'race', 'wyścigówka', 40, 15], ['🚌', 'bus', 'autobus', 20, 6.5], ['🚜', 'ursus', 'Ursus', 14, 7], ['🛩️', 'plane', 'samolot', 34, 9],
+  ['🚕', 'taxi', 'taksówka', 27, 10], ['🚓', 'police', 'radiowóz', 30, 11], ['🏎️', 'race', 'wyścigówka', 40, 15], ['🚌', 'bus', 'autobus', 20, 6.5], ['🚜', 'ursus', 'Ursus', 14, 7, 'diesel'], ['🛩️', 'plane', 'samolot', 34, 9],
+  ['🌾', 'combine', 'kombajn (Żniwa)', 7, 3, 'diesel'], ['🚜', 'big', 'duży traktor (Żniwa)', 8, 3, 'diesel'],
   ['🚂', 'steam', 'parowóz (gwizdek)'], ['🚆', 'eu', 'EU07'], ['🚄', 'pend', 'Pendolino']];
-const SND = { EN: null, kind: '', v: 0, vmax: 1, acc: 1, gas: false, siren: false, horn: null, iv: 0 };
+const SND = { EN: null, D: {}, kind: '', v: 0, vmax: 1, acc: 1, gas: false, siren: false, horn: null, iv: 0, drpm: 0 };
+const DSL_OF = { ursus: 'tractor', combine: 'combine', big: 'big' };       // nazwy profili diesla
 function showSounds() {
-  list.innerHTML = '<section><h3>klaksony i silniki</h3><div class="row">' + DZW.map(([e, k, n, vmax], i) => `<div class="snd" data-i="${i}"><div class="e">${e}</div><p>${n}<small>${vmax ? `hornStart('${k}') · engineStep({ kind: '${k}' })` : `trainHornStart('${k}')`}<br>lib/klaksony.ciuchcia-taxi.js${vmax ? ' · lib/silnik.taxi.js' : ''}</small></p>
-    <div class="b"><button data-a="horn">📯 klakson</button>${vmax ? '<button data-a="gas">▲ gaz</button>' + (k === 'police' ? '<button data-a="siren">🚨</button>' : '') : ''}</div>${vmax ? '<meter min="0" max="1" value="0"></meter>' : ''}</div>`).join('') + '</div></section>';
+  list.innerHTML = '<section><h3>klaksony i silniki</h3><div class="row">' + DZW.map(([e, k, n, vmax, , dsl], i) => `<div class="snd" data-i="${i}"><div class="e">${e}</div><p>${n}<small>${vmax ? `hornStart('${k}') · ${dsl ? `dieselSet(dieselProfile('${DSL_OF[k]}'))` : `engineStep({ kind: '${k}' })`}` : `trainHornStart('${k}')`}<br>lib/klaksony.ciuchcia-taxi.js${vmax ? (dsl ? ' · lib/diesel.taxi-zniwa.js' : ' · lib/silnik.taxi.js') : ''}</small></p>
+    <div class="b">${k === 'combine' || k === 'big' ? '' : '<button data-a="horn">📯 klakson</button>'}${vmax ? '<button data-a="gas">▲ gaz</button>' + (k === 'police' ? '<button data-a="siren">🚨</button>' : '') : ''}</div>${vmax ? '<meter min="0" max="1" value="0"></meter>' : ''}</div>`).join('') + '</div></section>';
   st.textContent = 'trzymaj przycisk; gaz rozpędza auto przez biegi, puszczony zwalnia';
 }
 function sndTick() {                               // prosty rozpęd jak w Taxi: gaz przyspiesza, bez gazu zwalnia; silnik cichnie po zatrzymaniu
   const dt = 1/60; SND.v = SND.gas ? Math.min(SND.vmax, SND.v + SND.acc*(1 - .6*SND.v/SND.vmax)*dt) : Math.max(0, SND.v - (3 + SND.v*.3)*dt);
-  engineStep(SND.EN, dt, { kind: SND.kind, fr: SND.v/SND.vmax, vf: SND.v, thr: SND.gas, siren: SND.siren });
-  const m = list.querySelector(`.snd[data-k="${SND.kind}"] meter`); if (m) m.value = SND.EN.rpm;
-  if (!SND.gas && !SND.siren && SND.v === 0 && SND.EN.rpm < .1) { engineMute(SND.EN); clearInterval(SND.iv); SND.iv = 0; }
+  const dn = DSL_OF[SND.kind]; let rpm;
+  if (dn) { const D = SND.D[dn] || (SND.D[dn] = dieselCreate(dieselProfile(dn))); SND.drpm += (.12 + .88*Math.max(SND.gas ? 1 : 0, SND.v/SND.vmax) - SND.drpm)*Math.min(1, dt*4); dieselSet(D, SND.drpm, true); rpm = SND.drpm; engineMute(SND.EN); }
+  else { engineStep(SND.EN, dt, { kind: SND.kind, fr: SND.v/SND.vmax, vf: SND.v, thr: SND.gas, siren: SND.siren }); rpm = SND.EN.rpm; }
+  Object.keys(SND.D).forEach(k => { if (k !== dn) dieselSet(SND.D[k], 0, false); });
+  const m = list.querySelector(`.snd[data-k="${SND.kind}"] meter`); if (m) m.value = rpm;
+  if (!SND.gas && !SND.siren && SND.v === 0 && rpm < .14) { engineMute(SND.EN); Object.values(SND.D).forEach(D => dieselSet(D, 0, false)); SND.drpm = 0; clearInterval(SND.iv); SND.iv = 0; }
 }
 list.addEventListener('pointerdown', e => {
   const b = e.target.closest('.snd button'); if (!b) return; e.preventDefault(); b.setPointerCapture(e.pointerId); initAudio();

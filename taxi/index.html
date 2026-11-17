@@ -53,7 +53,11 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);font-family
 #jobBar i{display:block;height:100%;width:100%;background:#3f9a4a;border-radius:6px}
 #bMenu{top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));width:52px;height:46px;border-radius:16px}
 #cpL{left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-/* joystick: kółko z czterema strzałkami, gałka idzie za palcem */
+/* sterowanie po lewej: strzałki ◀ ▶ albo joystick (tylko w bok); wybór w menu */
+#arw{display:grid;grid-template-columns:repeat(2,clamp(74px,22vmin,112px));gap:8px}
+#arw .btn{height:clamp(74px,22vmin,104px);font-size:2rem;background:var(--blue);color:#fff;box-shadow:0 5px 0 var(--blue-edge),0 9px 14px var(--shade)}
+#arw .btn:active,#arw .btn.on{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35),0 3px 6px var(--shade)}
+body:not(.c-joy) #joy,body.c-joy #arw,body.c-tilt #cpL{display:none}
 #joy{--s:clamp(150px,42vmin,210px);position:relative;width:var(--s);height:var(--s);border-radius:50%;touch-action:none;cursor:pointer;
   background:radial-gradient(circle,rgba(31,95,168,.55) 0 38%,rgba(31,95,168,.78) 39% 100%);box-shadow:0 0 0 5px var(--plate),0 0 0 8px var(--blue-edge),0 9px 16px var(--shade)}
 #joy .ar{position:absolute;color:#fff;font-size:calc(var(--s)*.17);line-height:1;font-weight:800;text-shadow:0 2px 0 var(--blue-edge);transition:transform .1s,color .1s;pointer-events:none}
@@ -63,7 +67,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);font-family
 #joyK{position:absolute;left:50%;top:50%;width:42%;height:42%;margin:-21% 0 0 -21%;border-radius:50%;pointer-events:none;
   background:radial-gradient(circle at 35% 30%,#fff7d0,var(--taxi) 55%,var(--taxi-edge));box-shadow:0 5px 0 var(--taxi-edge),0 8px 14px var(--shade);display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)*.16)}
 #joy.hint #joyK{animation:joyhint 2.4s ease-in-out infinite}
-@keyframes joyhint{0%,100%{transform:translate(0,0)}20%{transform:translate(0,-38%)}45%{transform:translate(-38%,-20%)}70%{transform:translate(38%,-20%)}}
+@keyframes joyhint{0%,100%{transform:translate(0,0)}25%{transform:translate(-55%,0)}65%{transform:translate(55%,0)}}
 #cpR{right:calc(22px + env(safe-area-inset-right,0px) + clamp(58px,16vmin,76px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
 #cpR .btn{width:clamp(74px,21vmin,104px);height:clamp(58px,17vmin,84px);color:#fff}
 #cpR .btn .ico{font-size:1.5rem}#cpR .btn small{font-size:.9rem;font-weight:800}
@@ -107,8 +111,11 @@ h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:80
 #bNew{width:100%;height:50px;margin-top:12px;font-size:1.15rem;flex-direction:row;gap:8px}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
 #bSnd{width:64px;height:48px;flex:none}
-#bTilt{width:64px;height:48px;flex:none;opacity:.75}#bTilt[aria-pressed="true"]{opacity:1;background:var(--taxi);color:#3b2a17}
-body.tilt #cpL{display:none}body:not(.tilt) #bCal{display:none}
+.ctl{display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:800;font-size:.95rem}.ctl span{margin-right:auto}
+.ctl .btn{width:86px;height:46px;font-size:1rem;flex-direction:column;gap:0}.ctl .btn small{font-size:.68rem}.ctl .btn[aria-pressed="true"]{background:var(--taxi);color:#3b2a17;box-shadow:0 5px 0 var(--taxi-edge),0 9px 14px var(--shade)}
+@media (orientation:landscape) and (max-height:480px){.ctl{margin-top:8px}.ctl .btn{height:40px}}
+@media (max-width:440px){.ctl span{display:none}.ctl .btn{flex:1;width:auto}}
+body:not(.c-tilt) #bCal{display:none}
 .foot p{margin:0;font-size:.82rem;font-weight:600;opacity:.8;text-align:left;line-height:1.25}
 @media (orientation:landscape) and (max-height:480px){
   .card{width:min(680px,100%);padding:8px 16px 12px}
@@ -144,7 +151,8 @@ body.tilt #cpL{display:none}body:not(.tilt) #bCal{display:none}
   <div id="evBox" hidden></div>
   <div id="jobBox"><span id="jobTxt">🙋 Szukaj pasażera</span><div id="jobBar" hidden><i></i></div></div>
   <button class="btn" id="bMenu" aria-label="Menu"><span class="ico" style="font-size:1.4rem">⚙️</span></button>
-  <div id="cpL"><div id="joy" class="hint" role="application" aria-label="Kierownica: przesuń kółko tam, gdzie chcesz jechać"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><div id="joyK">🚕</div></div></div>
+  <div id="cpL"><div id="joy" class="hint" role="application" aria-label="Kierownica: przesuń kółko w lewo albo w prawo"><span class="ar l">◀</span><span class="ar r">▶</span><div id="joyK">🚕</div></div>
+    <div id="arw"><button class="btn" id="cL" aria-label="Skręć w lewo">◀</button><button class="btn" id="cR" aria-label="Skręć w prawo">▶</button></div></div>
   <div id="cpR">
     <button class="btn" id="cTurbo" aria-label="Turbo"><span class="ico">🔥</span></button>
     <button class="btn" id="cGo" aria-label="Gaz"><span class="ico">▲</span><small>gaz</small></button>
@@ -173,9 +181,9 @@ body.tilt #cpL{display:none}body:not(.tilt) #bCal{display:none}
     </div>
     <button class="btn" id="bGar"><span class="ico" style="font-size:1.3rem">🔧</span>Garaż · ⭐ <span id="bGarN">0</span></button>
     <button class="btn" id="bNew"><span class="ico" style="font-size:1.3rem">🎲</span>Nowe miasto</button>
+    <div class="ctl" role="group" aria-label="Sterowanie"><span>Sterowanie:</span><button class="btn" data-ctrl="arrows" aria-pressed="true">◀ ▶<small>strzałki</small></button><button class="btn" data-ctrl="joy" aria-pressed="false">🕹️<small>joystick</small></button><button class="btn" data-ctrl="tilt" aria-pressed="false">📱<small>przechylanie</small></button></div>
     <div class="foot">
       <p>Zielona strzałka prowadzi do pasażera, żółta do celu. Zatrzymaj się w świetlistym kole. Skocznie, drifty i demolka dają napiwki, a gwiazdki wydasz w garażu.</p>
-      <button class="btn" id="bTilt" aria-pressed="false" aria-label="Sterowanie przechylaniem telefonu"><span class="ico" style="font-size:1.2rem">📱</span><small id="tiltLbl">wył.</small></button>
       <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.4rem">🔊</span></button>
     </div>
   </div>
@@ -191,6 +199,7 @@ body.tilt #cpL{display:none}body:not(.tilt) #bCal{display:none}
 <script src="../lib/ciuchcia-taxi.js"></script>
 <script src="../lib/klaksony.ciuchcia-taxi.js"></script>
 <script src="../lib/silnik.taxi.js"></script>
+<script src="../lib/diesel.taxi-zniwa.js"></script>
 <script src="../lib/przechylanie.taxi-zniwa-rafa.js"></script>
 <script src="../models/budynki.ciuchcia-taxi-zniwa.js"></script>
 <script src="../models/ludzie.ciuchcia-taxi-zniwa.js"></script>

@@ -38,6 +38,7 @@ flowchart LR
 | `lib/pralnia-arka-piraci.js` | 23 | nloop tone nz sw roar mnote goFS |
 | `lib/klaksony.ciuchcia-taxi.js` | 31 | hornKind hornStart whistleStart trainHornStart hornStop hornTap |
 | `lib/silnik.taxi.js` | 35 | engineProfile engineCreate engineBang engineStep engineMute |
+| `lib/diesel.taxi-zniwa.js` | 29 | dieselProfile dieselCreate dieselSet |
 | `lib/przechylanie.taxi-zniwa-rafa.js` | 28 | enableTilt tiltFromEvent tiltCurve |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |

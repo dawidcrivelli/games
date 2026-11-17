@@ -585,21 +585,7 @@ function initAudio() {
   for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
   AU.noiseBuf = nb;
   const noise = () => { const s = ctx.createBufferSource(); s.buffer = nb; s.loop = true; s.start(); return s; };
-  const mkEngine = p => {
-    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator(), lfo = ctx.createOscillator();
-    o1.type = 'sawtooth'; o2.type = 'square'; o3.type = 'sawtooth'; lfo.type = p.lfoType || 'sine';
-    const g1 = ctx.createGain(), g2 = ctx.createGain(), g3 = ctx.createGain(), lp = ctx.createBiquadFilter(), amp = ctx.createGain(), lg = ctx.createGain(), out = ctx.createGain();
-    g1.gain.value = .5; g2.gain.value = .35; g3.gain.value = .22; lp.type = 'lowpass'; lp.frequency.value = p.lp; lp.Q.value = 1.2;
-    amp.gain.value = 1 - p.depth*.5; lg.gain.value = p.depth*.5; out.gain.value = 0;
-    o1.connect(g1); o2.connect(g2); o3.connect(g3); g1.connect(lp); g2.connect(lp); g3.connect(lp); lp.connect(amp); amp.connect(out); out.connect(AU.master);
-    lfo.connect(lg); lg.connect(amp.gain);
-    const rumble = noise(), rf = ctx.createBiquadFilter(), rg = ctx.createGain(); rf.type = 'bandpass'; rf.frequency.value = p.lp*.6; rf.Q.value = .7; rg.gain.value = .25;
-    rumble.connect(rf); rf.connect(rg); rg.connect(amp);
-    [o1, o2, o3, lfo].forEach(o => o.start());
-    return { o1, o2, o3, lfo, lp, out, p };
-  };
-  AU.eng = { big:mkEngine({ f0:54, f1:112, c0:10, c1:21, depth:.5, lp:640, vol:.38 }), combine:mkEngine({ f0:62, f1:122, c0:12, c1:24, depth:.35, lp:760, vol:.34 }),
-             tractor:mkEngine({ f0:44, f1:98, c0:7, c1:16, depth:.8, lp:560, vol:.4 }) };
+  AU.eng = { big:dieselCreate(dieselProfile('big')), combine:dieselCreate(dieselProfile('combine')), tractor:dieselCreate(dieselProfile('tractor')) };      // lib/diesel.taxi-zniwa.js
   // omłot (szum pasmowy) i terkot maszyny
   const tn = noise(), tf = ctx.createBiquadFilter(); tf.type = 'bandpass'; tf.frequency.value = 1500; tf.Q.value = .8;
   AU.thr = ctx.createGain(); AU.thr.gain.value = 0; tn.connect(tf); tf.connect(AU.thr); AU.thr.connect(AU.master);
@@ -609,13 +595,7 @@ function initAudio() {
   { const rn = noise(), rf = ctx.createBiquadFilter(); rf.type = 'highpass'; rf.frequency.value = 2200; AU.rainG = ctx.createGain(); AU.rainG.gain.value = 0; rn.connect(rf); rf.connect(AU.rainG); AU.rainG.connect(AU.master); }
   AU.mach = ctx.createGain(); AU.mach.gain.value = 0; mn.connect(mf); mf.connect(ma); ma.connect(AU.mach); AU.mach.connect(AU.master);
 }
-function setEngine(name, rpm, on) {
-  if (!AU.ctx) return; const e = AU.eng[name], p = e.p, t = AU.ctx.currentTime, f = p.f0 + (p.f1 - p.f0)*rpm;
-  e.o1.frequency.setTargetAtTime(f, t, .08); e.o2.frequency.setTargetAtTime(f/2, t, .08); e.o3.frequency.setTargetAtTime(f*1.5 + 1.5, t, .08);
-  e.lfo.frequency.setTargetAtTime(p.c0 + (p.c1 - p.c0)*rpm, t, .08);
-  e.lp.frequency.setTargetAtTime(p.lp*(1 + rpm*.9), t, .1);
-  e.out.gain.setTargetAtTime(on ? p.vol*(.7 + rpm*.5) : 0, t, .12);
-}
+function setEngine(name, rpm, on) { if (AU.ctx) dieselSet(AU.eng[name], rpm, on); }
 
 function noiseBurst(freq, dur, vol) { const c = AU.ctx; if (!c) return; const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime;
   s.buffer = AU.noiseBuf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.4; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
