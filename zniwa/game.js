@@ -653,7 +653,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 17); }      // lib/taxi-zniwa-rafa.js
+function onTilt(e) { tiltFromEvent(e, 17); }      // lib/przechylanie.taxi-zniwa-rafa.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 $('bCal').addEventListener('click', () => { tilt.cal = true; toast('Środek ustawiony'); });

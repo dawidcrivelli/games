@@ -29,6 +29,10 @@ h3{margin:14px 0 6px;font-size:19px}
 #big .v{flex:1;border-radius:14px;background:radial-gradient(circle at 50% 40%,#fff 0,#dfeef5 70%);touch-action:none;cursor:grab}
 #big header{margin:0;position:relative;z-index:2}
 [hidden]{display:none !important}
+.snd{width:250px;background:var(--card);border-radius:14px;box-shadow:0 4px 0 var(--edge);padding:10px 12px}
+.snd .e{font-size:34px;line-height:1}.snd p{margin:4px 0 8px}.snd small{display:block;font-weight:500;opacity:.7;font-size:12px;word-break:break-word}
+.snd .b{display:flex;gap:8px;flex-wrap:wrap}.snd button{font:inherit;border:0;border-radius:12px;padding:10px 12px;background:var(--acc);color:#173a5e;box-shadow:0 3px 0 var(--edge);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.snd button.on{transform:translateY(3px);box-shadow:0 0 0 var(--edge)}.snd meter{width:100%;height:10px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -38,6 +42,14 @@ h3{margin:14px 0 6px;font-size:19px}
 <div id="big" hidden><header><button id="x">✖</button><span id="info"></span></header><div class="v" id="bigV"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="modele.js"></script>
+<!-- dźwięki: te same biblioteki co w grach -->
+<script>const AU = {}, S = { muted: false }; let seed = 7;</script>
+<script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
+<script src="../lib/ciuchcia-taxi-zniwa.js"></script>
+<script src="../lib/ciuchcia-taxi.js"></script>
+<script src="../lib/klaksony.ciuchcia-taxi.js"></script>
+<script src="../lib/silnik.taxi.js"></script>
 <script>
 'use strict';
 const FOV = 35, VIEW_DIR = new THREE.Vector3(1, .55, 1.25).normalize(), SPIN = .5, FRAME_MS = 6000;
@@ -94,16 +106,48 @@ function prep(obj) {
 const nazwa = m => `${m.typ} — ${m.gra}`;
 const plik = m => m.plik ?? m.gra;
 let kat = decodeURIComponent(location.hash.slice(1)) || KATEGORIE[0];
+KATEGORIE.push('dźwięki');
 tabs.innerHTML = KATEGORIE.map(k => `<button data-k="${k}">${k}</button>`).join('');
 tabs.onclick = e => { if (e.target.dataset.k) { kat = e.target.dataset.k; location.hash = kat; show(); } };
 function show() {
   [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.k === kat));
+  gl.hidden = kat === 'dźwięki';                   // płótno modeli nie zasłania dźwięków
+  if (kat === 'dźwięki') return showSounds();
   const typy = [...new Set(MODELE.filter(m => m.kat === kat).map(m => m.typ))];
   list.innerHTML = typy.map(t => `<section><h3>${t}</h3><div class="row">${MODELE.map((m, i) => m.kat === kat && m.typ === t
     ? `<div class="card${m.err ? ' err' : ''}" data-i="${i}"><div class="v">${m.err ? '⚠ ' + m.err : ''}</div><p>${m.gra}<small>${m.view ? info(m) : m.err ? '' : 'ładuję…'}</small></p></div>` : '').join('')}</div></section>`).join('');
 }
 const info = m => `${m.view.size.x.toFixed(1)}×${m.view.size.y.toFixed(1)}×${m.view.size.z.toFixed(1)} m · ${m.view.tris} trójk. · ${m.js}`;
 list.onclick = e => { const c = e.target.closest('.card'); if (c && MODELE[c.dataset.i].view) open(MODELE[c.dataset.i]); };
+
+/* --- Dźwięki: klaksony (lib/klaksony.ciuchcia-taxi.js) i silnik z biegami (lib/silnik.taxi.js). Trzymaj przycisk. --- */
+const DZW = [
+  ['🚕', 'taxi', 'taksówka', 27, 10], ['🚓', 'police', 'radiowóz', 30, 11], ['🏎️', 'race', 'wyścigówka', 40, 15], ['🚌', 'bus', 'autobus', 20, 6.5], ['🚜', 'ursus', 'Ursus', 14, 7], ['🛩️', 'plane', 'samolot', 34, 9],
+  ['🚂', 'steam', 'parowóz (gwizdek)'], ['🚆', 'eu', 'EU07'], ['🚄', 'pend', 'Pendolino']];
+const SND = { EN: null, kind: '', v: 0, vmax: 1, acc: 1, gas: false, siren: false, horn: null, iv: 0 };
+function showSounds() {
+  list.innerHTML = '<section><h3>klaksony i silniki</h3><div class="row">' + DZW.map(([e, k, n, vmax], i) => `<div class="snd" data-i="${i}"><div class="e">${e}</div><p>${n}<small>${vmax ? `hornStart('${k}') · engineStep({ kind: '${k}' })` : `trainHornStart('${k}')`}<br>lib/klaksony.ciuchcia-taxi.js${vmax ? ' · lib/silnik.taxi.js' : ''}</small></p>
+    <div class="b"><button data-a="horn">📯 klakson</button>${vmax ? '<button data-a="gas">▲ gaz</button>' + (k === 'police' ? '<button data-a="siren">🚨</button>' : '') : ''}</div>${vmax ? '<meter min="0" max="1" value="0"></meter>' : ''}</div>`).join('') + '</div></section>';
+  st.textContent = 'trzymaj przycisk; gaz rozpędza auto przez biegi, puszczony zwalnia';
+}
+function sndTick() {                               // prosty rozpęd jak w Taxi: gaz przyspiesza, bez gazu zwalnia; silnik cichnie po zatrzymaniu
+  const dt = 1/60; SND.v = SND.gas ? Math.min(SND.vmax, SND.v + SND.acc*(1 - .6*SND.v/SND.vmax)*dt) : Math.max(0, SND.v - (3 + SND.v*.3)*dt);
+  engineStep(SND.EN, dt, { kind: SND.kind, fr: SND.v/SND.vmax, vf: SND.v, thr: SND.gas, siren: SND.siren });
+  const m = list.querySelector(`.snd[data-k="${SND.kind}"] meter`); if (m) m.value = SND.EN.rpm;
+  if (!SND.gas && !SND.siren && SND.v === 0 && SND.EN.rpm < .1) { engineMute(SND.EN); clearInterval(SND.iv); SND.iv = 0; }
+}
+list.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.snd button'); if (!b) return; e.preventDefault(); b.setPointerCapture(e.pointerId); initAudio();
+  const c = b.closest('.snd'), [, k, , vmax, acc] = DZW[c.dataset.i], a = b.dataset.a; c.dataset.k = k; b.classList.add('on');
+  if (a === 'horn') { hornStop(SND.horn); SND.horn = vmax ? hornStart(k) : trainHornStart(k); return; }
+  if (!SND.EN) SND.EN = engineCreate(); if (SND.kind !== k) { SND.kind = k; SND.v = 0; SND.siren = false; } SND.vmax = vmax; SND.acc = acc;
+  if (a === 'gas') SND.gas = true; else { SND.siren = !SND.siren; b.classList.toggle('on', SND.siren); }
+  if (!SND.iv) SND.iv = setInterval(sndTick, 1000/60);
+});
+['pointerup', 'pointercancel'].forEach(t => list.addEventListener(t, e => {
+  const b = e.target.closest('.snd button'); if (!b) return; if (b.dataset.a !== 'siren') b.classList.remove('on');
+  if (b.dataset.a === 'horn') { hornStop(SND.horn, b.closest('.snd').dataset.k === 'steam' ? .5 : .26); SND.horn = null; } else if (b.dataset.a === 'gas') SND.gas = false;
+}));
 
 /* --- Podgląd: obracanie palcem/myszą, zoom kółkiem/szczypaniem --- */
 let big = null; const orbit = { yaw: 0, pitch: .45, zoom: 1 };
@@ -144,6 +188,7 @@ function frame(ms) {
     const d = new THREE.Vector3(Math.sin(orbit.yaw) * Math.cos(orbit.pitch), Math.sin(orbit.pitch), Math.cos(orbit.yaw) * Math.cos(orbit.pitch));
     return draw(big, bigV, 0, d, orbit.zoom * .8);
   }
+  if (kat === 'dźwięki') return;
   for (const el of list.querySelectorAll('.card')) { const m = MODELE[el.dataset.i]; if (m.view) draw(m, el.firstChild, ms / 1000 * SPIN, VIEW_DIR); }
 }
 
@@ -152,14 +197,14 @@ function frame(ms) {
   show(); requestAnimationFrame(frame);
   const gry = [...new Set([...MODELE.filter(m => m.kat === kat), ...MODELE].map(m => m.gra))];
   for (const [i, gra] of gry.entries()) {
-    st.textContent = `ładuję ${gra} (${i + 1}/${gry.length})…`;
+    if (kat !== 'dźwięki') st.textContent = `ładuję ${gra} (${i + 1}/${gry.length})…`;
     const items = MODELE.filter(m => m.gra === gra);
     await fromGame(gra, items);
     for (const m of items) if (m.json) { try { m.view = prep(await parse(m.json)); } catch (e) { m.err = e.message; } delete m.json; }
-    show();
+    if (kat !== 'dźwięki') show();
   }
   const bad = MODELE.filter(m => m.err).length;
-  st.textContent = `${MODELE.length - bad} modeli` + (bad ? `, ${bad} z błędem` : '');
+  if (kat !== 'dźwięki') st.textContent = `${MODELE.length - bad} modeli` + (bad ? `, ${bad} z błędem` : '');
 })();
 </script>
 </body>

@@ -699,13 +699,15 @@ const JOY = { on:false, id:-1, x:0, y:0, st:0, fwd:0, back:false, idle:0 };     
 /* sterowanie złożone z joysticka, przycisków i klawiatury. Sam skręt dodaje trochę gazu (STEER_GAS), żeby auto nie stało w miejscu i nie utykało
    przy ścianie: dziecko, które tylko skręca, i tak pojedzie. Przy pasażerze (nearStop) bez dodatkowego gazu, żeby dało się zatrzymać w kole. */
 const STEER_GAS = .5, IN = { st:0, fwd:0, back:false, gas:0 };
-/* przechylanie telefonu (lib/taxi-zniwa-rafa.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu */
+/* przechylanie telefonu (lib/przechylanie.taxi-zniwa-rafa.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu.
+   Krzywa: drobne drgania rąk nic nie robią, średni przechył to już pełny skręt (tilt.x = 1 przy 17°). */
+const TILT_DEAD = .25, TILT_FULL = .8;
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
 function onTilt(e) { tiltFromEvent(e, 17); }
 addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput(dt) {
-  let tx = 0, ty = 0; if (tilt.on) { tx = tilt.x; ty = tilt.y; if (Math.hypot(tx, ty) < .2) tx = ty = 0; }
-  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st - tx, -1, 1); IN.back = !!keys.back || JOY.back || ty < -.45; IN.fwd = Math.max(keys.fwd ? 1 : 0, JOY.fwd, ty);
+  let tx = 0, ty = 0; if (tilt.on) { tx = tiltCurve(tilt.x, TILT_DEAD, TILT_FULL); ty = tiltCurve(tilt.y, TILT_DEAD + .05, TILT_FULL); }      // ~4° nic, ~14° pełny skręt
+  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st - tx, -1, 1); IN.back = !!keys.back || JOY.back || ty < -.5; IN.fwd = Math.max(keys.fwd ? 1 : 0, JOY.fwd, ty);
   IN.gas = IN.back ? 0 : Math.max(IN.fwd, nearStop ? 0 : STEER_GAS*Math.abs(IN.st));
   if (JOY.on || IN.gas || IN.back || tilt.on) JOY.idle = 0; else if ((JOY.idle += dt) > 7) $('joy').classList.add('hint');     // nikt nie steruje: kółko znów pokazuje, co robić
 }
@@ -746,36 +748,16 @@ sfx.trumpet = () => { tone(330, .5, 'sawtooth', .16, 660); tone(660, .45, 'sawto
 sfx.roar = () => { tone(110, .9, 'sawtooth', .22, 55); burst(260, .9, .3, 0, .7, 'lowpass'); tone(73, .9, 'square', .08, 40); };
 sfx.peep = () => { [0, .14, .28].forEach(d => tone(1100, .1, 'square', .07, 800, d)); };
 sfx.hum = () => { tone(196, .5, 'sine', .25, 262); tone(294, .5, 'triangle', .1, 392, .1); };
-/* ---------- silnik z biegami i klakson: stałe generatory, sterowane obrotami ---------- */
-const ENG = { taxi:{ idle:21, top:75, g:4, br:1, tr:.3, nz:.07 }, race:{ idle:78, top:330, g:5, br:2.2, tr:.12, nz:.03 }, bus:{ idle:15, top:48, g:4, br:.75, tr:.45, nz:.15 }, ursus:{ idle:13, top:44, g:3, br:.9, tr:.9, nz:.1 }, police:{ idle:24, top:86, g:4, br:1.1, tr:.28, nz:.07 }, plane:{ idle:48, top:112, g:1, br:1.3, tr:.6, nz:.16 } };
-let EN = null, hornV = null, rpm = 0, lastGear = 0, hornHeld = false, hornAt = 0, prevThr = 0, popN = 0, popT = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
-sfx.bang = () => { burst(170, .07, .6, 0, .7, 'lowpass'); burst(1500, .04, .22, 0, 1); tone(95, .06, 'square', .28, 45); };
-function initEngine() {
-  if (EN || !AU.ctx) return; const c = AU.ctx, osc = (t, f) => { const o = c.createOscillator(); o.type = t; o.frequency.value = f || 60; o.start(); return o; }, G = v => { const g = c.createGain(); g.gain.value = v; return g; };
-  const o1 = osc('sawtooth'), o2 = osc('sawtooth'), o3 = osc('square'), g2 = G(.9), g3 = G(.22), mix = G(.55), sh = c.createWaveShaper(), lp = c.createBiquadFilter(), trem = G(1), out = G(0), lfo = osc('sine'), lg = G(0);
-  const cv = new Float32Array(256); for (let i = 0; i < 256; i++) cv[i] = Math.tanh((i/127.5 - 1)*2.6); sh.curve = cv; lp.type = 'lowpass'; lp.Q.value = 1.6;
-  o1.connect(mix); o2.connect(g2); g2.connect(mix); o3.connect(g3); g3.connect(mix); mix.connect(sh); sh.connect(lp); lp.connect(trem); trem.connect(out); out.connect(AU.master); lfo.connect(lg); lg.connect(trem.gain);
-  const nz = (type, f, q) => { const s = c.createBufferSource(), b = c.createBiquadFilter(), g = G(0); s.buffer = AU.noiseBuf; s.loop = true; b.type = type; b.frequency.value = f; b.Q.value = q; s.connect(b); b.connect(g); s.start(); return { g, b }; };
-  const ex = nz('bandpass', 260, .8); ex.g.connect(trem); const skid = nz('bandpass', 1750, 7); skid.g.connect(AU.master); const sk2 = nz('bandpass', 2450, 9); sk2.g.connect(AU.master);
-  const so = osc('sawtooth', 660), so2 = osc('square', 660), sl = c.createBiquadFilter(), sg = G(0); sl.type = 'bandpass'; sl.frequency.value = 1100; sl.Q.value = .6; so.connect(sl); const s2g = G(.35); so2.connect(s2g); s2g.connect(sl); sl.connect(sg); sg.connect(AU.master);
-  EN = { o1, o2, o3, lp, trem, out, lfo, lg, ex, skid, sk2, so, so2, sg };
-}
+/* ---------- silnik z biegami (lib/silnik.taxi.js) i klakson (lib/klaksony.ciuchcia-taxi.js) ---------- */
+let EN = null, hornV = null, hornHeld = false, hornAt = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
+function initEngine() { if (!EN && AU.ctx) EN = engineCreate(); }
 function engineSound(dt, vf, air, skid, tb) {
-  if (!EN) return; const t = AU.ctx.currentTime, E = ENG[AK], A = AV, fr = clamp(Math.abs(vf)/(A.vmax*(tb ? 1.5 : 1)), 0, 1), thr = IN.gas > .3 || tb ? 1 : 0, gi = Math.min(E.g - 1, (Math.pow(fr, .8)*E.g) | 0), lo = Math.pow(gi/E.g, 1.25), hi = Math.pow((gi + 1)/E.g, 1.25);
-  let tg = gi ? .3 + .7*(fr - lo)/(hi - lo) : .08 + .92*fr/hi; if (air && thr) tg = 1; if (vf < -.3) tg = .15 + Math.min(.6, -vf/7);
-  if (prevThr && !thr && rpm > .5 && !air) popN = AK === 'race' ? 4 : 2 + ((Math.random()*2) | 0); else if (gi > lastGear && thr && Math.random() < (AK === 'race' ? 1 : .5)) popN = 1; prevThr = thr;      // strzały z wydechu: po puszczeniu gazu i przy zmianie biegu
-  popT -= dt; if (popN > 0 && popT <= 0) { popN--; popT = rr(.07, .2); sfx.bang(); popFlash = .09; }
-  rpm += (tg - rpm)*Math.min(1, dt*(gi !== lastGear ? 30 : 7)); lastGear = gi; const f = E.idle + (E.top - E.idle)*rpm + Math.sin(time*31)*.6;
-  EN.o1.frequency.setTargetAtTime(f, t, .03); EN.o2.frequency.setTargetAtTime(f*.5, t, .03); EN.o3.frequency.setTargetAtTime(f*2.01, t, .03); EN.lfo.frequency.setTargetAtTime(AK === 'ursus' ? f : f*.5, t, .03);
-  EN.lp.frequency.setTargetAtTime((260 + rpm*1300 + thr*900)*E.br, t, .05); EN.trem.gain.setTargetAtTime(1 - E.tr/2, t, .1); EN.lg.gain.setTargetAtTime(E.tr/2, t, .1);
-  EN.out.gain.setTargetAtTime(.05 + rpm*.045 + thr*.05, t, .06); EN.ex.g.gain.setTargetAtTime(E.nz*(.5 + rpm + thr*.6), t, .08); EN.ex.b.frequency.setTargetAtTime(180 + rpm*500, t, .08);
-  EN.skid.g.gain.setTargetAtTime(skid ? .22 : 0, t, .05); EN.sk2.g.gain.setTargetAtTime(skid ? .12 : 0, t, .05);
-  AU.roll.gain.setTargetAtTime(air ? 0 : Math.min(.3, Math.abs(vf)/40*.3), t, .15);
-  const sir = sirenOn && AK === 'police', sf = (time*1.5 % 1) < .5 ? 880 : 660; EN.sg.gain.setTargetAtTime(sir ? .1 : 0, t, .03); if (sir) { EN.so.frequency.setTargetAtTime(sf, t, .012); EN.so2.frequency.setTargetAtTime(sf, t, .012); }
+  if (!EN) return; if (engineStep(EN, dt, { kind:AK, fr:Math.abs(vf)/(AV.vmax*(tb ? 1.5 : 1)), vf, thr:IN.gas > .3 || tb, air, skid, siren:sirenOn && AK === 'police' })) popFlash = .09;
+  AU.roll.gain.setTargetAtTime(air ? 0 : Math.min(.3, Math.abs(vf)/40*.3), AU.ctx.currentTime, .15);
 }
-function engineOff() { if (!EN) return; const t = AU.ctx.currentTime; [EN.out, EN.ex.g, EN.skid.g, EN.sk2.g, EN.sg].forEach(g => g.gain.setTargetAtTime(0, t, .08)); hornOff(); }
+function engineOff() { engineMute(EN); hornOff(); }
 function hornOn() {
-  initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/ciuchcia-taxi.js
+  initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/klaksony.ciuchcia-taxi.js
   if (AK === 'police') { sirenOn = !sirenOn; toast(sirenOn ? '🚨 Syrena włączona: wszyscy z drogi!' : 'Syrena wyłączona'); return; }
   if (GAR.horn !== 'h0') { hornT = 1.2; if (performance.now() - hornAt > 900) { hornAt = performance.now(); melody(GAR.horn); } return; }
   hornHeld = true; hornAt = performance.now(); hornT = .7; hornV = hornStart(AK);
