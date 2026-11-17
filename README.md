@@ -36,7 +36,7 @@ flowchart LR
 | `lib/ciuchcia-zniwa.js` | 6 | nextCam |
 | `lib/pralnia-arka-rafa-piraci.js` | 5 | lerp |
 | `lib/pralnia-arka-piraci.js` | 23 | nloop tone nz sw roar mnote goFS |
-| `lib/zniwa-rafa.js` | 13 |  |
+| `lib/taxi-zniwa-rafa.js` | 26 | enableTilt tiltFromEvent |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
 | `models/budynki.ciuchcia.js` | 10 | groundPad ramp nameBoard |

@@ -653,17 +653,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) {
-  if (e.beta == null || e.gamma == null) return; tilt.events++;
-  const so = screen.orientation, ang = so && typeof so.angle === 'number' ? so.angle : (window.orientation || 0);
-  let right, fwd;                      // stopnie: w prawo / do przodu (górna krawędź ekranu od siebie)
-  if (ang === 90) { right = e.beta; fwd = e.gamma; }
-  else if (ang === 270 || ang === -90) { right = -e.beta; fwd = -e.gamma; }
-  else if (ang === 180) { right = -e.gamma; fwd = e.beta; }
-  else { right = e.gamma; fwd = -e.beta; }
-  if (tilt.cal) { tilt.r0 = right; tilt.f0 = fwd; tilt.cal = false; }
-  tilt.x = clamp((right - tilt.r0)/17, -1, 1); tilt.y = clamp((fwd - tilt.f0)/17, -1, 1);
-}
+function onTilt(e) { tiltFromEvent(e, 17); }      // lib/taxi-zniwa-rafa.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 $('bCal').addEventListener('click', () => { tilt.cal = true; toast('Środek ustawiony'); });

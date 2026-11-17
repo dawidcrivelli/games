@@ -5,10 +5,10 @@ const T = THREE;
 /* =====================================================================
    USTAWIENIA I STAN
    ===================================================================== */
-const S = { cam:0, veh:'car', muted:false, running:false, arcade:false, over:false, started:false, clock:0 };
+const S = { ctrl:'joy', cam:0, veh:'car', muted:false, running:false, arcade:false, over:false, started:false, clock:0 };
 let best = 0; const GAR = { bank:0, own:['p0', 'h0'], paint:'p0', horn:'h0', jump:0 };
-try { const sv = JSON.parse(localStorage.getItem('taxiciuchciowo') || 'null'); if (sv) { S.muted = !!sv.muted; best = sv.best | 0; if (sv.gar && Array.isArray(sv.gar.own)) Object.assign(GAR, sv.gar); } } catch (e) {}
-const save = () => { try { localStorage.setItem('taxiciuchciowo', JSON.stringify({ muted:S.muted, best, gar:GAR })); } catch (e) {} };
+try { const sv = JSON.parse(localStorage.getItem('taxiciuchciowo') || 'null'); if (sv) { S.muted = !!sv.muted; if (sv.ctrl === 'tilt') S.ctrl = 'tilt'; best = sv.best | 0; if (sv.gar && Array.isArray(sv.gar.own)) Object.assign(GAR, sv.gar); } } catch (e) {}
+const save = () => { try { localStorage.setItem('taxiciuchciowo', JSON.stringify({ muted:S.muted, ctrl:S.ctrl, best, gar:GAR })); } catch (e) {} };
 let seed = (/^#s(\d+)$/.test(location.hash) ? +location.hash.slice(2) : Math.random()*2147483647) | 0;
 
 let time = 0;
@@ -699,10 +699,15 @@ const JOY = { on:false, id:-1, x:0, y:0, st:0, fwd:0, back:false, idle:0 };     
 /* sterowanie złożone z joysticka, przycisków i klawiatury. Sam skręt dodaje trochę gazu (STEER_GAS), żeby auto nie stało w miejscu i nie utykało
    przy ścianie: dziecko, które tylko skręca, i tak pojedzie. Przy pasażerze (nearStop) bez dodatkowego gazu, żeby dało się zatrzymać w kole. */
 const STEER_GAS = .5, IN = { st:0, fwd:0, back:false, gas:0 };
+/* przechylanie telefonu (lib/taxi-zniwa-rafa.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu */
+const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
+function onTilt(e) { tiltFromEvent(e, 17); }
+addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput(dt) {
-  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st, -1, 1); IN.back = !!keys.back || JOY.back; IN.fwd = Math.max(keys.fwd ? 1 : 0, JOY.fwd);
+  let tx = 0, ty = 0; if (tilt.on) { tx = tilt.x; ty = tilt.y; if (Math.hypot(tx, ty) < .2) tx = ty = 0; }
+  IN.st = clamp((keys.left ? 1 : 0) - (keys.right ? 1 : 0) + JOY.st - tx, -1, 1); IN.back = !!keys.back || JOY.back || ty < -.45; IN.fwd = Math.max(keys.fwd ? 1 : 0, JOY.fwd, ty);
   IN.gas = IN.back ? 0 : Math.max(IN.fwd, nearStop ? 0 : STEER_GAS*Math.abs(IN.st));
-  if (JOY.on || IN.gas || IN.back) JOY.idle = 0; else if ((JOY.idle += dt) > 7) $('joy').classList.add('hint');     // nikt nie steruje: kółko znów pokazuje, co robić
+  if (JOY.on || IN.gas || IN.back || tilt.on) JOY.idle = 0; else if ((JOY.idle += dt) > 7) $('joy').classList.add('hint');     // nikt nie steruje: kółko znów pokazuje, co robić
 }
 const KEYMAP = { ArrowUp:'fwd', w:'fwd', ArrowDown:'back', s:'back', ArrowLeft:'left', a:'left', ArrowRight:'right', d:'right' };
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = 1; e.preventDefault(); }
@@ -1273,12 +1278,21 @@ function showMenu(kind) {
   else { $('mTitle').textContent = 'Taxi Ciuchciowo!'; $('mSub').textContent = S.started ? 'Przerwa na lody 🍦' : 'Miasto, wieś, kury i pociągi'; }
   if (AU.ctx) { const t = AU.ctx.currentTime; [AU.mot, AU.hiss, AU.roll].forEach(n => n.gain.setTargetAtTime(0, t, .1)); } engineOff();
 }
+function syncTilt() { const on = S.ctrl === 'tilt'; $('bTilt').setAttribute('aria-pressed', on); $('tiltLbl').textContent = on ? 'wł.' : 'wył.'; }
+tap('bTilt', () => { S.ctrl = S.ctrl === 'tilt' ? 'joy' : 'tilt'; syncTilt(); save(); });
+tap('bCal', () => { tilt.cal = true; toast('🎯 Środek ustawiony'); });
+syncTilt();
+async function useTilt() {                        // przed jazdą: włącz albo wyłącz żyroskop (iPhone pyta o zgodę przy dotknięciu)
+  if (S.ctrl === 'tilt') { const ok = await enableTilt(); tilt.on = ok; if (!ok) { S.ctrl = 'joy'; syncTilt(); save(); setTimeout(() => toast('Przechylanie tu nie działa. Wracam do kółka.'), 300); } else setTimeout(() => toast('📱 Przechylaj telefon: w bok skręca, od siebie gaz. 🎯 ustawia środek.'), 2800); }
+  else tilt.on = false;
+  document.body.classList.toggle('tilt', tilt.on);
+}
 function startGame(arcade) {
-  initAudio(); initEngine(); const fresh = !S.started || S.over || arcade !== S.arcade; S.arcade = arcade; S.over = false; S.started = true; S.running = true; $('menu').hidden = true; $('hud').hidden = false; $('clockBox').hidden = !arcade; camSnap = true;
+  initAudio(); initEngine(); useTilt(); const fresh = !S.started || S.over || arcade !== S.arcade; S.arcade = arcade; S.over = false; S.started = true; S.running = true; $('menu').hidden = true; $('hud').hidden = false; $('clockBox').hidden = !arcade; camSnap = true;
   if (fresh) { score = 0; chaos = 0; chaosStar = 0; addScore(0); chaosAdd(0); S.clock = 75; endRides(); outFxs.forEach(o => { o.o.visible = false; }); outFxs.length = 0; custs.forEach(q => { q.on = false; q.g.visible = false; q.hop = 0; q.an = null; }); ZOOA.forEach(freeAnimal); endEvent(true); evT = 40; polReset(true); custT = .3; hudT = 0;
     toast(arcade ? 'Zdąż z pasażerami, zanim skończy się czas!' : 'Przesuń żółte kółko ▲ ◀ ▶, żeby jechać. Zielona strzałka: pasażer.'); }
 }
-tap('bGo', () => startGame(false)); tap('bArc', () => startGame(true)); tap('bBack', () => { initAudio(); initEngine(); S.running = true; $('menu').hidden = true; }); tap('bMenu', () => showMenu('pause'));
+tap('bGo', () => startGame(false)); tap('bArc', () => startGame(true)); tap('bBack', () => { initAudio(); initEngine(); useTilt(); S.running = true; $('menu').hidden = true; }); tap('bMenu', () => showMenu('pause'));
 tap('bNew', () => { try { location.reload(); } catch (e) { toast('Odśwież stronę, żeby wylosować nowe miasto'); } });
 syncSnd();
 

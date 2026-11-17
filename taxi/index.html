@@ -107,6 +107,8 @@ h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:80
 #bNew{width:100%;height:50px;margin-top:12px;font-size:1.15rem;flex-direction:row;gap:8px}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
 #bSnd{width:64px;height:48px;flex:none}
+#bTilt{width:64px;height:48px;flex:none;opacity:.75}#bTilt[aria-pressed="true"]{opacity:1;background:var(--taxi);color:#3b2a17}
+body.tilt #cpL{display:none}body:not(.tilt) #bCal{display:none}
 .foot p{margin:0;font-size:.82rem;font-weight:600;opacity:.8;text-align:left;line-height:1.25}
 @media (orientation:landscape) and (max-height:480px){
   .card{width:min(680px,100%);padding:8px 16px 12px}
@@ -149,6 +151,7 @@ h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:80
     <button class="btn" id="cBk" aria-label="Hamulec i wsteczny"><span class="ico">▼</span><small>hamulec</small></button>
   </div>
   <div id="acts">
+    <button class="btn" id="bCal" aria-label="Ustaw środek przechylania"><span class="ico">🎯</span><small>środek</small></button>
     <button class="btn" id="bHorn" aria-label="Klakson"><span class="ico">📯</span></button>
     <button class="btn" id="bCam" aria-label="Zmień widok"><span class="ico">🎥</span></button>
     <button class="btn" id="bSwap" aria-label="Zmień pojazd"><span class="ico" id="swapIco">🚕</span><small>pojazd</small></button>
@@ -172,6 +175,7 @@ h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:80
     <button class="btn" id="bNew"><span class="ico" style="font-size:1.3rem">🎲</span>Nowe miasto</button>
     <div class="foot">
       <p>Zielona strzałka prowadzi do pasażera, żółta do celu. Zatrzymaj się w świetlistym kole. Skocznie, drifty i demolka dają napiwki, a gwiazdki wydasz w garażu.</p>
+      <button class="btn" id="bTilt" aria-pressed="false" aria-label="Sterowanie przechylaniem telefonu"><span class="ico" style="font-size:1.2rem">📱</span><small id="tiltLbl">wył.</small></button>
       <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.4rem">🔊</span></button>
     </div>
   </div>
@@ -185,6 +189,7 @@ h1{font-size:clamp(2.1rem,10vmin,3.3rem);line-height:.95;margin:0;font-weight:80
 <script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
 <script src="../lib/ciuchcia-taxi-zniwa.js"></script>
 <script src="../lib/ciuchcia-taxi.js"></script>
+<script src="../lib/taxi-zniwa-rafa.js"></script>
 <script src="../models/budynki.ciuchcia-taxi-zniwa.js"></script>
 <script src="../models/ludzie.ciuchcia-taxi-zniwa.js"></script>
 <script src="../models/pojazdy.ciuchcia-taxi-zniwa.js"></script>
