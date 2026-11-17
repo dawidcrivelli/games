@@ -1428,7 +1428,7 @@ function selectTrain(key) {
   toast(TR.pass ? TR.name + ': stań przy peronie 🧍, pasażerowie wsiądą sami' : TR.name + ': zabierz kłody z tartaku 🌲 do kopalni ⛏️, a węgiel do elektrowni ⚡');
 }
 const press = (el, fn) => { el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); }); el.addEventListener('click', e => { if (e.detail === 0) fn(); }); };   // działa też, gdy drugi palec trzyma gaz
-const VEH = Object.assign({}, TRAINS, AUTOS);
+const VEH = Object.assign({}, TRAINS);                // w Ciuchci tylko pociągi; auta do prowadzenia są w Taxi Ciuchciowo
 $('pick').innerHTML = Object.keys(VEH).map(k => '<button class="btn" data-t="' + k + '"><span class="em">' + VEH[k].ico + '</span><small>' + VEH[k].name + '<br>' + VEH[k].sub + '</small></button>').join('');
 document.querySelectorAll('#pick [data-t]').forEach(b => press(b, () => selectTrain(b.dataset.t)));
 
@@ -1444,7 +1444,7 @@ function showMenu(kind) {
   S.menu = kind; S.running = false; keys.fwd = keys.back = 0; v = 0; $('pick').hidden = true;
   if (AU.ctx) { const t = AU.ctx.currentTime; [AU.roll, AU.hiss, AU.rainG, AU.mot].forEach(g => g.gain.setTargetAtTime(0, t, .05)); }
   $('mTitle').textContent = kind === 'pause' ? 'Przerwa' : 'Ciuchcia!';
-  $('mSub').textContent = kind === 'pause' ? 'Pojazd czeka' : 'Pociągi, auta, tory i drogi';
+  $('mSub').textContent = kind === 'pause' ? 'Pojazd czeka' : 'Pociągi, tory i drogi';
   $('bGo').textContent = kind === 'pause' ? 'Gramy dalej' : 'Jedziemy!';
   $('bLay').hidden = kind === 'pause' && S.mode === 'build';
   $('bNew').hidden = kind === 'start'; $('bNew').textContent = 'Mapa od nowa'; newArmed = 0;
@@ -1473,7 +1473,7 @@ if (!placeTrain()) { defaultGrid(); if (!placeTrain()) { setConsist('steamP'); p
 if (savedRoads) loadRoads(savedRoads); else defaultRoads();
 rebuildAll(); resetTraffic(); placeCars(); refreshLabels(); $('stars').textContent = score; newMission();
 { let r = Math.random(), k = 0; while (k < WEATHERS.length - 1 && r > WEATHERS[k].p) { r -= WEATHERS[k].p; k++; } dayWX = WEATHERS[k]; applyWeather(dayWX); }
-syncSnd(); hud(); if (AUTOS[savedAuto]) selectAuto(savedAuto);
+syncSnd(); hud();
 let last = performance.now(), lastRaw = last, qAcc = 0, qN = 0, qLevel = 0;   // gdy telefon nie nadąża: mniej pikseli, potem bez cieni
 function frame(now) {
   requestAnimationFrame(frame);
