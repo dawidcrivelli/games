@@ -160,7 +160,8 @@ const SPECIALS=[
 ];
 // kim grasz — wszyscy za darmo, wybór przy każdym starcie gry i na górze portu
 const HEROES=[
-  {id:'human',e:'🧒',n:'Pirat Junior'},{id:'ania',e:'👧',n:'Piratka Ania'},{id:'majtek',e:'🧔',n:'Majtek Bartek'},{id:'penguin',e:'🐧',n:'Pingwin'},{id:'panda',e:'🐼',n:'Panda'},
+  {id:'human',e:'🧒',n:'Pirat Junior'},{id:'ania',e:'👧',n:'Piratka Ania'},{id:'majtek',e:'🧔',n:'Majtek Bartek'},
+  {id:'czarny',e:'🏴‍☠️',n:'Czarnobrody'},{id:'rudy',e:'🧔‍♂️',n:'Rudobrody'},{id:'wilk',e:'🪝',n:'Kapitan Hak'},{id:'baska',e:'👩',n:'Czarna Baśka'},{id:'penguin',e:'🐧',n:'Pingwin'},{id:'panda',e:'🐼',n:'Panda'},
   {id:'tiger',e:'🐯',n:'Tygrys'},{id:'lion',e:'🦁',n:'Lew'},{id:'kangaroo',e:'🦘',n:'Kangur'},{id:'zebra',e:'🦓',n:'Zebra'},{id:'crocodile',e:'🐊',n:'Krokodyl'},
   {id:'hippo',e:'🦛',n:'Hipopotam'},{id:'elephant',e:'🐘',n:'Słoń'},{id:'giraffe',e:'🦒',n:'Żyrafa'}
 ];

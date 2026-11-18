@@ -39,6 +39,7 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     rudy:{ coat:0x2f8f4e, pants:0x3b2a1a, skin:0xf0b890, hair:0xe0701c, beard:2, hat:0, sash:0xe2483d },
     baska:{ coat:0x7a3fa8, pants:0x222233, skin:0xf4cfae, hair:0x1b1b22, long:1, hat:0, ring:1, sash:0xffc93c, smile:1 },
     ania:{ coat:0xff6fa5, pants:0x1f9e9a, skin:0xf6cfae, hair:0x7a4320, stripe:0xffffff, long:1, hat:0, ring:1, smile:1 },
+    wilk:{ coat:0x24456e, pants:0x2b2420, skin:0xd9a47c, hair:0xb9bcc2, beard:2, hat:0, hook:1, epau:1, sash:0xffc93c },
     czarny:{ coat:0x23232b, pants:0x4a1f1f, skin:0xd9a47c, hair:0x111116, beard:2, hat:1, peg:1, hook:1, epau:1, sash:0xb02a2a } },
     o = HUM[kind] || HUM.human, sd = opt.side || 1, S = lo8(), p = [], hp = [], lp = { 1:[], '-1':[] }, ap = { 1:[], '-1':[] }, bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
   // nogi, buty
