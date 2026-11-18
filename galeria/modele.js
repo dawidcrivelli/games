@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
 // kategoria → prefiks pliku w models/
-const KAT_PLIK = { 'zwierzęta': 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron' };
+const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -10,6 +10,9 @@ const MORZE = [['delfin', 'Dolphin'], ['wieloryb', 'Whale'], ['rekin', 'Shark'],
 
 const MODELE = [
   ...ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'pralnia', plik: '', js: `ZOO.MK.${f}()` })),
+  // pozy z ZOO.pose — te same dla wszystkich gier
+  ...['rear', 'pounce', 'crouch', 'swipe', 'headbutt', 'kick', 'hurt', 'dizzy', 'cheer', 'sit'].flatMap(pz => ['lion', 'elephant', 'kangaroo', 'penguin']
+    .map(f => ({ kat: 'pozy', typ: pz, gra: 'pralnia', plik: '', js: `(() => { const a = ZOO.MK.${f}(); ZOO.pose(a, '${pz}'); ZOO.anim(a, 1); ZOO.anim(a, 1); return a; })()` }))),
   // pojazdy w żniwach: ten sam model + siedzisko
   { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', js: 'buildElephant()' },
   { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', js: 'buildGiraffe()' },

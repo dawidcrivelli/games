@@ -1,5 +1,6 @@
 // Zwierzęta „słodziaki” (z Pralni Zoo) — samodzielny moduł z własnymi helperami, działa w każdej grze z three.js.
 // ZOO.MK.elephant() → a = {root, body, head, legs, ears, …} (głowa w +x); ZOO.anim(a, dt) animuje (a.moving = idzie).
+// ZOO.pose(a,'rear'|'pounce'|'crouch'|'swipe'|'headbutt'|'kick'|'hurt'|'dizzy'|'cheer'|'sit'|{pola}) — pozy, patrz POSES.
 // ZOO.cfg: scale (skala wszystkich), cast (cienie; false = tylko bryły ciała).
 const ZOO = (() => {
 'use strict';
@@ -42,7 +43,7 @@ const FOOT=[[-.15,0],[-.05,.14],[.2,.2],[.42,.17],[.24,.1],[.5,.05],[.28,0],[.5,
 let whG=null;
 let tiMat=null;
 const LEGS4=(fx,bx,z)=>[[fx,z,0],[fx,-z,PI],[bx,z,PI],[bx,-z,0]];
-function legs(a,b,pos,y,build){for(const [x,z,ph] of pos){const p=grp(b,x,y,z);build(p,Math.sign(z),x>0);a.legs.push({p,ph});}}
+function legs(a,b,pos,y,build){for(const [x,z,ph] of pos){const p=grp(b,x,y,z);build(p,Math.sign(z),x>0);a.legs.push({p,ph,front:x>0,s:Math.sign(z)});}}
 
 function loft(key,secs,top,belly,o){if(lgC[key])return lgC[key];o=o||{};const sub=o.sub||4,seg=o.seg||16,n=secs.length,us=o.uvs||[1,1];
   const val=(s,j)=>j===4?(s[4]===undefined?s[2]:s[4]):s[j];
@@ -169,7 +170,7 @@ function mkPanda(){const a=base('panda'),Wc=0xfafaf5,K=0x24242c,wh=M(Wc,{roughne
   a.hat=grp(h,0,.68,0);a.hatS=.9;a.gait=7;a.swing=.35;return finish(a,.95);}
 function mkPenguin(){const a=base('penguin'),K=0x23262f,bk=M(K),or=M(0xff9f1c),ye=M(0xffd23f),b=a.body;
   mesh(loft('peB',[[0,.12,.05,.05],[0,.25,.45,.5],[0,.8,.6,.62],[0,1.4,.52,.52],[0,1.85,.38,.38],[0,2.05,.05,.05]],K,0xffffff),MV,b);ball(ye,b,.4,1.62,0,.1,.2,.28);
-  const fg=flat('crF',FOOT,.05,.02,1);for(const s of [1,-1]){const p=grp(b,.05,.3,s*.25);const f=mesh(fg,or,p,0,-.27,0,1.3);f.rotation.x=-PI/2;a.legs.push({p,ph:s>0?0:PI});}
+  const fg=flat('crF',FOOT,.05,.02,1);for(const s of [1,-1]){const p=grp(b,.05,.3,s*.25);const f=mesh(fg,or,p,0,-.27,0,1.3);f.rotation.x=-PI/2;a.legs.push({p,ph:s>0?0:PI,front:false,s});}
   const h=a.head=grp(b,0,1.95,0);mesh(loft('peH',[[0,-.3,.05,.05],[0,-.12,.38,.38],[0,.2,.42,.42],[0,.5,.3,.3],[0,.62,.05,.05]],K),MV,h);
   mesh(loft('peK',[[.3,.12,.05,.05],[.38,.12,.1,.1],[.6,.1,.07,.07],[.85,.06,.02,.03]],0x2b2b33,0xff9f1c,{seg:8}),MV,h);
   const wg=flat('peW',[[0,0],[.12,-.5],[.05,-1.0],[-.08,-1.05],[-.14,-.5],[-.1,0]],.06,.03);
@@ -179,7 +180,7 @@ function mkPenguin(){const a=base('penguin'),K=0x23262f,bk=M(K),or=M(0xff9f1c),y
 function mkKangaroo(){const a=base('kangaroo'),C=0xc98a55,Cl=0xf3dcc0,tn=M(C,{roughness:.8}),lt=M(Cl),dk=M(0x5a3a24),b=a.body;
   mesh(loft('kaB',[[-.75,.95,.05,.05],[-.6,1.1,.5,.48],[-.3,1.45,.72,.62,.7],[.1,2.0,.55,.5],[.4,2.5,.42,.4],[.55,2.8,.3,.3],[.62,2.95,.05,.05]],C,Cl),MV,b);
   const lg=loft('kaL',[[-.1,.2,.05,.05],[0,0,.45,.25],[.3,-.4,.32,.2],[.45,-.7,.2,.15],[.2,-.95,.14,.12],[-.05,-1.15,.12,.11],[.1,-1.27,.1,.12],[.6,-1.28,.08,.13],[1.0,-1.3,.06,.1],[1.1,-1.3,.02,.04]],C),ag=loft('kaA',[[0,.05,.04,.04],[0,0,.13,.11],[.15,-.35,.09,.08],[.35,-.55,.07,.07],[.42,-.6,.03,.03]],C,C,{seg:8});
-  for(const s of [1,-1]){const p=grp(b,-.25,1.35,s*.42);mesh(lg,MV,p);a.legs.push({p,ph:0});const q=grp(b,.45,2.35,s*.32);mesh(ag,MV,q);a.legs.push({p:q,ph:PI});}
+  for(const s of [1,-1]){const p=grp(b,-.25,1.35,s*.42);mesh(lg,MV,p);a.legs.push({p,ph:0,front:false,s});const q=grp(b,.45,2.35,s*.32);mesh(ag,MV,q);a.legs.push({p:q,ph:PI,front:true,s});}
   ball(lt,b,.3,1.55,0,.3,.32,.4);const jo=grp(b,.5,1.85,0);ball(tn,jo,0,0,0,.17,.16,.15);ball(tn,jo,.14,-.04,0,.1,.08,.09);ball(dk,jo,.23,-.03,0,.03);for(const s of [1,-1]){ball(tn,jo,-.05,.2,s*.09,.05,.14,.04);ball(mK,jo,.1,.05,s*.1,.03);}jo.traverse(o=>{o.userData.nd=1;});
   a.tail=grp(b,-.6,1.1,0);mesh(loft('kaT',[[.1,.05,.3,.28],[-.3,-.3,.24,.22],[-.8,-.75,.17,.16],[-1.3,-.98,.12,.11],[-1.8,-1.0,.07,.07],[-2.0,-.98,.02,.02]],C,Cl,{seg:10}),MV,a.tail);
   const h=a.head=grp(b,.62,3.02,0);mesh(loft('kaH',[[-.3,0,.05,.05],[-.18,.02,.3,.27],[.1,.05,.32,.28],[.4,-.02,.22,.2],[.65,-.08,.16,.16],[.75,-.1,.05,.05]],C,Cl),MV,h);ball(dk,h,.75,-.07,0,.06,.05,.08);
@@ -189,21 +190,42 @@ function mkKangaroo(){const a=base('kangaroo'),C=0xc98a55,Cl=0xf3dcc0,tn=M(C,{ro
 
 // Wspólna animacja: nogi (a.moving), oddech, ogon, uszy, głowa, mruganie, pysk, trąba. a.eat: skubie trawę; a.blowT: suszarka; a.state 'work'/'done': myjnia
 function anim(a,dt){a.t+=dt;const walk=a.moving&&!a.slide;if(walk)a.ph+=dt*a.gait;
-  for(const L of a.legs){const tg=walk?Math.sin(a.ph+L.ph)*a.swing:0;L.p.rotation.z+=(tg-L.p.rotation.z)*Math.min(1,dt*14);}
+  const pc=a.pc;if(pc){const tg=a.poseT||POSE0,k=Math.min(1,dt*(a.poseRate||12));for(const f in POSE0)pc[f]+=(tg[f]-pc[f])*k;}
+  for(const L of a.legs){let tg=walk?Math.sin(a.ph+L.ph)*a.swing:0;if(pc)tg+=L.front?pc.legF+(L.s>0?pc.paw:0)-Math.min(0,pc.rear):pc.legB-Math.max(0,pc.rear);L.p.rotation.z+=(tg-L.p.rotation.z)*Math.min(1,dt*14);}
   a.tickle=Math.max(0,a.tickle-dt*2.5);a.blowT-=dt;a.blown+=((a.blowT>0?1:0)-a.blown)*Math.min(1,dt*5);
   let y=walk?Math.abs(Math.sin(a.ph))*(a.hopH||.05):Math.sin(a.t*2.2)*.015;const happy=a.jumpT>0;if(happy){a.jumpT-=dt*1.1;y+=Math.abs(Math.sin(a.jumpT*PI*2))*.5;}
   a.body.position.y=y;a.body.rotation.x=Math.sin(a.t*28)*.035*a.tickle+a.blown*.06+(walk&&a.waddle?Math.sin(a.ph)*a.waddle:0);a.body.rotation.z=Math.sin(a.t*23)*.02*a.tickle;
+  if(pc){if(!a.piv){const xs=L=>L.p.position.x,bk=a.legs.filter(L=>!L.front),fr=a.legs.filter(L=>L.front&&L.p.position.y<a.dims.h*.6/a.root.scale.x);a.piv=[bk.length?Math.min(...bk.map(xs)):0,fr.length?Math.max(...fr.map(xs)):(bk.length?Math.max(...bk.map(xs)):0),a.legs.length?a.legs[0].p.position.y:1];}
+    const hx=a.piv[pc.rear>=0?0:1];a.body.rotation.z+=pc.rear;a.body.position.x=hx-hx*Math.cos(pc.rear);a.body.position.y+=-hx*Math.sin(pc.rear)+pc.hop-pc.crouch*a.piv[2];
+    a.body.rotation.x+=pc.lean;a.body.rotation.y=pc.spin;a.body.scale.set(1-pc.stretch*.5,1+pc.stretch,1-pc.stretch*.5);
+    if(a.tail){if(a.tailB===undefined)a.tailB=a.tail.rotation.z;a.tail.rotation.z=a.tailB+pc.tail;}}
   const wag=(a.state==='done'||happy)?2.2:1;if(a.tail)a.tail.rotation.x=Math.sin(a.t*5*wag+a.seed)*.35*wag+a.blown*Math.sin(a.t*30)*.5;
-  for(const e of a.ears){const f=Math.sin(a.t*(e.fast||3)+a.seed+e.s)*.12+a.blown*Math.sin(a.t*26+e.s)*.4+a.tickle*.2;if(e.ax==='x')e.p.rotation.x=(e.bx||0)+e.s*f*1.2;else e.p.rotation.y=e.base+e.s*f;}
+  for(const e of a.ears){const f=Math.sin(a.t*(e.fast||3)+a.seed+e.s)*.12+a.blown*Math.sin(a.t*26+e.s)*.4+a.tickle*.2;if(e.ax==='x')e.p.rotation.x=(e.bx||0)+e.s*(f*1.2+(pc?pc.wing:0));else e.p.rotation.y=e.base+e.s*f;}
   a.eatK+=((a.eat&&!walk&&!happy?1:0)-a.eatK)*Math.min(1,dt*3);const ek=a.eatK*(.75+.25*Math.sin(a.t*5+a.seed));
-  if(a.head){a.head.rotation.z=a.headBase+Math.sin(a.t*1.3+a.seed)*.04+(happy?.15:0)-ek*(a.neck?.25:.45);const look=a.state==='work'?-.28:0;a.head.rotation.y+=(look+Math.sin(a.t*.7+a.seed)*a.lookA-a.head.rotation.y)*Math.min(1,dt*4);a.head.rotation.x=Math.sin(a.t*25)*.05*a.tickle;}
+  if(a.head){a.head.rotation.z=a.headBase+Math.sin(a.t*1.3+a.seed)*.04+(happy?.15:0)-ek*(a.neck?.25:.45)+(pc?pc.head:0);const look=(a.state==='work'?-.28:0)+(pc?pc.turn:0);a.head.rotation.y+=(look+Math.sin(a.t*.7+a.seed)*a.lookA-a.head.rotation.y)*Math.min(1,dt*4);a.head.rotation.x=Math.sin(a.t*25)*.05*a.tickle;}
   if(a.neck)a.neck.rotation.z=a.neckBase+Math.sin(a.t*.9+a.seed)*.04+a.blown*.08-ek*(a.type==='giraffe'?1.05:.55);
   a.blink-=dt;if(a.blink<-.12)a.blink=rnd(2,5);const by=(a.blink<0||a.tickle>.6)?.15:1;for(const e of a.eyes)e.scale.y=by;
-  const op=happy?1:(a.tickle>.3?.6:(Math.sin(a.t*.5+a.seed)>.93?.8:0));a.open+=(op-a.open)*Math.min(1,dt*8);if(a.jaw)a.jaw.rotation.z=-a.open*.55;
-  for(let i=0;i<a.trunk.length;i++){const g=a.trunk[i],lift=(happy?1:a.lift||0)*(i===0?.5:i<5?.38:.1);g.rotation.z+=(g.userData.b+lift+Math.sin(a.t*1.8+i*.5)*.05+a.tickle*Math.sin(a.t*20+i)*.04-g.rotation.z)*Math.min(1,dt*8);}
+  const op=Math.max(pc?pc.jaw:0,happy?1:(a.tickle>.3?.6:(Math.sin(a.t*.5+a.seed)>.93?.8:0)));a.open+=(op-a.open)*Math.min(1,dt*8);if(a.jaw)a.jaw.rotation.z=-a.open*.55;
+  for(let i=0;i<a.trunk.length;i++){const g=a.trunk[i],lift=Math.max(pc?pc.trunk:0,happy?1:a.lift||0)*(i===0?.5:i<5?.38:.1);g.rotation.z+=(g.userData.b+lift+Math.sin(a.t*1.8+i*.5)*.05+a.tickle*Math.sin(a.t*20+i)*.04-g.rotation.z)*Math.min(1,dt*8);}
   for(let i=0;i<a.ctail.length;i++)a.ctail[i].rotation.y=Math.sin(a.t*2.2-i*.6)*.13*(walk?1.6:1)*(happy?2:1);}
+// Pozy (dla wszystkich gier): ZOO.pose(a,'rear') albo ZOO.pose(a,{rear:.5,jaw:1}); ZOO.pose(a,null) wraca do zwykłego stania. anim() płynnie dochodzi do pozy (a.poseRate).
+// Pola: rear dęba(+)/zad w górę(−), crouch przysiad, legF/legB wymach przednich/tylnych nóg, paw jedna przednia łapa, head głowa w górę(+), turn obrót głowy,
+// jaw pysk 0..1, tail ogon w górę, trunk trąba 0..1, lean przechył na bok, hop uniesienie, stretch rozciągnięcie, spin obrót wokół pionu, wing skrzydła/płetwy.
+const POSE0={rear:0,crouch:0,legF:0,legB:0,paw:0,head:0,turn:0,jaw:0,tail:0,trunk:0,lean:0,hop:0,stretch:0,spin:0,wing:0};
+const POSES={stand:{},
+  rear:{rear:.55,legF:.9,head:.15,jaw:.7,tail:.4,wing:.6},
+  pounce:{rear:-.2,legF:1.1,legB:-.8,stretch:.08,jaw:1,hop:.25,tail:.5},
+  crouch:{crouch:.14,rear:-.08,legF:.5,legB:-.5,head:-.2,stretch:-.1},
+  swipe:{rear:.3,paw:1.6,jaw:.8,head:.1,wing:.9},
+  headbutt:{rear:-.2,head:-.55,legB:-.5,legF:.3,stretch:.06},
+  kick:{rear:-.45,legB:-1.3,legF:.2,head:.3,tail:.6},
+  hurt:{rear:.3,head:.45,jaw:1,legF:.6,legB:.3,lean:.2,stretch:.1,wing:1},
+  dizzy:{lean:.18,head:-.25,jaw:.4,turn:.5,wing:.3},
+  cheer:{rear:.5,legF:1.7,jaw:1,trunk:1,tail:.8,wing:1.3,hop:.3},
+  sit:{rear:.5,legB:1.2,legF:-.3,tail:-.3}};
+function pose(a,p,rate){a.poseT=p?Object.assign({},POSE0,typeof p==='string'?POSES[p]:p):null;if(rate)a.poseRate=rate;if(!a.pc)a.pc=Object.assign({},POSE0);}
 const MK={elephant:mkElephant,giraffe:mkGiraffe,zebra:mkZebra,hippo:mkHippo,crocodile:mkCroc,lion:mkLion,tiger:mkTiger,panda:mkPanda,penguin:mkPenguin,kangaroo:mkKangaroo};
 // model dla innych gier: przód +Z, środek długości w 0, wysokość h; k = skala świata
 function fit(type,h){const a=MK[type](),g=new T.Group(),w=grp(g),k=h/a.dims.h;w.add(a.root);a.root.position.x=-a.cx;w.rotation.y=-PI/2;w.scale.setScalar(k);return {g,a,k:k*a.root.scale.x};}
-return {cfg,MK,fit,anim,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig};
+return {cfg,MK,fit,anim,pose,POSES,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig};
 })();

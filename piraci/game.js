@@ -505,7 +505,10 @@ function fUpdate(f,dt){f.t+=dt;const p=D.p,e=D.e,o=f===p?e:p;
   f.g.position.x=f.bx+f.side*Q.lx;f.g.position.y=hop?sn(Math.min(1,u/.28)*PI)*hop:win?Math.abs(sn(D.time*7))*.6:0;
   const B=f.body,ss=1/Math.sqrt(Q.sq);B.rotation.z=Q.tl;B.scale.set(ss,Q.sq,ss);
   if(f.a.human){const A=f.a;B.rotation.y=Q.tw*.6*f.side;A.legs[0].rotation.z=Q.la;A.legs[1].rotation.z=Q.lb;A.armOff.rotation.z=Q.ar;A.t+=dt;A.head.rotation.z=sn(A.t*2)*.06-Q.tl*.4;}
-  else{B.rotation.y=spin?Math.min(1,u/.26)*TAU*f.side:Q.tw*.3*f.side;f.a.moving=f.st!=='guard'&&f.st!=='stag';ZOO.anim(f.a,dt);}
+  else{B.rotation.z=Q.tl*.25;B.rotation.y=spin?Math.min(1,u/.26)*TAU*f.side:Q.tw*.3*f.side;const A=f.a,at=f.atk;A.moving=f.st==='idle'&&!win;
+    // pozy z biblioteki ZOO: dęba przy zamachu, skok przy cięciu, byk przy ciosie, wierzgnięcie przy kopie
+    ZOO.pose(A,win?'cheer':f.st==='wind'?(at==='weapon'?'rear':'crouch'):f.st==='strike'?(at==='weapon'?'pounce':at==='kick'?'kick':'headbutt'):f.st==='guard'?'crouch':f.st==='hurt'||f.st==='bounce'?'hurt':f.st==='stag'?'dizzy':f.st==='cast'||f.st==='tele'?'rear':null,f.st==='strike'?30:16);
+    ZOO.anim(A,dt);}
   f.sw.position.set(f.swx+Q.px,Q.py*f.h*.8,f.swz);f.sw.rotation.z=Q.rz;
   if(bow){const ar=f.sw.children[0].userData.arrow;if(ar)ar.visible=!(f.st==='strike'&&a==='weapon')&&f.st!=='bounce';}
   const cut=f.st==='strike'&&a==='weapon'&&!bow;f.trail.visible=cut&&u<.22;if(cut){f.trail.position.copy(f.sw.position);f.trail.material.opacity=.6*(1-u/.22);}

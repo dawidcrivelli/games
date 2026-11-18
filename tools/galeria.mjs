@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import puppeteer from 'puppeteer-core';
 
-const PORT = 8769, TIMEOUT_MS = 120000, KATS = ['zwierzęta', 'morze', 'ludzie', 'pojazdy', 'rolnicze', 'pociągi', 'piraci', 'statki', 'broń'];
+const PORT = 8769, TIMEOUT_MS = 120000, KATS = ['zwierzęta', 'pozy', 'morze', 'ludzie', 'pojazdy', 'rolnicze', 'pociągi', 'piraci', 'statki', 'broń'];
 const srv = spawn('python3', ['-m', 'http.server', PORT], { stdio: 'ignore' });
 await new Promise(r => setTimeout(r, 800));
 const browser = await puppeteer.launch({
