@@ -38,11 +38,12 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     majtek2:{ coat:0x3a3f47, pants:0x6b4424, skin:0xc98f62, hair:0x111116, stripe:0xf2d99a, hat:0, smile:1 },
     rudy:{ coat:0x2f8f4e, pants:0x3b2a1a, skin:0xf0b890, hair:0xe0701c, beard:2, hat:0, sash:0xe2483d },
     baska:{ coat:0x7a3fa8, pants:0x222233, skin:0xf4cfae, hair:0x1b1b22, long:1, hat:0, ring:1, sash:0xffc93c, smile:1 },
+    ania:{ coat:0xff6fa5, pants:0x1f9e9a, skin:0xf6cfae, hair:0x7a4320, stripe:0xffffff, long:1, hat:0, ring:1, smile:1 },
     czarny:{ coat:0x23232b, pants:0x4a1f1f, skin:0xd9a47c, hair:0x111116, beard:2, hat:1, peg:1, hook:1, epau:1, sash:0xb02a2a } },
-    o = HUM[kind] || HUM.human, sd = opt.side || 1, S = lo8(), p = [], hp = [], bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
+    o = HUM[kind] || HUM.human, sd = opt.side || 1, S = lo8(), p = [], hp = [], lp = { 1:[], '-1':[] }, ap = { 1:[], '-1':[] }, bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
   // nogi, buty
-  for (const s of [1, -1]) { if (o.peg && s === -sd) { p.push({ g:cg(.1, .08, .2, 8), p:[0, .47, s*.13], c:o.pants }, { g:cg(.05, .032, .4, 6), p:[0, .2, s*.13], c:0x9a6b3c }); continue; }
-    p.push({ g:cg(.105, .095, .36, 8), p:[0, .4, s*.13], c:o.pants }, { g:cg(.1, .11, .22, 8), p:[0, .13, s*.13], c:bk }, { g:cg(.13, .115, .07, 8), p:[0, .26, s*.13], c:0xa9773f }, { g:S, p:[.07, .06, s*.13], s:[.17, .07, .105], c:bk }); }
+  for (const s of [1, -1]) { if (o.peg && s === -sd) { lp[s].push({ g:cg(.1, .08, .2, 8), p:[0, .47, s*.13], c:o.pants }, { g:cg(.05, .032, .4, 6), p:[0, .2, s*.13], c:0x9a6b3c }); continue; }
+    lp[s].push({ g:cg(.105, .095, .36, 8), p:[0, .4, s*.13], c:o.pants }, { g:cg(.1, .11, .22, 8), p:[0, .13, s*.13], c:bk }, { g:cg(.13, .115, .07, 8), p:[0, .26, s*.13], c:0xa9773f }, { g:S, p:[.07, .06, s*.13], s:[.17, .07, .105], c:bk }); }
   // tułów
   if (o.stripe) for (let i = 0; i < 6; i++) p.push({ g:cg(.25 + (i > 3 ? -.03*(i - 3) : .015*i), .25 + .015*i - (i > 4 ? .03 : 0), .085, 10), p:[0, .6 + i*.085, 0], c:i % 2 ? o.stripe : o.coat });
   else { p.push({ g:S, p:[0, .86, 0], s:[.29, .34, .26], c:o.coat }, { g:cg(.25, .37, .36, 10), p:[0, .6, 0], c:o.coat }, { g:S, p:[.13, .9, 0], s:[.17, .26, .13], c:wh });
@@ -52,9 +53,9 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
   p.push({ g:cg(.085, .1, .12, 8), p:[0, 1.13, 0], c:o.skin });
   for (const s of [1, -1]) { p.push({ g:S, p:[0, 1.03, s*.27], s:o.epau ? [.13, .06, .12] : [.105, .1, .1], c:o.epau ? go : o.coat });
     if (opt.arm === false && s === sd) continue;
-    p.push({ g:cg(.075, .07, .36, 7), p:[.02, .85, s*.36], r:[s*.22, 0, .1], c:o.coat }, { g:cg(.085, .085, .06, 7), p:[.04, .69, s*.4], r:[s*.22, 0, .1], c:wh });
-    if (o.hook && s === -sd) p.push({ g:cg(.07, .05, .08, 6), p:[.045, .63, s*.41], c:0x3b2414 }, { g:new T.TorusGeometry(.07, .022, 5, 10, PI*1.4), p:[.05, .53, s*.41], r:[0, 0, 2.2], c:0xaab2bd });
-    else p.push({ g:S, p:[.045, .61, s*.41], s:.085, c:o.skin }); }
+    ap[s].push({ g:cg(.075, .07, .36, 7), p:[.02, .85, s*.36], r:[s*.22, 0, .1], c:o.coat }, { g:cg(.085, .085, .06, 7), p:[.04, .69, s*.4], r:[s*.22, 0, .1], c:wh });
+    if (o.hook && s === -sd) ap[s].push({ g:cg(.07, .05, .08, 6), p:[.045, .63, s*.41], c:0x3b2414 }, { g:new T.TorusGeometry(.07, .022, 5, 10, PI*1.4), p:[.05, .53, s*.41], r:[0, 0, 2.2], c:0xaab2bd });
+    else ap[s].push({ g:S, p:[.045, .61, s*.41], s:.085, c:o.skin }); }
   // głowa (osobna siatka, środek w 0)
   hp.push({ g:S, p:[0, 0, 0], s:.25, c:o.skin }, { g:S, p:[.25, -.035, 0], s:[.065, .055, .055], c:o.skin });
   for (const s of [1, -1]) { hp.push({ g:S, p:[-.01, -.01, s*.245], s:[.05, .07, .035], c:o.skin });
@@ -65,13 +66,19 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
   else hp.push({ g:S, p:[.225, -.12, 0], s:[.03, o.smile ? .035 : .02, .085], c:0x9c3b34 });
   hp.push({ g:S, p:[-.06, .03, 0], s:[.235, .235, .255], c:o.hair }); if (o.long) hp.push({ g:S, p:[-.13, -.16, 0], s:[.19, .36, .28], c:o.hair });
   const root = new T.Group(), body = grp(root); body.add(new T.Mesh(mergeC(p), MVC));
+  // ruchome części: nogi (oś w biodrze) i wolna ręka (oś w barku); obrót .z > 0 = wymach do przodu
+  const limb = (parts, x, y, z) => { if (!parts.length) return null; const gm = mergeC(parts); gm.translate(-x, -y, -z); const pv = grp(body, x, y, z); pv.add(new T.Mesh(gm, MVC)); return pv; };
+  const legs = [limb(lp[sd], 0, .58, sd*.13), limb(lp[-sd], 0, .58, -sd*.13)], arms = [limb(ap[sd], 0, 1.03, sd*.3), limb(ap[-sd], 0, 1.03, -sd*.3)];
   const head = grp(body, 0, 1.38, 0); head.add(new T.Mesh(mergeC(hp), MVC)); const hat = mkHat(o.hat, o.hatC); hat.position.set(-.02, .16, 0); hat.scale.setScalar(.76); head.add(hat);
-  return { root, body, head, human:true, coat:o.coat, skin:o.skin, dims:{ h:2.05, len:.7, hw:.32 }, cx:0, t:rnd(9) }; }
+  return { root, body, head, legs, armOff:arms[1], armOn:arms[0], human:true, coat:o.coat, skin:o.skin, dims:{ h:2.05, len:.7, hw:.32 }, cx:0, t:rnd(9) }; }
 // wojownik do pojedynku: side +1 patrzy w +x (gracz), -1 w -x (wróg); kamera z +z
 function mkFighter(kind, side, weapon) { const g = new T.Group(), body = grp(g); let a, k, arm = null;
   if (MK[kind]) { a = MK[kind](); pirateGear(a, side, kind === 'penguin' || kind === 'panda' ? 2 : kind === 'lion' || kind === 'elephant' || kind === 'hippo' ? 1 : 0); k = Math.min(3/a.dims.h, 3.8/a.dims.len); const w = grp(body); w.scale.setScalar(k); w.add(a.root); a.root.position.x = -a.cx; }
   else { a = mkHuman(kind, { side, arm:false }); k = 2.8/1.9; a.root.scale.setScalar(k); body.add(a.root);
     arm = new T.Mesh(cg(.07, .085, 1, 7).clone().translate(0, .5, 0), M(a.coat)); arm.scale.set(k, 1, k); g.add(arm); }
   const h = a.dims.h*k, len = a.dims.len*k, sw = grp(g); sw.add(mkWeapon(weapon)); const hand = new T.Mesh(lo8(), M(a.human ? a.skin : 0x3b2414)); hand.scale.setScalar(.15); sw.add(hand);
+  // smuga za ostrzem (pokazywana przy cięciu) i gwiazdki nad głową (ogłuszenie)
+  const trail = new T.Mesh(new T.RingGeometry(1.3, 1.95, 28, 1, -.8, 3.9), new T.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0, side:T.DoubleSide, depthWrite:false })); trail.visible = false; g.add(trail);
+  const stars = grp(g, len*.26, h + .35, 0); for (let i = 0; i < 3; i++) { const st = mkStar(); st.scale.setScalar(.34); st.position.set(Math.cos(i*2.1)*.6, 0, Math.sin(i*2.1)*.6); stars.add(st); } stars.visible = false;
   if (side < 0) g.rotation.y = PI;
-  return { g, body, a, sw, arm, sh:new T.Vector3(0, 1.03*k, side*.27*k), h, len, side, swx:len*.28 + .1, swz:side*(a.dims.hw*k + .28), bx:-side*(1.25 + len/2), lx:0, py:.7, rz:-.4, px:0, tilt:0, st:'idle', t:0, guard:'hi', atk:'hi', en:0, kind }; }
+  return { g, body, a, sw, arm, trail, stars, q:{ lx:0, py:.75, rz:-.45, px:0, tl:0, tw:0, sq:1, la:0, lb:0, ar:0 }, sh:new T.Vector3(0, 1.03*k, side*.27*k), h, len, side, swx:len*.28 + .1, swz:side*(a.dims.hw*k + .28), bx:-side*(1.25 + len/2), lx:0, py:.7, rz:-.4, px:0, tilt:0, st:'idle', t:0, guard:'hi', atk:'hi', en:0, kind }; }

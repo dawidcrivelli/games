@@ -66,6 +66,8 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #shopG h3{grid-column:1/-1;margin:4px 0 -2px;font-size:17px;text-align:left}
 .it{background:#fff;border-radius:16px;box-shadow:0 4px 0 #d9c9a6;padding:5px 4px 6px;font-size:13px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:pan-y}
 .it big{font-size:30px;line-height:1.1}.it small{opacity:.7;font-size:12px}.it u{text-decoration:none;background:var(--gold);border-radius:99px;padding:2px 10px 0;margin-top:2px;font-size:14px}
+.heroes{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:4px 0}.it.he{font-size:13px;touch-action:manipulation}.it.he big{font-size:38px}
+#pick .card{max-width:760px}
 .it.sel{background:#d8f7d0;box-shadow:0 4px 0 #6fbf5f}.it.no u{background:#ddd;opacity:.7}.it.max u{background:#cfe9ff}
 #start{position:fixed;inset:0;bottom:auto;height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6vh;padding:12px;text-align:center;color:#4a2c12;font-weight:800;z-index:6;background:linear-gradient(rgba(20,60,110,.15),rgba(10,40,80,.5))}
 #start h1{margin:0;font-size:clamp(34px,9vw,80px);line-height:.95;color:#fff;-webkit-text-stroke:3px #4a2c12;paint-order:stroke fill;text-shadow:0 6px 0 #4a2c12}
@@ -145,6 +147,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   <div id="shopH"><h2>🏝️ Port <span style="font-size:20px">🪙 <span id="shopGold">0</span></span></h2><button class="go" id="bSail">⛵ W rejs! Poziom <span id="shopLvl">1</span></button></div>
   <div id="shopG"></div>
 </div></div>
+<div class="ov" id="pick" hidden><div class="card"><h2>Kim dziś jesteś?</h2><div class="heroes" id="pickG"></div></div></div>
 <div class="ov" id="over" hidden><div class="card">
   <h2 id="ovT">Koniec</h2><p id="ovP"></p>
   <button class="go" id="ovA">OK</button><button class="go alt" id="ovB">Port</button>
