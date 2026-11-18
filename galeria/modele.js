@@ -54,6 +54,7 @@ const MODELE = [
     .map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', 1, '${w}')` })),
   ...[['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe']].map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', -1, '${w}')` })),
   ...ZOO.map(([typ, f], i) => ({ kat: 'piraci', typ: 'pirat ' + typ, gra: 'piraci', js: `mkFighter('${f}', 1, '${['saber', 'sword', 'axe', 'rapier', 'katana', 'bow', 'anchor', 'trident', 'wood', 'swordfish'][i]}')` })),
+  ...[['lew', 'lion'], ['pingwin', 'penguin'], ['tygrys', 'tiger']].map(([typ, f]) => ({ kat: 'piraci', typ: 'pirat ' + typ, gra: 'piraci', js: `mkFighter('${f}', -1, 'saber')` })),
   ...['trójgraniasta', 'kapitańska', 'marynarska'].map((typ, i) => ({ kat: 'piraci', typ: 'czapka ' + typ, gra: 'piraci', js: `mkHat(${i})` })),
 
   { kat: 'statki', typ: 'okręt gracza', gra: 'piraci', js: `buildShip({ ...PSHIP(), guns: 3, masts: 2, cap: 'human', crew: [.4, 3.6] })` },

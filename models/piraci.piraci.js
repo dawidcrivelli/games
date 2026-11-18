@@ -17,9 +17,11 @@ function mkHat(style, col) { const p = [], bk = col || 0x1d1d24, go = 0xffc93c, 
     p.push({ g:S, p:[.3, .22, 0], s:[.05, .08, .08], c:wh }, { g:G.cone, p:[-.1, .5, .26], s:[.05, .55, .1], r:[.45, 0, .25], c:0xe2483d }); }
   return new T.Mesh(mergeC(p), MVC); }
 // czapka dla zwierzaka z ZOO (a = MK.x(), jeszcze bez rodzica; głowa +x); opaskę na oko mają tylko ludziki
-function pirateGear(a, side, style) { if (!a.head) return; const top = a.root; top.updateMatrixWorld(true);
+function pirateGear(a, side, style, col) { if (!a.head) return; const top = a.root; top.updateMatrixWorld(true);
+  // col = barwy wroga: czapka w tym kolorze + cały zwierzak przyciemniony w fiolet (kopie materiałów, bez zmian w modelu)
+  if (col != null) { const mm = new Map(), tint = new T.Color(.62, .55, .95); top.traverse(o => { if (!o.isMesh) return; let m = mm.get(o.material); if (!m) { m = o.material.clone(); m.color.multiply(tint); mm.set(o.material, m); } o.material = m; }); }
   const b = new T.Box3().setFromObject(a.head), c = b.getCenter(new T.Vector3()), sz = b.getSize(new T.Vector3()), hq = a.head.getWorldQuaternion(new T.Quaternion()).invert(), ws = a.head.getWorldScale(new T.Vector3()).x;
-  const mx = a.dims.h*.42, w = clamp(Math.min(sz.x, sz.z)*.95, mx*.7, mx*1.15), hat = mkHat(style);
+  const mx = a.dims.h*.42, w = clamp(Math.min(sz.x, sz.z)*.95, mx*.7, mx*1.15), hat = mkHat(style, col);
   // nad oczami, lekko z tyłu; wysokość = powierzchnia czaszki (promień w dół, bez uszu i oczu), czapka wciśnięta na głowę
   let hx = c.x, hy = b.max.y - sz.y*.1, n = 0, ex = 0, er = 0;
   for (const q of a.eyes || []) { ex += q.getWorldPosition(new T.Vector3()).x; er = q.children[0].getWorldScale(new T.Vector3()).x; n++; }
@@ -30,7 +32,7 @@ function pirateGear(a, side, style) { if (!a.head) return; const top = a.root; t
   if (hit) hy = hit.point.y - w*.1;
   hat.position.copy(a.head.worldToLocal(new T.Vector3(hx, hy, c.z))); hat.scale.setScalar(w/ws); hat.quaternion.copy(hq); a.head.add(hat); }
 // zwierzak-pirat ustawiony przodem +z, wysokość h (jak ZOO.fit) — do stania na statku
-function fitPirate(kind, h, side, style) { const a = MK[kind](); pirateGear(a, side, style); const g = new T.Group(), w = grp(g), k = h/a.dims.h; w.add(a.root); a.root.position.x = -a.cx; w.rotation.y = -PI/2; w.scale.setScalar(k); return { g, a, k }; }
+function fitPirate(kind, h, side, style, col) { const a = MK[kind](); pirateGear(a, side, style, col); const g = new T.Group(), w = grp(g), k = h/a.dims.h; w.add(a.root); a.root.position.x = -a.cx; w.rotation.y = -PI/2; w.scale.setScalar(k); return { g, a, k }; }
 // ludzik-pirat: przód +x, stopy y=0, wysokość ~2.05 (z czapką). opt: {side: strona opaski (+1/-1), arm: false = bez ręki po stronie side (dorabia ją mkFighter), alt: barwy wroga}
 function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     human:{ coat:0xd63b3b, pants:0x2b3a67, skin:0xf2c39a, hair:0x6b3f1c, stripe:0xffffff, hat:2, hatC:0xd63b3b, smile:1 },
@@ -76,7 +78,7 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
   return { root, body, head, legs, armOff:arms[1], armOn:arms[0], human:true, coat:o.coat, skin:o.skin, dims:{ h:2.05, len:.7, hw:.32 }, cx:0, t:rnd(9) }; }
 // wojownik do pojedynku: side +1 patrzy w +x (gracz), -1 w -x (wróg); kamera z +z
 function mkFighter(kind, side, weapon) { const g = new T.Group(), body = grp(g); let a, k, arm = null;
-  if (MK[kind]) { a = MK[kind](); pirateGear(a, side, kind === 'penguin' || kind === 'panda' ? 2 : kind === 'lion' || kind === 'elephant' || kind === 'hippo' ? 1 : 0); k = Math.min(3/a.dims.h, 3.8/a.dims.len); const w = grp(body); w.scale.setScalar(k); w.add(a.root); a.root.position.x = -a.cx; }
+  if (MK[kind]) { a = MK[kind](); pirateGear(a, side, kind === 'penguin' || kind === 'panda' ? 2 : kind === 'lion' || kind === 'elephant' || kind === 'hippo' ? 1 : 0, side < 0 ? 0x7a3fd0 : undefined); k = Math.min(3/a.dims.h, 3.8/a.dims.len); const w = grp(body); w.scale.setScalar(k); w.add(a.root); a.root.position.x = -a.cx; }
   else { a = mkHuman(kind, { side, arm:false, alt:side < 0 }); k = 2.8/1.9; a.root.scale.setScalar(k); body.add(a.root);
     arm = new T.Mesh(cg(.07, .085, 1, 7).clone().translate(0, .5, 0), M(a.coat)); arm.scale.set(k, 1, k); g.add(arm); }
   const h = a.dims.h*k, len = a.dims.len*k, sw = grp(g); sw.add(mkWeapon(weapon)); const hand = new T.Mesh(lo8(), M(a.human ? a.skin : 0x3b2414)); hand.scale.setScalar(.15); sw.add(hand);
