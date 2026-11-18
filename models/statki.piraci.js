@@ -135,6 +135,6 @@ function buildShip(o) { const { L, W, H } = SH, rail = o.rail == null ? .72 : o.
   let cap = null;
   if (o.cap) { const hold = grp(tilt, 0, QD, -L*.3 - .55);
     if (MK[o.cap]) { const f = fitPirate(o.cap, o.cap === 'penguin' ? 1.55 : 1.4, 1, o.capStyle == null ? 1 : o.capStyle); hold.add(f.g); cap = f.a; }
-    else { const hm = mkHuman(o.cap); hm.root.rotation.y = -PI/2; hm.root.scale.setScalar(.82); hold.add(hm.root); } }
+    else { const hm = mkHuman(o.cap, { alt:o.capAlt }); hm.root.rotation.y = -PI/2; hm.root.scale.setScalar(.82); hold.add(hm.root); } }
   for (const z of o.crew || []) { const hm = mkHuman(pick(['majtek', 'majtek2', 'rudy', 'majtek'])); hm.root.rotation.y = rnd(PI*2); hm.root.scale.setScalar(.68); hm.root.position.set(rnd(-.9, .9), z < -3 ? QD : H, z); tilt.add(hm.root); }
   return { g, tilt, guns, sails, flag, cap }; }

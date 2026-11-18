@@ -309,7 +309,7 @@ function startLevel(){clearLevel();const n=S.lvl,L_=lvDef(n),q=lvQ(n);setTheme(L
   const mk=(type,flag,i)=>{const t=TYPES[type],a=rnd(TAU),r=flag?105:rnd(70,120);let x=Math.cos(a)*r,z=Math.sin(a)*r;
     for(const il of islands)if(Math.hypot(x-il.x,z-il.z)<il.r+12){x+=24;z+=24;}
     const e=mkShipEnt({S:t.S*(flag?1.08:1),hull:flag?0x33302f:0x5a4636,trim:flag?0xb02a2a:0x9aa0a8,bot:flag?0x7a2a22:0xcfc7b4,sail:flag?'#2a2a31':'#b9b3a6',stripe:flag?'#8a1f1f':'',emb:flag?'☠️':'',flag:'#16161c',flagEmb:'☠️',fig:'skull',
-      guns:t.guns+(flag&&n>6?1:0),masts:t.masts,cap:flag?L_.cap:null,crew:flag?[]:[1],hp:t.hp*q*(flag?1.25:1)*(kid?.8:1),dmg:t.dmg*q,sp:t.sp*(kid?.85:1),turn:t.turn,team:1,flagship:flag,name:flag?L_.name:'',
+      guns:t.guns+(flag&&n>6?1:0),masts:t.masts,cap:flag?L_.cap:null,capAlt:1,crew:flag?[]:[1],hp:t.hp*q*(flag?1.25:1)*(kid?.8:1),dmg:t.dmg*q,sp:t.sp*(kid?.85:1),turn:t.turn,team:1,flagship:flag,name:flag?L_.name:'',
       x,z,hd:rnd(TAU),rlT:(kid?4.6:3.1)-Math.min(1,n*.08),rng:flag?27:24,spread:kid?.11:.06});
     e.lead=kid?.35:.75;e.type=type;
     const el=document.createElement('div');el.className='eb';el.innerHTML=(flag?'☠️ '+L_.name+' '+(EMO[L_.cap]||''):'')+'<div class="bar"><i></i></div>';$('ebs').appendChild(el);e.el=el;e.elBar=el.querySelector('i');return e;};

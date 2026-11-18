@@ -52,6 +52,7 @@ const MODELE = [
   // Piraci! — wojownicy z bronią (zwierzaki z ZOO + czapka), ludziki, czapki
   ...[['pirat junior', 'human', 'wood'], ['piratka ania', 'ania', 'rapier'], ['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe'], ['kapitan hak', 'wilk', 'sword'], ['majtek', 'majtek', 'saber'], ['majtek', 'majtek2', 'bow']]
     .map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', 1, '${w}')` })),
+  ...[['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe']].map(([typ, k, w]) => ({ kat: 'piraci', typ, gra: 'piraci', js: `mkFighter('${k}', -1, '${w}')` })),
   ...ZOO.map(([typ, f], i) => ({ kat: 'piraci', typ: 'pirat ' + typ, gra: 'piraci', js: `mkFighter('${f}', 1, '${['saber', 'sword', 'axe', 'rapier', 'katana', 'bow', 'anchor', 'trident', 'wood', 'swordfish'][i]}')` })),
   ...['trójgraniasta', 'kapitańska', 'marynarska'].map((typ, i) => ({ kat: 'piraci', typ: 'czapka ' + typ, gra: 'piraci', js: `mkHat(${i})` })),
 

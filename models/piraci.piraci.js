@@ -31,7 +31,7 @@ function pirateGear(a, side, style) { if (!a.head) return; const top = a.root; t
   hat.position.copy(a.head.worldToLocal(new T.Vector3(hx, hy, c.z))); hat.scale.setScalar(w/ws); hat.quaternion.copy(hq); a.head.add(hat); }
 // zwierzak-pirat ustawiony przodem +z, wysokość h (jak ZOO.fit) — do stania na statku
 function fitPirate(kind, h, side, style) { const a = MK[kind](); pirateGear(a, side, style); const g = new T.Group(), w = grp(g), k = h/a.dims.h; w.add(a.root); a.root.position.x = -a.cx; w.rotation.y = -PI/2; w.scale.setScalar(k); return { g, a, k }; }
-// ludzik-pirat: przód +x, stopy y=0, wysokość ~2.05 (z czapką). opt: {side: strona opaski (+1/-1), arm: false = bez ręki po stronie side (dorabia ją mkFighter)}
+// ludzik-pirat: przód +x, stopy y=0, wysokość ~2.05 (z czapką). opt: {side: strona opaski (+1/-1), arm: false = bez ręki po stronie side (dorabia ją mkFighter), alt: barwy wroga}
 function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     human:{ coat:0xd63b3b, pants:0x2b3a67, skin:0xf2c39a, hair:0x6b3f1c, stripe:0xffffff, hat:2, hatC:0xd63b3b, smile:1 },
     majtek:{ coat:0x2f6fb5, pants:0x3b2a1a, skin:0xe9b48a, hair:0x2b1d12, stripe:0xffffff, hat:2, hatC:0x2f6fb5, beard:1 },
@@ -41,7 +41,9 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     ania:{ coat:0xff6fa5, pants:0x1f9e9a, skin:0xf6cfae, hair:0x7a4320, stripe:0xffffff, long:1, hat:0, ring:1, smile:1 },
     wilk:{ coat:0x24456e, pants:0x2b2420, skin:0xd9a47c, hair:0xb9bcc2, beard:2, hat:0, hook:1, epau:1, sash:0xffc93c },
     czarny:{ coat:0x23232b, pants:0x4a1f1f, skin:0xd9a47c, hair:0x111116, beard:2, hat:1, peg:1, hook:1, epau:1, sash:0xb02a2a } },
-    o = HUM[kind] || HUM.human, sd = opt.side || 1, S = lo8(), p = [], hp = [], lp = { 1:[], '-1':[] }, ap = { 1:[], '-1':[] }, bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
+    o = Object.assign({}, HUM[kind] || HUM.human), sd = opt.side || 1, S = lo8(), p = [], hp = [], lp = { 1:[], '-1':[] }, ap = { 1:[], '-1':[] }, bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
+  // opt.alt: barwy wroga — ta sama postać, płaszcz/szarfa/czapka w przesuniętym kolorze
+  if (opt.alt) for (const k of ['coat', 'sash', 'hatC', 'pants']) if (o[k] != null) { const c = new T.Color(o[k]), h = {}; c.getHSL(h); o[k] = c.setHSL((h.h + .42) % 1, Math.max(.45, h.s), clamp(h.l, .22, .5)).getHex(); }
   // nogi, buty
   for (const s of [1, -1]) { if (o.peg && s === -sd) { lp[s].push({ g:cg(.1, .08, .2, 8), p:[0, .47, s*.13], c:o.pants }, { g:cg(.05, .032, .4, 6), p:[0, .2, s*.13], c:0x9a6b3c }); continue; }
     lp[s].push({ g:cg(.105, .095, .36, 8), p:[0, .4, s*.13], c:o.pants }, { g:cg(.1, .11, .22, 8), p:[0, .13, s*.13], c:bk }, { g:cg(.13, .115, .07, 8), p:[0, .26, s*.13], c:0xa9773f }, { g:S, p:[.07, .06, s*.13], s:[.17, .07, .105], c:bk }); }
@@ -75,7 +77,7 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
 // wojownik do pojedynku: side +1 patrzy w +x (gracz), -1 w -x (wróg); kamera z +z
 function mkFighter(kind, side, weapon) { const g = new T.Group(), body = grp(g); let a, k, arm = null;
   if (MK[kind]) { a = MK[kind](); pirateGear(a, side, kind === 'penguin' || kind === 'panda' ? 2 : kind === 'lion' || kind === 'elephant' || kind === 'hippo' ? 1 : 0); k = Math.min(3/a.dims.h, 3.8/a.dims.len); const w = grp(body); w.scale.setScalar(k); w.add(a.root); a.root.position.x = -a.cx; }
-  else { a = mkHuman(kind, { side, arm:false }); k = 2.8/1.9; a.root.scale.setScalar(k); body.add(a.root);
+  else { a = mkHuman(kind, { side, arm:false, alt:side < 0 }); k = 2.8/1.9; a.root.scale.setScalar(k); body.add(a.root);
     arm = new T.Mesh(cg(.07, .085, 1, 7).clone().translate(0, .5, 0), M(a.coat)); arm.scale.set(k, 1, k); g.add(arm); }
   const h = a.dims.h*k, len = a.dims.len*k, sw = grp(g); sw.add(mkWeapon(weapon)); const hand = new T.Mesh(lo8(), M(a.human ? a.skin : 0x3b2414)); hand.scale.setScalar(.15); sw.add(hand);
   // smuga za ostrzem (pokazywana przy cięciu) i gwiazdki nad głową (ogłuszenie)
