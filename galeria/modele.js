@@ -68,16 +68,18 @@ const MODELE = [
 
   ...['wood', 'saber', 'bow', 'sword', 'rapier', 'axe', 'katana', 'anchor', 'trident', 'swordfish'].map(id => ({ kat: 'broń', typ: id, gra: 'piraci', js: `mkWeapon('${id}')` })),
   // Dzikie Bryki: każdy pojazd w pozach jazda / atak / moc / oberwał (brykaPose)
-  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
+  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
     .map(pz => ({ kat: 'bryki', typ, gra: 'bryki', js: `(() => { const b = buildBryka('${k}'); brykaPose(b, '${pz}', 1); return b.g; })()` }))),
 
   // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (models/trasy.bryki.js)
-  ...['glaz', 'beczki', 'opony', 'wrak', 'bryla', 'skrzynia', 'balwan', 'pacholki', 'olej', 'lod', 'lawa', 'rampa', 'turbo', 'gwiazda']
+  ...['glaz', 'beczki', 'opony', 'wrak', 'bryla', 'skrzynia', 'balwan', 'pacholki', 'olej', 'lod', 'lawa', 'rampa', 'turbo', 'gwiazda', 'biegacz', 'glaz_tocz', 'sniezka', 'beczka_tocz', 'pingwin', 'kula_burzaca', 'meteor']
     .map(t => ({ kat: 'trasy', typ: 'przeszkody', gra: 'bryki', js: `brObst('${t}')` })),
   ...['kaktus', 'kamien', 'opony', 'beczka', 'zlom', 'wrak', 'skala', 'dym', 'sosna', 'balwan', 'lodblok']
     .map(t => ({ kat: 'trasy', typ: 'przy drodze', gra: 'bryki', js: `brProp('${t}')` })),
   ...['plaskowyz', 'dzwig', 'fabryka', 'wulkan', 'gora'].map(t => ({ kat: 'trasy', typ: 'w oddali', gra: 'bryki', js: `brProp('${t}')` })),
   { kat: 'trasy', typ: 'meta', gra: 'bryki', js: 'brMeta(12.6)' },
+  { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brTunel(30, 0xc07a48, 12.6)' },
+  { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brMost(32, 1.8, 12.6, 0x3aa0d0, 0, 0xd8342a)' },
 
   { kat: 'broń', typ: 'strzała', gra: 'piraci', js: 'mkArrow()' },
   { kat: 'broń', typ: 'rozgwiazda', gra: 'piraci', js: 'mkStar()' },

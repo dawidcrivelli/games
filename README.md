@@ -63,8 +63,8 @@ flowchart LR
 | `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 231 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast}; ZOO.pose(a, 'rear'…) — pozy (dęba, skok, przysiad, łapa, byk, wierzgnięcie, oberwanie, zamroczenie, radość, siad) |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
-| `models/pojazdy.bryki.js` | 430 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
-| `models/trasy.bryki.js` | 190 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, gwiazdka, rampa, turbo) brMeta |
+| `models/pojazdy.bryki.js` | 430 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
+| `models/trasy.bryki.js` | 190 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
 
 ## Narzędzia
 

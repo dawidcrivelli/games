@@ -56,6 +56,9 @@ function snd(name) {
     case 'slurp': T(160, 900, .35, 'sawtooth', .14, 0, [18, 40]); N(.35, .3, 300, 2000, 3); T(900, 200, .2, 'sine', .2, .35); break;
     case 'klang': M(196, 1.2, .4); M(392, .8, .18, .05); N(.5, .3, 8000, 4000, 2, .05, 'highpass'); [1, 2, 3].forEach(i => T(3000 + i * 600, 3400 + i * 600, .12, 'sine', .08, .2 + i * .08)); break;
     case 'roj': for (let i = 0; i < 16; i++) T(3000 + Math.random() * 2500, 4500 + Math.random() * 2500, .05, 'sine', .1, i * .045); N(.8, .2, 1200, 600, 3); break;
+    case 'jezyk': T(250, 2200, .12, 'sine', .25); N(.08, .3, 3000, 1500, 2, .02); N(.12, .45, 900, 300, 1.5, .14, 'lowpass'); T(500, 180, .1, 'sine', .25, .16); break;   // fiut-MLASK
+    case 'sprezyna': for (let i = 0; i < 3; i++) T(180 + i * 120, 700 + i * 200, .35, 'sine', .2, i * .12, [24, 60]); M(500, .2, .1); break;                                  // bzzoing-oing
+    case 'lubudu': N(.6, .7, 700, 50, .7, 0, 'lowpass'); T(90, 30, .5, 'sine', .55); M(110, .5, .3, .03); M(160, .4, .2, .18); N(.3, .3, 300, 80, 1, .18, 'lowpass'); break;
     // trafienia, przeszkody
     case 'bum': N(.4, .6, 900, 70, .7, 0, 'lowpass'); T(110, 38, .35, 'sine', .45); M(150, .3, .12, .02); break;
     case 'boing': T(170, 560, .1, 'sine', .3); T(560, 140, .45, 'sine', .3, .1, [11, 40]); M(330, .2, .12); break;
@@ -68,6 +71,8 @@ function snd(name) {
     case 'lad': N(.18, .5, 600, 120, 1, 0, 'lowpass'); T(90, 50, .15, 'sine', .3); M(140, .2, .1); break;
     case 'poslizg': T(820, 380, .6, 'sawtooth', .07, 0, [9, 30]); N(.6, .25, 3200, 1400, 4); break;
     case 'jajo': T(1100, 300, .25, 'sine', .12); break;
+    case 'pip': T(1500, 2200, .08, 'square', .12); T(1500, 2400, .1, 'square', .12, .12); T(2400, 900, .3, 'sine', .14, .26); break;   // pingwin
+    case 'swist': T(2400, 300, 1.1, 'sine', .12, 0, [7, 30]); N(1.1, .15, 4000, 600, 2); break;                                        // spadający meteor
     case 'chlup': N(.3, .4, 1600, 300, 1); T(420, 120, .2, 'sine', .25); break;
     case 'gwiazda': [1047, 1319, 1568, 2093].forEach((f, i) => T(f, f, .16, 'triangle', .16, i * .05)); break;
     case 'moc': [523, 659, 784, 1047, 1319].forEach((f, i) => T(f, f * 1.01, .2, 'square', .09, i * .05)); break;
@@ -80,6 +85,7 @@ function snd(name) {
     case 'klakson_ptak': [784, 988, 1175, 1568].forEach((f, i) => T(f, f * (i === 3 ? .8 : 1.05), i === 3 ? .4 : .12, 'square', .13, i * .12)); break;   // kukuryku
     case 'klakson_osmiornica': T(98, 92, .7, 'sawtooth', .25, 0, [5, 4]); T(147, 140, .7, 'sawtooth', .12, 0, [5, 4]); break;      // tuba
     case 'klakson_krab': M(2100, .5, .25); M(2100, .5, .25, .18); break;                                                             // dzwonek
+    case 'klakson_zaba': for (const d of [0, .3]) { T(110, 90, .22, 'square', .22, d, [24, 30]); N(.2, .2, 700, 500, 5, d); } break;   // kum-kum
     case 'klakson_nietoperz': T(3000, 4200, .12, 'sine', .2); T(3000, 4600, .14, 'sine', .2, .16); break;                            // pi-pi
   }
 }
@@ -139,6 +145,14 @@ function audVoice(kind) {
     V.set = (r, tu) => { const t = A.currentTime;
       w1.frequency.setTargetAtTime(500 + 1400 * r + (tu ? 600 : 0), t, .15); w2.frequency.setTargetAtTime((500 + 1400 * r) * 1.51, t, .15);
       o.frequency.setTargetAtTime(45 + 55 * r, t, .08); f.frequency.setTargetAtTime(300 + 600 * r, t, .1); ng.gain.setTargetAtTime(.04 + .1 * r + (tu ? .12 : 0), t, .1); };
+  }
+  if (kind === 'zaba') {                     // rechot: niski kwadrat przez dwa formanty, przerywany jak „kum-kum”
+    const o1 = osc('square', 40), f1 = filt('bandpass', 700, 5), f2 = filt('bandpass', 1500, 6), tr = gain(.6);
+    o1.connect(f1); o1.connect(f2); f1.connect(gain(2.2)).connect(tr); f2.connect(gain(1.2)).connect(tr); tr.connect(out);
+    const l = lfo(16, .4, tr.gain);
+    V.set = (r, tu) => { const b = 38 + 55 * r, t = A.currentTime;
+      o1.frequency.setTargetAtTime(b, t, .06); l.frequency.setTargetAtTime(12 + 14 * r, t, .1);
+      f1.frequency.setTargetAtTime(600 + 400 * r + (tu ? 500 : 0), t, .08); f2.frequency.setTargetAtTime(1300 + 700 * r, t, .08); };
   }
   const setFn = V.set;
   V.set = (r, tu, vol, p = 0) => { const t = A.currentTime; setFn(r, tu); out.gain.setTargetAtTime(vol, t, .08); if (pan) pan.pan.setTargetAtTime(p, t, .08); };

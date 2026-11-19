@@ -9,22 +9,30 @@ const BRYKI_RODZAJ = () => ({
   glaz: 'twarda', beczki: 'twarda', opony: 'twarda', wrak: 'twarda', bryla: 'twarda',
   skrzynia: 'skrzynia', balwan: 'skrzynia', pacholki: 'miekka',
   olej: 'slisko', lod: 'slisko', lawa: 'lawa', rampa: 'rampa', turbo: 'turbo', gwiazda: 'gwiazda',
+  // ruchome: przez pasy (biegacz, beczka_tocz, pingwin), toczą się pod prąd (glaz_tocz, sniezka), kula na dźwigu, meteor z nieba
+  biegacz: 'miekka', pingwin: 'miekka', beczka_tocz: 'twarda', glaz_tocz: 'twarda', sniezka: 'twarda', kula_burzaca: 'twarda', meteor: 'twarda',
 });
+// jak się porusza przeszkoda ruchoma
+const BRYKI_RUCH = () => ({ biegacz: 'cross', pingwin: 'cross', beczka_tocz: 'cross', glaz_tocz: 'roll', sniezka: 'roll', kula_burzaca: 'swing', meteor: 'fall' });
 
 function brykiTrasy() {
   return {
     pustynia: { ic: '🏜️', sky: 0x8fd3f4, fog: 0xf6d9a8, ground: 0xe8b56a, road: 0x4b4747, curb: [0xd8342a, 0xf2efe6], line: 0xf2efe6,
       hemi: [0xffffff, 0xb08850, .75], sun: [0xffffff, .75], props: ['kaktus', 'kamien', 'opony', 'beczka', 'kaktus'], far: ['plaskowyz'],
-      twarde: ['glaz', 'beczki'], miekkie: ['skrzynia', 'skrzynia'], slisko: 'olej', seed: 11 },
+      twarde: ['glaz', 'beczki'], miekkie: ['skrzynia', 'skrzynia'], slisko: 'olej', seed: 11,
+      ruchome: ['biegacz', 'glaz_tocz'], tunel: 0xc07a48, woda: 0x3aa0d0, luk: 0xd8342a },
     zlomowisko: { ic: '🏭', sky: 0xa9c3d3, fog: 0xb8c2c6, ground: 0x7d7566, road: 0x3c3a3a, curb: [0xf2c12e, 0x2b2a2e], line: 0xf2c12e,
       hemi: [0xffffff, 0x6a6458, .75], sun: [0xfff2dd, .7], props: ['zlom', 'wrak', 'opony', 'beczka', 'zlom'], far: ['dzwig', 'fabryka'],
-      twarde: ['wrak', 'opony'], miekkie: ['skrzynia', 'pacholki'], slisko: 'olej', seed: 23 },
+      twarde: ['wrak', 'opony'], miekkie: ['skrzynia', 'pacholki'], slisko: 'olej', seed: 23,
+      ruchome: ['beczka_tocz', 'kula_burzaca'], tunel: 0x8a8580, woda: 0x5f8a4a, luk: 0xf2c12e },
     wulkan: { ic: '🌋', sky: 0x4a2232, fog: 0x6a2e24, ground: 0x3a3030, road: 0x352d2d, curb: [0xff7a1a, 0x1e1a1a], line: 0xffb04a,
       hemi: [0xffd0b0, 0x5a2a20, .7], sun: [0xffb070, .8], props: ['skala', 'dym', 'skala', 'kamien'], far: ['wulkan'],
-      twarde: ['glaz', 'beczki'], miekkie: ['skrzynia'], slisko: 'lawa', seed: 37 },
+      twarde: ['glaz', 'beczki'], miekkie: ['skrzynia'], slisko: 'lawa', seed: 37,
+      ruchome: ['meteor', 'glaz_tocz'], tunel: 0x2a2222, woda: 0xff6a1a, lawa: 1, luk: 0x5a5560 },
     lodowiec: { ic: '❄️', sky: 0xcfe9ff, fog: 0xe6f2fb, ground: 0xf4f8ff, road: 0x7f98ad, curb: [0x2f7fbf, 0xf2f6fa], line: 0xffffff,
       hemi: [0xffffff, 0x9fb8cc, .8], sun: [0xffffff, .65], props: ['sosna', 'balwan', 'lodblok', 'sosna'], far: ['gora'],
-      twarde: ['bryla', 'glaz'], miekkie: ['balwan', 'skrzynia'], slisko: 'lod', seed: 51 },
+      twarde: ['bryla', 'glaz'], miekkie: ['balwan', 'skrzynia'], slisko: 'lod', seed: 51,
+      ruchome: ['pingwin', 'sniezka'], tunel: 0x9fd2ee, woda: 0x6ab8e8, luk: 0x2f7fbf },
   };
 }
 
@@ -154,9 +162,102 @@ function brObst(typ) {
     brPart(s, brExt(brGwiazdaPts(.55, .24), .22, .05), 0xffd23f, 0, 0, 0, { ol: .035 });
     brPart(s, brExt(brGwiazdaPts(.3, .13), .26, 0), brMat(0xfff4a8, 'glow'), 0, .02, 0, { ol: 0 });
   }
+  if (typ === 'biegacz') {                   // biegacz pustyni: kula splątanych gałązek
+    col = 0xa07a4a; const r = new THREE.Group(); r.position.y = .7; g.add(r); g.userData.roll = r;
+    for (let i = 0; i < 7; i++) brPart(r, new THREE.TorusGeometry(.6 - i * .03, .05, 5, 14), i % 2 ? 0xa07a4a : 0x7a5a32, 0, 0, 0, { r: [i * .9, i * 1.7, i * .4], ol: 0 });
+  }
+  if (typ === 'glaz_tocz' || typ === 'sniezka') {
+    const sn = typ === 'sniezka'; col = sn ? 0xe8f3ff : 0x8a6a4a;
+    const r = new THREE.Group(); r.position.y = .9; g.add(r); g.userData.roll = r;
+    brPart(r, sn ? new THREE.SphereGeometry(.9, 14, 10) : new THREE.DodecahedronGeometry(.95, 1), col);
+    for (let i = 0; i < 5; i++) brPart(r, new THREE.SphereGeometry(.18, 6, 4), sn ? 0xb9d6f0 : 0x6e5236, Math.cos(i * 1.3) * .8, Math.sin(i * 2.1) * .5, Math.sin(i * 1.3) * .5, { ol: 0 });
+  }
+  if (typ === 'beczka_tocz') {               // beczka leży na boku (oś wzdłuż x), toczy się w poprzek pasów
+    col = 0xd8342a; const r = new THREE.Group(); r.position.y = .55; g.add(r); g.userData.roll = r;
+    brPart(r, brCyl(.55, .55, 1.3, 12, 'x'), 0xd8342a); brPart(r, brCyl(.57, .57, .2, 12, 'x'), 0xffd23f, 0, 0, 0, { ol: 0 });
+    for (const x of [-.45, .45]) brPart(r, brCyl(.57, .57, .08, 12, 'x'), 0x2b2724, x, 0, 0, { ol: 0 });
+  }
+  if (typ === 'pingwin') {                   // pingwin sunie na brzuchu w poprzek pasów
+    col = 0x1d1d24; const r = new THREE.Group(); g.add(r); g.userData.roll = r;
+    brPart(r, new THREE.SphereGeometry(.5, 12, 9), 0x1d1d24, 0, .45, 0, { s: [.9, .8, 1.5] });
+    brPart(r, new THREE.SphereGeometry(.42, 12, 9), 0xffffff, 0, .3, .05, { s: [.85, .6, 1.4], ol: 0 });
+    brPart(r, new THREE.SphereGeometry(.3, 10, 8), 0x1d1d24, 0, .62, .72);
+    brPart(r, new THREE.ConeGeometry(.08, .25, 6), 0xff9a1a, 0, .6, 1.05, { r: [Math.PI / 2, 0, 0], ol: .01 });
+    for (const x of [-.13, .13]) { brPart(r, new THREE.SphereGeometry(.06, 6, 4), 0xffffff, x, .72, .95, { ol: 0 }); brPart(r, new THREE.SphereGeometry(.03, 5, 4), 0x111111, x, .73, 1.0, { ol: 0 }); }
+    for (const x of [-.45, .45]) brPart(r, new THREE.SphereGeometry(.2, 8, 6), 0x1d1d24, x, .4, -.1, { s: [.3, .4, 1.4], r: [0, 0, x > 0 ? -.6 : .6] });
+    for (const x of [-.15, .15]) brPart(r, new THREE.SphereGeometry(.12, 6, 4), 0xff9a1a, x, .25, -.75, { s: [1, .4, 1.4], ol: .01 });
+  }
+  if (typ === 'kula_burzaca') {              // dźwig za drogą, belka nad pasami, kula na łańcuchu (wahadło w poprzek drogi)
+    col = 0x3a3633; const Y = 8.3, L = 6.6;
+    for (const [x, z] of [[-.5, -9], [.5, -9], [-.5, -8], [.5, -8]]) brPart(g, brCyl(.09, .09, Y + .5, 5), 0xf2c12e, x, (Y + .5) / 2, z, { ol: .03 });
+    for (let y = 1; y < Y; y += 1.5) brPart(g, brBox(1.1, .1, 1.1), 0xf2c12e, 0, y, -8.5, { ol: .02 });
+    brPart(g, brBox(.6, .6, 14.5), 0xf2c12e, 0, Y + .3, -1.5, { ol: .04 });
+    for (let i = 0; i < 7; i++) brPart(g, brBox(.62, .62, .5), 0x2b2724, 0, Y + .3, -8 + i * 2.2, { ol: 0 });
+    const pv = new THREE.Group(); pv.position.set(0, Y, 0); g.add(pv); g.userData.pivot = pv; g.userData.arm = L;
+    for (let i = 0; i < 9; i++) brPart(pv, new THREE.TorusGeometry(.14, .04, 5, 10), 0x6f767d, 0, -i * (L - .8) / 9 - .3, 0, { r: [0, i % 2 ? Math.PI / 2 : 0, 0], ol: 0 });
+    brPart(pv, new THREE.SphereGeometry(.85, 16, 12), 0x3a3633, 0, -L, 0, { ol: .04 });
+    for (let i = 0; i < 6; i++) brPart(pv, new THREE.SphereGeometry(.09, 6, 4), 0x8a8f96, Math.cos(i) * .82, -L + Math.sin(i * 2) * .3, Math.sin(i) * .82, { ol: 0 });
+  }
+  if (typ === 'meteor') {                    // kamień z ognistym ogonem + czerwone koło ostrzegawcze na drodze
+    col = 0x3a2a2a;
+    const rk = new THREE.Group(); g.add(rk); g.userData.rock = rk; rk.position.y = 3;
+    brPart(rk, new THREE.DodecahedronGeometry(.8), 0x3a2a2a, 0, 0, 0, { ol: .03 });
+    for (let i = 0; i < 3; i++) brPart(rk, brBox(.08, .9, .08), brMat(0xff7a1a, 'glow'), -.3 + i * .3, 0, .78, { r: [0, 0, .4 - i * .4], ol: 0 });
+    for (let i = 0; i < 4; i++) brPart(rk, new THREE.SphereGeometry(.6 - i * .1, 8, 6), brMat([0xffd23f, 0xff9a1a, 0xff5a1a, 0x8a3a2a][i]), 0, 1 + i * .8, 0, { ol: 0 });
+    const ring = brPart(g, new THREE.RingGeometry(1.0, 1.4, 20), brMat(0xff2a1a, 'glow'), 0, .06, 0, { r: [-Math.PI / 2, 0, 0], ol: 0 });
+    g.userData.ring = ring;
+  }
   g.userData.rodzaj = BRYKI_RODZAJ()[typ]; g.userData.col = col; g.userData.typ = typ;
   return g;
 }
+// Tunel w przekroju: tylna ściana, strop nad dalszymi pasami, lampy, portale; nad nim skały (środek = 0, długość len)
+function brTunel(len, col, w) {
+  const g = new THREE.Group(), dark = new THREE.Color(col).multiplyScalar(.7).getHex(), Zb = -(w / 2 + 1.6);
+  brPart(g, brBox(len, 7.4, 1.2), col, 0, 3.7, Zb, { ol: .05 });
+  brPart(g, brBox(len, .8, 7.2), dark, 0, 7, Zb + 3.4, { ol: .05 });
+  for (let x = -len / 2 + 3; x < len / 2; x += 5) {
+    brPart(g, brBox(1.4, .2, .5), brMat(0xfff1b0, 'glow'), x, 6.5, Zb + 3.5, { ol: 0 });
+    brPart(g, brBox(.5, 2.6, .1), brMat(0xfff1b0, 'glow'), x, 2.5, Zb + .62, { ol: 0 });
+  }
+  for (const sd of [-1, 1]) {
+    const x = sd * len / 2;
+    brPart(g, brBox(1.4, 7.6, 1.6), dark, x, 3.8, Zb + .2, { ol: .05 });
+    brPart(g, brBox(1.4, 1.3, w + 5), dark, x, 7.4, -.3, { ol: .05 });
+    brPart(g, brBox(.9, 7.6, .9), dark, x, 3.8, w / 2 + 1.8, { ol: .05 });
+    for (let i = 0; i < 6; i++) brPart(g, brBox(1.42, 1.32, .7), i % 2 ? 0x2b2724 : 0xffd23f, x, 7.4, -w / 2 - 2 + i * 2.4, { ol: 0 });
+  }
+  const r = (i, m) => (Math.sin(i * 12.9898 + m) * 43758.5453) % 1;
+  for (let i = 0; i < len / 3; i++) brPart(g, new THREE.DodecahedronGeometry(2 + Math.abs(r(i, 1)) * 2.5), dark, -len / 2 + i * 3 + 1.5, 8.4 + Math.abs(r(i, 2)) * 2, Zb - 1 + r(i, 3) * 2, { ol: .06 });
+  return g;
+}
+// Most nad rzeką (lub lawą): deska jedzie po garbie wysokości A; balustrady, filary, łuk po dalszej stronie
+function brMost(len, A, w, woda, lawa, luk) {
+  const g = new THREE.Group(), h = x => A * (1 - Math.cos(2 * Math.PI * (x + len / 2) / len)) / 2;
+  brPart(g, new THREE.PlaneGeometry(len - 6, 150), lawa ? brMat(woda, 'glow') : brMat(woda), 0, .04, -45, { r: [-Math.PI / 2, 0, 0], ol: 0 });
+  for (let i = 0; i < 14; i++) brPart(g, brBox(rnd2(i) * 3 + 1, .03, .25), lawa ? brMat(0xffd23f, 'glow') : brMat(0xffffff), (rnd2(i + 7) - .5) * (len - 12), .06, -40 + rnd2(i + 3) * 70, { ol: 0 });
+  for (const sd of [-1, 1]) for (const [z, d] of [[-w / 2 - 4 - 60, 120], [w / 2 + 4 + 15, 30]]) brPart(g, brBox(3, .5, d), lawa ? 0x2a1a1a : 0x7a5a3a, sd * (len / 2 - 3), .1, z, { ol: 0 });   // brzegi rzeki poza drogą
+  const step = 2.5, n = Math.round(len / step);
+  for (let i = 0; i <= n; i++) {
+    const x = -len / 2 + i * step, y = h(x);
+    for (const sd of [-1, 1]) {
+      brPart(g, brBox(.18, 1.1, .18), 0x6f767d, x, y + .55, sd * (w / 2 + .45), { ol: .015 });
+      if (i < n) {
+        const x2 = x + step, y2 = h(x2), a = Math.atan2(y2 - y, step), L = Math.hypot(step, y2 - y);
+        brPart(g, brBox(L, .12, .12), luk, (x + x2) / 2, (y + y2) / 2 + 1.05, sd * (w / 2 + .45), { r: [0, 0, a], ol: .015 });
+        brPart(g, brBox(L, .7, .25), 0x5a5560, (x + x2) / 2, (y + y2) / 2 - .3, sd * (w / 2 + .2), { r: [0, 0, a], ol: .015 });
+      }
+    }
+  }
+  for (const x of [-len / 4, 0, len / 4]) for (const z of [-w / 2 + 1, w / 2 - 1]) brPart(g, brCyl(.45, .55, h(x)), 0x8a8580, x, h(x) / 2, z, { ol: .03 });
+  const arch = x => h(x) + 3.2 * Math.sin(Math.PI * (x + len / 2) / len);
+  for (let i = 0; i < n; i++) {
+    const x = -len / 2 + i * step, x2 = x + step, y = arch(x), y2 = arch(x2);
+    brPart(g, brBox(Math.hypot(step, y2 - y), .3, .3), luk, (x + x2) / 2, (y + y2) / 2, -(w / 2 + .8), { r: [0, 0, Math.atan2(y2 - y, step)], ol: .02 });
+    if (i % 2 && i < n - 1) brPart(g, brBox(.08, arch(x2) - h(x2), .08), 0x6f767d, x2, (arch(x2) + h(x2)) / 2, -(w / 2 + .8), { ol: 0 });
+  }
+  return g;
+}
+function rnd2(i) { return Math.abs(Math.sin(i * 91.7 + 3.1) * 1234.5) % 1; }
 function brGwiazdaPts(R, r) {
   const p = [];
   for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; p.push([Math.cos(a) * rr, Math.sin(a) * rr, 1]); }

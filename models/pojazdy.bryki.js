@@ -1,6 +1,6 @@
 // Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku.
 // Widok z boku (2.5D): przód = +x, góra = +y, szerokość wzdłuż z. Kreskówkowe cieniowanie + czarny kontur.
-// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz', kolory?) → { g, body, kind, p: części, wheels, len }
+// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz'|'zaba', kolory?) → { g, body, kind, p: części, wheels, len }
 // brykaPose(b, 'jazda'|'atak'|'moc'|'oberwal', k 0..1) · brykaTick(b, dt, prędkość) — koła, bujanie, macki, pióra
 // wymaga z gry: THREE
 
@@ -10,6 +10,7 @@ const BRYKI_KOLORY = () => ({
   osmiornica: { a: 0x8a3fb8, b: 0x3e2357, c: 0xf28cc8 },
   krab: { a: 0xdd4426, b: 0x5a1f14, c: 0xffb04a },
   nietoperz: { a: 0x4d4063, b: 0x1d1a24, c: 0xd8342a },
+  zaba: { a: 0x3f9a34, b: 0xe6e08a, c: 0xff5a8a },
 });
 
 /* --- materiały i proste bryły --- */
@@ -125,7 +126,7 @@ function buildBryka(kind, kol) {
   const C = { ...BRYKI_KOLORY()[kind], ...(kol || {}) };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = { g, body, kind, C, p: {}, wheels: [], t: 0, len: 4.6, pose: {} };
-  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz })[kind](b);
+  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz, zaba: brZaba })[kind](b);
   g.userData.bryka = kind;
   return b;
 }
@@ -385,6 +386,45 @@ function brNietoperz(b) {
   b.len = 5.2;
 }
 
+// ŻABA: podniesione nadwozie na odsłoniętych sprężynach, wyłupiaste oczy-reflektory, długi język (atak), szczudła ze sprężyn (moc)
+function brZaba(b) {
+  const B = b.body, C = b.C, W = 2.1, Z = W / 2, TOP = 1.15;           // TOP: wysokość mocowania sprężyn pod nadwoziem
+  brPart(B, brExt([[-2.0, 1.0, 1], [-2.15, 1.45], [-1.6, 1.85], [-.4, 2.0], [.8, 1.95], [1.55, 1.7], [2.0, 1.35], [1.95, 1.0, 1]], W, .05, 1), C.a);
+  brPart(B, brExt([[-1.95, .92], [1.9, .92], [1.98, 1.24], [-1.98, 1.2]], W + .1, .03), C.b);
+  brPart(B, brBox(.95, .08, W + .08), 0x1f3a1a, 1.5, 1.32, 0, { r: [0, 0, -.12], ol: 0 });     // szeroki pysk
+  for (const [x, y] of [[-1.2, 1.55], [-.5, 1.75], [.3, 1.6], [-1.6, 1.3], [.9, 1.45]]) for (const sd of [-1, 1]) brPart(B, new THREE.SphereGeometry(.16, 8, 6), 0x2e6b26, x, y, sd * (Z - .02), { s: [1, 1, .35], ol: 0 });
+  // wyłupiaste oczy na dachu
+  for (const sd of [-1, 1]) {
+    const e = new THREE.Group(); e.position.set(.95, 2.0, sd * .62); B.add(e);
+    brPart(e, new THREE.SphereGeometry(.42, 14, 10), C.a, 0, 0, 0, { ol: .03 });
+    brPart(e, new THREE.SphereGeometry(.33, 14, 10), brMat(0xfff2a0, 'glow'), .14, .05, sd * .12, { ol: 0 });
+    brPart(e, brBox(.08, .1, .3), brMat(0x111111, 'glow'), .45, .06, sd * .2, { r: [0, sd * .5, 0], ol: 0 });
+    brPart(e, brBox(.6, .12, .14), 0x1f3a1a, .1, .4, sd * .15, { r: [0, 0, -.4], ol: .015 });
+  }
+  // język: walec skalowany wzdłuż x, lepka kulka na końcu; obrót w y = na skos na sąsiedni pas
+  const tg = new THREE.Group(); tg.position.set(1.95, 1.3, 0); B.add(tg); b.p.tongueG = tg;
+  const tgeo = brCyl(.11, .13, 1, 8, 'x'); tgeo.translate(.5, 0, 0);
+  b.p.tongue = brPart(tg, tgeo, C.c, 0, 0, 0, { ol: 0 }); b.p.tongue.visible = false;
+  b.p.tongueTip = brPart(tg, new THREE.SphereGeometry(.24, 10, 8), 0xff3a6a, 0, 0, 0, { ol: .025 }); b.p.tongueTip.visible = false;
+  // uda tylnych nóg, wydech, nity
+  brPipe(B, -1.6, 1.8, .55, .6, .7); brPipe(B, -1.6, 1.8, -.55, .6, .7);
+  brPatch(B, -.6, 1.15, .5, .28, Z + .07, 0xb5651d, .05);
+  brWeld(B, .35, 1.25, .3, 1.95, Z + .01);
+  brRivets(B, -1.9, 1.07, 1.8, 1.07, 11, Z + .07, 0x8a8f6a);
+  brWheels(b, [-1.4], Z + .15, .62, .55, 0xffd23f); brWheels(b, [1.25], Z + .12, .5, .45, 0xffd23f);
+  // sprężyny przy każdym kole: od piasty do mocowania pod nadwoziem; moc rozciąga je jak szczudła
+  b.p.springs = [];
+  const coil = new THREE.TorusGeometry(.15, .045, 6, 12);
+  for (const w of b.wheels) {
+    const r = w.userData.r, hc = TOP - r, sd = Math.sign(w.position.z);
+    const sp = new THREE.Group(); sp.position.set(w.position.x, r, sd * (Z + .52)); b.g.add(sp); sp.userData.hc = hc; b.p.springs.push(sp);
+    sp.userData.coils = []; for (let i = 0; i < 11; i++) sp.userData.coils.push(brPart(sp, coil, 0xc9ced3, 0, (i + .5) * hc / 11, 0, { r: [Math.PI / 2, 0, .2], ol: .012 }));
+    const rg = brCyl(.05, .05, 1, 6); rg.translate(0, .5, 0); sp.userData.rod = brPart(sp, rg, 0x5a5560, 0, 0, 0, { ol: 0, s: [1, hc, 1] });
+    brPart(B, brBox(.36, .12, .5), 0x5a5560, w.position.x, TOP, sd * (Z + .3), { ol: .015 });
+  }
+  b.len = 4.9;
+}
+
 /* --- pozy i animacja --- */
 // k = 0..1; każda poza liczona od zera (neutralnej)
 function brykaPose(b, pose, k = 1) {
@@ -422,6 +462,14 @@ function brykaPose(b, pose, k = 1) {
     const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
     P.jaw.rotation.z = -.5 * a; P.ears.forEach(e => e.rotation.z = .6 * a);
     P.wings.forEach(w => { w.rotation.x = -w.userData.s * .5 * m; w.rotation.z = -1.4 * m; });
+  }
+  if (b.kind === 'zaba') {
+    const a = pose === 'atak' ? k : 0, lift = pose === 'moc' ? 2.3 * k : 0;
+    B.position.y = lift;
+    P.springs.forEach(sp => { const h = sp.userData.hc + lift, n = sp.userData.coils.length; sp.userData.coils.forEach((c, i) => c.position.y = (i + .5) * h / n); sp.userData.rod.scale.y = h; });
+    const L = (b.tongueLen || 6.5) * a;
+    P.tongue.scale.x = Math.max(.01, L); P.tongueTip.position.x = L; P.tongue.visible = P.tongueTip.visible = a > .03;
+    P.tongueG.rotation.y = a > 0 ? (b.tongueYaw || 0) : 0;
   }
   if (pose === 'oberwal') { B.rotation.z = .22 * k; B.rotation.x = .12 * k; B.position.y = .25 * k; }
   b.baseY = B.position.y;

@@ -4,18 +4,18 @@
 // Świat w „s” = metry wzdłuż trasy; na ekranie x = s − camS (kamera jedzie za graczem). Wysokość drogi: H(s) (górki).
 const T = THREE, $ = id => document.getElementById(id);
 const PAS = 3, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
-const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz'];
-const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇' };
-const MOC_IC = { rekin: '🌊', ptak: '🪽', osmiornica: '🐙', krab: '🛡️', nietoperz: '🦇' };
-const WORD_ATAK = { rekin: 'CHAP!', ptak: 'DZIOB!', osmiornica: 'PLUM!', krab: 'SZCZYP!', nietoperz: 'PIIISK!' };
-const WORD_MOC = { rekin: 'PŁETWA!', ptak: 'FRUU!', osmiornica: 'CHWYT!', krab: 'KOLCE!', nietoperz: 'RÓJ!' };
-const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szczyp', nietoperz: 'pisk' };
-const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj' };
+const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba'];
+const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸' };
+const MOC_IC = { rekin: '🌊', ptak: '🪽', osmiornica: '🐙', krab: '🛡️', nietoperz: '🦇', zaba: '🦿' };
+const WORD_ATAK = { rekin: 'CHAP!', ptak: 'DZIOB!', osmiornica: 'PLUM!', krab: 'SZCZYP!', nietoperz: 'PIIISK!', zaba: 'MLASK!' };
+const WORD_MOC = { rekin: 'PŁETWA!', ptak: 'FRUU!', osmiornica: 'CHWYT!', krab: 'KOLCE!', nietoperz: 'RÓJ!', zaba: 'HOPSA!' };
+const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szczyp', nietoperz: 'pisk', zaba: 'jezyk' };
+const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna' };
 const BUB_COL = ['#ffd23f', '#ff4d3a', '#3ad1ff', '#ff7ae0', '#7dff6a'];
-const LEN = 1150, CRUISE = 15, PX = -3.5, G = 24;            // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
+const LEN = 1150, CRUISE = 15, PX = -6, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
 const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 1.4, TURBO_CD = 5, MOC_FILL = 9, HIT_T = 1.2, BLINK_T = 2.2, SPIN_T = .7;
-const MOC_T = { rekin: 3, ptak: 3.2, osmiornica: 1.1, krab: 4, nietoperz: 1.4 };
-const MOC_V = { rekin: 1.3, ptak: 1.25, osmiornica: 1, krab: 1.15, nietoperz: 1.1 };
+const MOC_T = { rekin: 3, ptak: 3.2, osmiornica: 1.1, krab: 4, nietoperz: 1.4, zaba: 3 };
+const MOC_V = { rekin: 1.3, ptak: 1.25, osmiornica: 1, krab: 1.15, nietoperz: 1.1, zaba: 1.2 };
 const DIFF = {
   latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .16, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
   trudny: { cruise: 1.0, think: .28, react: .92, aggro: .7, aggroP: .5, look: 20, turbo: .25, band: .02, gap: [-6, 16] },
@@ -29,7 +29,7 @@ const SET = Object.assign({ car: 'rekin', trasa: 'pustynia', diff: 'latwy', best
 const save = () => localStorage.setItem('bryki', JSON.stringify(SET));
 
 /* ---------- górki: gładkie garby wzdłuż trasy ---------- */
-let HILLS = [];
+let HILLS = [], SEGS = [];          // SEGS: tunel i most {typ, s0, s1}
 function H(s) { let h = 0; for (const q of HILLS) { const u = (s - q.s) / q.L; if (u > 0 && u < 1) h += q.A * (1 - Math.cos(u * 2 * Math.PI)) / 2; } return h; }
 function Hd(s) { let d = 0; for (const q of HILLS) { const u = (s - q.s) / q.L; if (u > 0 && u < 1) d += q.A * Math.PI / q.L * Math.sin(u * 2 * Math.PI); } return d; }
 
@@ -63,9 +63,13 @@ function strip(zs, col) {
 }
 function updStrips() {
   const hs = []; for (let i = 0; i <= NSEG; i++) hs.push(H(camS - XW / 2 + i * XW / NSEG));
+  const most = SEGS.find(q => q.typ === 'most');
   for (const m of strips) {
     const zs = m.userData.zs, nz = zs.length, p = m.geometry.attributes.position.array;
-    for (let i = 0; i <= NSEG; i++) for (let j = 0; j < nz; j++) p[(i * nz + j) * 3 + 1] = hs[i] * zs[j][1] + zs[j][2];
+    for (let i = 0; i <= NSEG; i++) {
+      const s = camS - XW / 2 + i * XW / NSEG, f = m.userData.bank && most && s > most.s0 + 1 && s < most.s1 - 1 ? 0 : 1;   // na moście bez nasypu: pod spodem woda
+      for (let j = 0; j < nz; j++) p[(i * nz + j) * 3 + 1] = hs[i] * zs[j][1] * f + zs[j][2] - (f ? 0 : .3);
+    }
     m.geometry.attributes.position.needsUpdate = true; if (HILLS.length) m.geometry.computeVertexNormals();
   }
 }
@@ -80,8 +84,8 @@ function setTheme(name) {
   const gnd = new T.Mesh(new T.PlaneGeometry(600, 400), lam(TH.ground)); gnd.rotation.x = -Math.PI / 2; gnd.position.y = -.03; world.add(gnd);
   const bank = new T.Color(TH.ground).multiplyScalar(.88).getHex();
   strip([[-ROAD / 2, 1, .01], [ROAD / 2, 1, .01]], TH.road);
-  strip([[-ROAD / 2 - 3.5, 0, -.02], [-ROAD / 2, 1, 0]], bank);
-  strip([[ROAD / 2, 1, 0], [ROAD / 2 + 3.5, 0, -.02]], bank);
+  strip([[-ROAD / 2 - 3.5, 0, -.02], [-ROAD / 2, 1, 0]], bank).userData.bank = 1;
+  strip([[ROAD / 2, 1, 0], [ROAD / 2 + 3.5, 0, -.02]], bank).userData.bank = 1;
   const dash = new T.BoxGeometry(2.2, .04, .16), dashM = new T.MeshBasicMaterial({ color: TH.line }), curb = new T.BoxGeometry(2, .18, .5);
   const curbM = TH.curb.map(c => lam(c));
   const sc = (o, s0, f, w, road) => { world.add(o); deco.push({ o, s0, f, w, road, y0: o.position.y }); };
@@ -132,7 +136,8 @@ const near = c => Math.abs(c.s - camS) < 16;
 const mocOn = c => c.act === 'moc';
 const under = c => mocOn(c) && c.kind === 'rekin';            // rekin pod asfaltem
 const spiky = c => mocOn(c) && c.kind === 'krab';             // krab w kolcach
-const immune = c => c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab'].includes(c.kind)) || c.fin;
+const high = c => mocOn(c) && c.kind === 'zaba' && c.at > .25; // żaba na szczudłach: inne auta jadą pod nią
+const immune = c => c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind)) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
@@ -146,15 +151,21 @@ function genTrack(th) {
   const r = mulberry(th.seed * 7 + (diff === 'trudny' ? 3 : 0)), R = a => a[Math.floor(r() * a.length)], out = [];
   const add = (typ, s, lane, y = 0) => out.push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
   // górki: łagodny garb (podskok tylko z turbo), skocznia (zawsze podrzuca, nad nią gwiazdki), fala (dwa małe garby)
-  HILLS = [];
+  HILLS = []; SEGS = [];
+  const tun = { typ: 'tunel', s0: Math.round(LEN * .3), s1: Math.round(LEN * .3) + 50 }, most = { typ: 'most', s0: Math.round(LEN * .62), s1: Math.round(LEN * .62) + 36 };
+  SEGS.push(tun, most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
+  out.push({ typ: 'tunel', s: (tun.s0 + tun.s1) / 2, half: 25, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
+  out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
+  const inSeg = (a, b) => SEGS.some(q => b > q.s0 - 6 && a < q.s1 + 6);
   for (let s = 80 + r() * 30; s < LEN - 90; s += 55 + r() * 45) {
+    if (inSeg(s, s + 25)) continue;
     const t = r();
     if (t < .4) HILLS.push({ s, L: 16 + r() * 6, A: .8 + r() * .5 });
     else if (t < .75) { const q = { s, L: 10 + r() * 2, A: 1.3 + r() * .4 }; HILLS.push(q); const l = R([0, 1, 2, 3]); for (let i = 0; i < 3; i++) add('gwiazda', s + q.L * .55 + i * 2.4, l, 2.1 + (i === 1) * .4); }
     else { HILLS.push({ s, L: 8, A: .7 }); HILLS.push({ s: s + 9, L: 8, A: .7 }); }
   }
   const onHill = s => HILLS.some(q => s > q.s - 4 && s < q.s + q.L + 4);
-  const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix'];
+  const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'ruch', 'ruch', 'ruch'];
   let s = 55;
   while (s < LEN - 70) {
     const L = [0, 1, 2, 3].sort(() => r() - .5);
@@ -169,6 +180,15 @@ function genTrack(th) {
       case 'slisko': add(th.slisko, s, L[0]); if (r() < .5) add(th.slisko, s + 4, L[1]); break;
       case 'slalom': for (let i = 0; i < 3; i++) add(R(th.twarde), s + i * 8, L[i]); s += 14; break;
       case 'mix': add(R(th.twarde), s, L[0]); add('gwiazda', s, L[1]); add(R(th.miekkie), s + 3, L[2]); break;
+      case 'ruch': {                                      // ruchoma przeszkoda motywu
+        const typ = R(th.ruchome), m = BRYKI_RUCH()[typ];
+        if (m === 'swing' && onHill(s)) break;
+        add(typ, s, m === 'swing' ? 1 : L[0]);
+        const it = out[out.length - 1]; it.move = { type: m, t: 0, dir: r() < .5 ? -1 : 1, ph: r() * 6, sp: { biegacz: 3.5, pingwin: 4, beczka_tocz: 3, glaz_tocz: 7, sniezka: 6 }[typ] || 0 };
+        if (m === 'cross') it.z = LANES[L[0]];
+        if (m === 'swing') it.zMid = true;
+        break;
+      }
     }
     s += (diff === 'trudny' ? 14 : 17) + r() * 12;
   }
@@ -178,6 +198,8 @@ function itemMesh(it) {
   if (it.typ === 'tusz') return inkMesh();
   if (it.typ === 'jajo') return eggSplatMesh();
   if (it.typ === 'start' || it.typ === 'meta') return brMeta(ROAD, it.typ === 'meta', it.typ === 'meta');
+  if (it.typ === 'tunel') return brTunel(it.half * 2, TH.tunel, ROAD);
+  if (it.typ === 'most') return brMost(it.half * 2, 1.8, ROAD, TH.woda, TH.lawa, TH.luk);
   return brObst(it.typ);
 }
 function inkMesh() {
@@ -198,22 +220,75 @@ function syncItems(dt) {
   for (const it of items) {
     const x = it.s - camS;
     if (it.ttl !== undefined) { it.ttl -= dt; if (it.ttl < 0) it.alive = false; else if (it.g && it.ttl < .6) it.g.scale.setScalar(it.ttl / .6); }
-    const show = it.alive && x > -30 && x < 45;
-    if (show && !it.g) { it.g = itemMesh(it); world.add(it.g); }
+    const hf = it.half || 0, show = it.alive && x > -30 - hf && x < 45 + hf;
+    if (show && !it.g) { it.g = itemMesh(it); world.add(it.g); if (it.move?.type === 'fall') { it.g.userData.rock.visible = false; it.g.userData.ring.visible = false; } }
     if (!show && it.g) { world.remove(it.g); it.g = null; }
     if (it.g) {
-      it.g.position.set(x, H(it.s) + it.y, it.zMid ? 0 : LANES[it.lane]); if (!it.y) it.g.rotation.z = Math.atan(Hd(it.s));
+      const seg = it.typ === 'tunel' || it.typ === 'most';
+      it.g.position.set(x, seg ? 0 : H(it.s) + it.y, it.zMid ? 0 : it.z ?? LANES[it.lane]); if (!it.y && !seg) it.g.rotation.z = Math.atan(Hd(it.s));
       if (it.g.userData.spin) it.g.userData.spin.rotation.y += dt * 3;
     }
   }
   if (items.length > 400) items = items.filter(it => it.alive || it.g);
 }
+const flyers = [];
 function destroy(it, by) {
   if (!it.alive) return; it.alive = false;
-  const col = it.g?.userData.col ?? 0x8a6a4a, z = LANES[it.lane];
+  const z = it.z ?? LANES[it.lane];
+  if ((it.typ === 'pingwin' || it.typ === 'biegacz') && it.g) {      // pingwina nie rozbijamy: odlatuje łukiem
+    flyers.push({ g: it.g, s: it.s, y: H(it.s), z, vy: 9, vz: rnd(-4, 4), t: 0 }); it.g = null;
+    if (Math.abs(it.s - camS) < 16) { snd(it.typ === 'pingwin' ? 'pip' : 'boing'); bubbleAt(it.typ === 'pingwin' ? 'PIIIP!' : 'HOPLA!', it.s, 1.8, z, 'small'); }
+    return;
+  }
+  const col = it.g?.userData.col ?? 0x8a6a4a;
   for (let i = 0; i < 9; i++) part({ s: it.s, y: .6 + Math.random(), z: z + rnd(-.6, .6), vs: rnd(-2, 9), vy: rnd(3, 8), vz: rnd(-3, 3), col, size: rnd(.15, .32), life: 1, grav: 1, box: 1 });
   if (it.rodzaj === 'skrzynia') { sparkle(it.s, 1.2, z); if (by) addMoc(by, 1); }
   if (Math.abs(it.s - camS) < 16) { snd(it.rodzaj === 'skrzynia' ? 'trzask' : 'lup'); bubbleAt(it.rodzaj === 'skrzynia' ? 'KRAK!' : 'ŁUP!', it.s, 1.8, z, 'small'); }
+}
+
+// Ruchome przeszkody: przez pasy, pod prąd, wahadło, meteor; ruszają, gdy są blisko ekranu
+function stepMovers(dt) {
+  for (let i = flyers.length - 1; i >= 0; i--) {
+    const f = flyers[i]; f.t += dt; f.vy -= 20 * dt; f.y += f.vy * dt; f.z += f.vz * dt; f.s += 4 * dt;
+    f.g.position.set(f.s - camS, f.y, f.z); f.g.rotation.x += dt * 9; f.g.rotation.z += dt * 5;
+    if (f.t > 1.6) { world.remove(f.g); flyers.splice(i, 1); }
+  }
+  for (const it of items) {
+    const m = it.move; if (!m || !it.alive) continue;
+    const x = it.s - camS; if (x > 40 || x < -25) continue;
+    m.t += dt; const R = it.g?.userData.roll;
+    if (m.type === 'cross') {
+      it.z += m.dir * m.sp * dt;
+      if (Math.abs(it.z) > LANES[3]) { it.z = clamp(it.z, LANES[0], LANES[3]); m.dir *= -1; }
+      it.lane = laneOf(it);
+      if (R) {
+        if (it.typ === 'pingwin') R.rotation.y = m.dir > 0 ? 0 : Math.PI;
+        else R.rotation.x -= m.dir * m.sp * dt / .6;
+        if (it.typ === 'biegacz') R.position.y = .7 + Math.abs(Math.sin(m.t * 5)) * 1.1;
+      }
+    }
+    if (m.type === 'roll' && x < 30) { it.s -= m.sp * dt; if (R) R.rotation.z += m.sp * dt / .9; }
+    if (m.type === 'swing') {
+      const th = 1.0 * Math.sin(m.t * 2.4 + m.ph), L = 6.6, bz = -L * Math.sin(th), by = 8.3 - L * Math.cos(th);
+      if (it.g) it.g.userData.pivot.rotation.x = th;
+      for (const c of cars) if (Math.abs(c.s - it.s) < c.len / 2 + .8 && Math.abs(c.z - bz) < 1.4 && by < 2.6 + c.y && !high(c) && !under(c))
+        if (hit(c, null)) bubbleAt('BAM!', it.s, by + 1, bz, 'big');
+    }
+    if (m.type === 'fall') {
+      if (!m.on && cars.some(c => it.s - c.s > 0 && it.s - c.s < 24)) { m.on = true; m.y = 24; if (Math.abs(x) < 25) snd('swist'); }
+      if (m.on && it.g) {
+        m.y -= 22 * dt; const rk = it.g.userData.rock, ring = it.g.userData.ring;
+        rk.visible = true; rk.position.y = Math.max(0, m.y) + .8; ring.visible = Math.floor(m.t * 8) % 2 === 0; ring.scale.setScalar(1 + m.y / 24);
+        if (m.y <= 0) {                                    // uderzenie: trafia auta na pasie, zostawia lawę
+          it.alive = false;
+          for (const c of cars) if (laneOf(c) === it.lane && Math.abs(c.s - it.s) < c.len / 2 + 1.5 && c.y < 1.5 && !high(c)) hit(c, null, 'pop');
+          for (let k = 0; k < 14; k++) part({ s: it.s, y: .5, z: LANES[it.lane] + rnd(-1, 1), vs: rnd(-5, 5), vy: rnd(4, 10), vz: rnd(-3, 3), col: pick([0xff7a1a, 0x3a2a2a, 0xffd23f]), size: rnd(.2, .4), life: 1, grav: 1, box: 1 });
+          if (TH.lawa) newItem({ typ: 'lawa', s: it.s, lane: it.lane, rodzaj: 'lawa', ttl: 6 });
+          if (Math.abs(x) < 16) { snd('bum'); bubbleAt('BUUUM!', it.s, 2, LANES[it.lane], 'big'); if (Math.abs(P.s - it.s) < 12) shake = .35; }
+        }
+      }
+    }
+  }
 }
 
 /* ---------- cząsteczki (w układzie trasy; y podane względem drogi) ---------- */
@@ -263,7 +338,12 @@ function act(c, a) {
   if (c.act || c.hitT > 0 || (c.fin && state !== 'menu')) return false;
   if (a === 'atak') { if (c.atakCd > 0) return false; c.atakCd = ATAK_CD; }
   if (a === 'moc') { if (c.moc < 3 && state !== 'menu') return false; if (state !== 'menu') c.moc = 0; }
-  c.act = a; c.at = 0; c.done = false; c.eggT = 0;
+  c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false;
+  if (c.kind === 'zaba' && a === 'atak') {                 // język celuje w najbliższe auto przed sobą, też na skos
+    const t = state === 'menu' ? null : cars.filter(o => inReach(c, o)).sort((p, q) => p.s - q.s)[0];
+    c.tgt = t; const dx = t ? Math.max(1, t.s - c.s - c.len / 2) : 6.5, dz = t ? t.z - c.z : 0;
+    c.b.tongueYaw = -Math.atan2(dz, dx); c.b.tongueLen = Math.min(8, Math.hypot(dx, dz));
+  }
   if (state === 'menu') snd(a === 'atak' ? SND_ATAK[c.kind] : SND_MOC[c.kind]);
   return true;
 }
@@ -287,13 +367,14 @@ function hit(o, by, how) {
 function inReach(c, o) {
   if (o === c || o.fin) return false;
   const dl = Math.abs(laneOf(o) - laneOf(c)), ds = o.s - c.s, gap = Math.abs(ds) - (c.len + o.len) / 2;
-  if (o.y > 1.4 || under(o)) return false;
+  if (o.y > 1.4 || under(o) || high(o)) return false;
   switch (c.kind) {
     case 'rekin': return dl === 0 && ds > 0 && gap < 2.5;
     case 'ptak': return dl === 0 && ds > 0 && gap < 4.5;
     case 'osmiornica': return dl === 0 && ds < 0 && gap < 6;
     case 'krab': return (dl === 1 && Math.abs(ds) < 3.6) || (dl === 0 && ds > 0 && gap < 1.5);
     case 'nietoperz': return dl === 0 && ds > 0 && gap < 12;
+    case 'zaba': return ds > 0 && ((dl === 0 && gap < 7) || (dl === 1 && ds < 8.5));
   }
 }
 function itemInReach(c, it) {
@@ -303,6 +384,7 @@ function itemInReach(c, it) {
   if (c.kind === 'ptak') return dl === 0 && ds > 0 && gap < 5;
   if (c.kind === 'krab') return (dl === 1 && Math.abs(ds) < 3.6) || (dl === 0 && ds > 0 && gap < 2);
   if (c.kind === 'nietoperz') return dl === 0 && ds > 0 && gap < 12;
+  if (c.kind === 'zaba') return it.rodzaj === 'skrzynia' && ds > 0 && dl <= 1 && gap < 7;
   return false;
 }
 // Pociski: fala dźwiękowa nietoperza (leci pasem do przodu), rój małych nietoperzy (każdy goni auto)
@@ -364,6 +446,13 @@ function resolveAct(c) {
     if (k === 'ptak') for (let i = 0; i < 5; i++) part({ s: c.s + c.len / 2 + 1, y: 1.2 + c.y, z: c.z, vs: rnd(-2, 4), vy: rnd(1, 4), vz: rnd(-2, 2), col: pick([0xf06a14, 0xb5651d, 0xe2a417]), size: .15, life: .8, grav: 1, box: 1 });
     if (k === 'osmiornica') newItem({ typ: 'tusz', s: c.s - c.len / 2 - 3, lane: laneOf(c), rodzaj: 'tusz', len: 4, hitBy: new Set([c]), owner: c, ttl: 5 });
     if (k === 'nietoperz') { shootWave(c); return; }
+    if (k === 'zaba') {                                    // język: trafia cel, po drodze zjada gwiazdki i skrzynie, żaba podciąga się do przodu
+      if (c.tgt && inReach(c, c.tgt)) hit(c.tgt, c);
+      for (const it of items) if (it.alive && (it.rodzaj === 'gwiazda' || it.rodzaj === 'skrzynia') && Math.abs(it.lane - laneOf(c)) <= 1 && it.s > c.s && it.s - c.s < 8.5 && !it.move) {
+        if (it.rodzaj === 'gwiazda') { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); } else destroy(it, c);
+      }
+      c.lungeT = .25; return;
+    }
     for (const o of cars) if (inReach(c, o)) hit(o, c, k === 'osmiornica' ? 'tusz' : null);
     for (const it of items) if (itemInReach(c, it)) destroy(it, c);
   } else {
@@ -391,6 +480,13 @@ function mocTick(c, dt) {
     if (near(c)) snd('jajo');
   }
   if (c.kind === 'krab' && Math.random() < dt * 12) sparkle(c.s, 1.2, c.z);
+  if (c.kind === 'zaba' && !c.landed && c.at > MOC_T.zaba - .3) {   // lądowanie ze szczudeł: ŁUBUDU! podrzuca auta obok
+    c.landed = true;
+    for (const o of cars) if (o !== c && Math.abs(laneOf(o) - laneOf(c)) <= 1 && Math.abs(o.s - c.s) < 4.5) hit(o, c, 'pop');
+    for (const it of items) if (it.alive && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.lane - laneOf(c)) <= 1 && Math.abs(it.s - c.s) < 3.5) destroy(it, c);
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; part({ s: c.s, y: .3, z: c.z, vs: Math.cos(a) * 7, vy: 1.5, vz: Math.sin(a) * 4, col: 0xd9c39a, size: .35, life: .6, grow: 1.5, op: .7 }); }
+    if (near(c)) { snd('lubudu'); bubble('ŁUBUDU!', c, 'big'); if (c.player || Math.abs(P.s - c.s) < 8) shake = .45; }
+  }
   if (c.kind === 'rekin' || c.kind === 'krab') for (const o of cars) {
     if (o === c || immune(o) || o.y > 1.4) continue;
     const dl = Math.abs(laneOf(o) - laneOf(c)), gap = Math.abs(o.s - c.s) - (c.len + o.len) / 2;
@@ -435,7 +531,7 @@ function aiThink(c) {
   if (hazard(L, 0, D.look)) {
     const it = items.find(it => it.alive && it.lane === L && it.rodzaj === 'twarda' && it.s > c.s && itemInReach(c, it));
     if (it && c.atakCd <= 0 && Math.random() < .6) { act(c, 'atak'); return; }
-    if (c.moc >= 3 && ['rekin', 'ptak', 'krab'].includes(c.kind) && Math.random() < .5) { act(c, 'moc'); return; }
+    if (c.moc >= 3 && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind) && Math.random() < .5) { act(c, 'moc'); return; }
     if (Math.random() < D.react) { const o = [L - 1, L + 1].filter(free); if (o.length) setLane(c, pick(o)); }
     return;
   }
@@ -445,6 +541,7 @@ function aiThink(c) {
     const useful = c.kind === 'osmiornica' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 8)
       : c.kind === 'krab' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 6)
       : c.kind === 'nietoperz' ? cars.some(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 30)
+      : c.kind === 'zaba' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 10)
       : cars.some(o => o !== c && laneOf(o) === L && o.s > c.s && o.s - c.s < 14) || Math.random() < .1;
     if (useful && Math.random() < .5) { act(c, 'moc'); return; }
   }
@@ -487,7 +584,7 @@ function stepCar(c, dt, racing) {
   const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * 9);
   if (racing && Math.abs(LANES[c.lane] - c.z) > .3 && !spiky(c) && !under(c)) {
     const dir = Math.sign(LANES[c.lane] - c.z);
-    const o = cars.find(o => o !== c && !under(o) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < 2.3 && Math.abs(o.y - c.y) < 1.2);
+    const o = cars.find(o => o !== c && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < 2.3 && Math.abs(o.y - c.y) < 1.2);
     if (o) {
       if (spiky(o)) hit(c, o, 'pop');
       c.lane = laneOf({ z: c.z - dir * 1.4 }); c.v *= .92; o.v *= .96;
@@ -515,8 +612,8 @@ function stepCar(c, dt, racing) {
   }
   // przedmioty pod kołami
   if (racing && !under(c)) {
-    const L = laneOf(c);
-    for (const it of items) if (it.alive && it.lane === L && Math.abs(it.s - c.s) < (c.len + it.len) / 2 && Math.abs(c.z - LANES[it.lane]) < 1.2
+    const L = laneOf(c), hi = high(c);
+    for (const it of items) if (it.alive && it.rodzaj && (!hi || it.rodzaj === 'gwiazda') && it.move?.type !== 'swing' && it.move?.type !== 'fall' && it.lane === L && Math.abs(it.s - c.s) < (c.len + it.len) / 2 && Math.abs(c.z - (it.z ?? LANES[it.lane])) < 1.2
       && (it.rodzaj === 'gwiazda' ? Math.abs(c.y - it.y) < 1.5 : c.y < .9)) touch(c, it);
   }
 }
@@ -524,7 +621,7 @@ function stepCar(c, dt, racing) {
 function collide() {
   for (const a of cars) for (const o of cars) {
     if (a === o || a.s > o.s || Math.abs(a.z - o.z) > 1.6 || Math.abs(a.y - o.y) > 1.2) continue;
-    if (under(a) || under(o) || spiky(a) || spiky(o)) continue;          // te zderzenia liczy mocTick
+    if (under(a) || under(o) || spiky(a) || spiky(o) || high(a) || high(o)) continue;   // te zderzenia liczy mocTick / żaba nad autami
     const ov = (a.len + o.len) / 2 - (o.s - a.s);
     if (ov > 0) {
       a.s -= ov * .7; o.s += ov * .3; a.v = Math.min(a.v, o.v * .95);
@@ -595,7 +692,7 @@ function hud() {
 }
 
 /* ---------- przebieg: menu → odliczanie → wyścig → wyniki ---------- */
-function clearRace() { items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
+function clearRace() { flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
 function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
   cars.forEach((c, i) => { resetCar(c, i, i); c.s = -9.5 + i * 4.6; });
@@ -686,7 +783,7 @@ $('bHome').onclick = showMenu;
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
 
 /* ---------- pętla ---------- */
-let prev = performance.now(), menuT = 0;
+let prev = performance.now(), menuT = 0, dark = 0;
 function step(dt) {
   if (state === 'pause') return;
   const racing = state === 'race' || state === 'end' || state === 'done';
@@ -700,7 +797,7 @@ function step(dt) {
   }
   if (racing) raceT += dt;
   for (const c of cars) stepCar(c, dt, racing);
-  if (racing) { collide(); stepEggs(dt); stepShots(dt); }
+  if (racing) { collide(); stepEggs(dt); stepShots(dt); stepMovers(dt); }
   if (state === 'menu') {                                  // menu: wybrane auto podskakuje
     menuT += dt; P.ya = P.y = Math.abs(Math.sin(menuT * 4)) * .5; P.vy = 0;
     camS = 0;
@@ -708,6 +805,9 @@ function step(dt) {
   if (state === 'end' && (endT -= dt) < 0) showEnd();
   placeDeco(); syncItems(dt); stepParts(dt);
   for (const c of cars) drawCar(c, dt);
+  const inTun = SEGS.some(q => q.typ === 'tunel' && P.s > q.s0 + 3 && P.s < q.s1 - 3);   // w tunelu ciemno, świecą lampy i oczy aut
+  dark += ((inTun ? 1 : 0) - dark) * Math.min(1, dt * 3);
+  hemi.intensity = TH.hemi[2] * (1 - .62 * dark); sun.intensity = TH.sun[1] * (1 - .75 * dark);
   marker.visible = state !== 'menu' && state !== 'done';
   marker.position.set(P.s - camS, P.ya + 3.4 + Math.abs(Math.sin(performance.now() / 180)) * .4, P.z); marker.rotation.y += dt * 3;
   shake = Math.max(0, shake - dt);
