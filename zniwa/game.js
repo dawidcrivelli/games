@@ -386,27 +386,35 @@ let cutCount = 0, sinceBale = 0, cropDirty = false;
 // ---------- stany pola przez cały rok: ściernisko → orka → siew → wzrost
 const cst = new Uint8Array(CELLS), ripeC = new Float32Array(CELLS*3);
 let ploughed = 0, sown = 0, growing = 0, year = 1, sinceRound = 0, stDirty = false, growTick = 0, workFx = 0;
+// gnojówka: fert = polane w tym roku (szybciej rośnie), lush = polane w zeszłym (wyższy łan, więcej ziarna); zostaje po orce i siewie
+const fert = new Uint8Array(CELLS), lush = new Uint8Array(CELLS); let fertN = 0, fertList = [], smellToast = false;
 const stCv = document.createElement('canvas'); stCv.width = FW*8; stCv.height = FD*8; const stG = stCv.getContext('2d'), stTex = new T.CanvasTexture(stCv);
 const stPlane = mesh(new T.PlaneGeometry(FW, FD), lam(0xffffff, { map:stTex, transparent:true, alphaTest:.5 }), 0, .038, 0, scene); stPlane.rotation.x = -Math.PI/2; stPlane.receiveShadow = true;
 function paintCell(i, k) { const x = (i % FW)*8, y = ((i / FW) | 0)*8;
   if (k === 1) { stG.fillStyle = '#5b3f26'; stG.fillRect(x, y, 8, 8); stG.fillStyle = '#3f2a18'; stG.fillRect(x, y + 1, 8, 2); stG.fillRect(x, y + 5, 8, 2); stG.fillStyle = '#77563b'; stG.fillRect(x, y + 3, 8, 1); stG.fillRect(x, y + 7, 8, 1); }
   else { stG.fillStyle = '#7d5d3e'; stG.fillRect(x, y, 8, 8); stG.fillStyle = '#6a4a2f'; stG.fillRect(x, y + 2, 8, 1); stG.fillRect(x, y + 6, 8, 1);
     stG.fillStyle = '#bfe070'; stG.fillRect(x + 1, y + 2, 1, 1); stG.fillRect(x + 5, y + 2, 1, 1); stG.fillRect(x + 3, y + 6, 1, 1); stG.fillRect(x + 7, y + 6, 1, 1); }
-  stDirty = true; }
-function clearStates() { cst.fill(0); ploughed = sown = 0; sinceRound = 0; stG.clearRect(0, 0, stCv.width, stCv.height); stDirty = true; }
+  if (fert[i]) paintFert(i); stDirty = true; }
+function paintFert(i) { const x = (i % FW)*8, y = ((i / FW) | 0)*8, s = i*7919;      // mokra, ciemna ziemia po gnojówce (całe pole kratki: plamki znikałyby z daleka)
+  stG.fillStyle = '#4a3017'; stG.fillRect(x, y, 8, 8); stG.fillStyle = '#2f1d0b';
+  if (cst[i] & 1) { stG.fillRect(x, y + 1, 8, 2); stG.fillRect(x, y + 5, 8, 2); }
+  for (let k = 0; k < 3; k++) { stG.beginPath(); stG.arc(x + 1 + (s >> k*2) % 6, y + 1 + (s >> (k*2 + 5)) % 6, 1.4 + (k & 1), 0, 6.283); stG.fill(); }
+  stG.fillStyle = '#86603a'; stG.fillRect(x + 2 + s % 4, y + 2 + (s >> 3) % 4, 1, 1); stDirty = true; }
+function clearFert() { fert.fill(0); fertN = 0; fertList = []; }
+function clearStates() { cst.fill(0); ploughed = sown = 0; sinceRound = 0; stG.clearRect(0, 0, stCv.width, stCv.height); fertList.forEach(paintFert); stDirty = true; }
 function setCell(i, isCut) {
   if (!inField[i] || (!growing && (cst[i] & 1))) { dummy.position.set(0, -9, 0); dummy.scale.set(0, 0, 0); dummy.updateMatrix(); crop.setMatrixAt(i, dummy.matrix); return; }
-  if (growing > 0) { const g = growing, w = .35 + .65*g; dummy.position.set(X0 + (i % FW) + .5 + jx[i], .03, Z0 + ((i / FW) | 0) + .5 + jz[i]); dummy.rotation.set(0, rotA[i], 0);
+  if (growing > 0) { const g = fert[i] ? Math.min(1, growing*1.35) : growing, w = .35 + .65*g; dummy.position.set(X0 + (i % FW) + .5 + jx[i], .03, Z0 + ((i / FW) | 0) + .5 + jz[i]); dummy.rotation.set(0, rotA[i], 0);
     dummy.scale.set(w, hs[i]*Math.max(.04, g), w); dummy.updateMatrix(); crop.setMatrixAt(i, dummy.matrix); return; }
   const wheat = fieldCrop === 'wheat';   // po skoszeniu kępka chowa się tuż pod ściernisko, zostają krótkie źdźbła
   dummy.position.set(X0 + (i % FW) + .5 + jx[i], isCut ? (wheat ? -.13 : -.02) : .03, Z0 + ((i / FW) | 0) + .5 + jz[i]);
   dummy.rotation.set(0, rotA[i], 0);
-  dummy.scale.set(1, isCut ? (wheat ? .16 : .05) : hs[i], 1);
+  dummy.scale.set(1, isCut ? (wheat ? .16 : .05) : hs[i]*(lush[i] ? 1.22 : 1), 1);
   dummy.updateMatrix(); crop.setMatrixAt(i, dummy.matrix);
 }
 function buildField(kind, regrow) {
   if (crop) { scene.remove(crop); crop.geometry.dispose(); }
-  if (!regrow) { growing = 0; year = 1; clearStates(); }
+  if (!regrow) { growing = 0; year = 1; clearFert(); lush.fill(0); clearStates(); }
   fieldCrop = kind; const wheat = kind === 'wheat', tone = regrow ? [1, 1, 1] : rollField(wheat);
   crop = new T.InstancedMesh(tuftGeo(kind), cropMat, CELLS);
   crop.frustumCulled = false; crop.receiveShadow = true;
@@ -426,7 +434,7 @@ function buildField(kind, regrow) {
 /* =====================================================================
    CZĄSTKI (plewy, dym, konfetti)
    ===================================================================== */
-const PN = 320, pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3), pVel = new Float32Array(PN*3), pLife = new Float32Array(PN), pGrav = new Float32Array(PN);
+const PN = 900, pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3), pVel = new Float32Array(PN*3), pLife = new Float32Array(PN), pGrav = new Float32Array(PN);
 let pNext = 0;
 for (let i = 0; i < PN; i++) pPos[i*3 + 1] = -99;
 const pGeo = new T.BufferGeometry();
@@ -478,9 +486,10 @@ function updateGiraffe(dt) {
    DUŻY TRAKTOR Z NARZĘDZIAMI (pług, siewnik, prasa) I SŁOŃ
    ===================================================================== */
 Object.assign(M, { bBlue:pho(0x1f5fb8), bBlueD:pho(0x174a90), blanket:lam(0xc23b2e),
-  imp:pho(0xd8301f), impY:pho(0xf2c21f), soilP:lam(0x4e3520) });
+  imp:pho(0xd8301f), impY:pho(0xf2c21f), soilP:lam(0x4e3520), tankG:pho(0x2f7f3b) });
 
-const TOOLS = ['plough', 'seeder', 'baler'], TOOL_Z = { plough:-4.3, seeder:-4.0, baler:-3.3 }, TOOL_LBL = { plough:['🟤', 'Pług'], seeder:['🌱', 'Siewnik'], baler:['🌀', 'Prasa'] };
+const TOOLS = ['plough', 'seeder', 'baler', 'slurry'], TOOL_Z = { plough:-4.3, seeder:-4.0, baler:-3.3, slurry:-7.2 }, TOOL_W = { slurry:2.6 },
+  TOOL_LBL = { plough:['🟤', 'Pług'], seeder:['🌱', 'Siewnik'], baler:['🌀', 'Prasa'], slurry:['💩', 'Gnojówka'] };
 
 // uniesienie trąby (ZOO a.lift) w fazach chwytania beli: sięga w dół, podnosi, wraca
 const TRUNK = { rest:0, reach:-.6, lift:2.2 };
@@ -492,6 +501,79 @@ function updateElephant(dt) {
   const lerp = T.MathUtils.lerp;
   a.lift = p < .3 ? lerp(TRUNK.rest, TRUNK.reach, p/.3) : p < .65 ? lerp(TRUNK.reach, TRUNK.lift, (p - .3)/.35) : lerp(TRUNK.lift, TRUNK.rest, Math.min(1, (p - .65)/.35));
   ZOO.anim(a, dt);
+}
+
+/* =====================================================================
+   GNOJÓWKA: fontanna z beczki, smród, muchy, kleksy na ekranie, uciekające zwierzaki
+   ===================================================================== */
+let sprayT = 0, splatAcc = 0, sprayN = 0;
+const sprayP = new T.Vector3();
+function spraySlurry(dt) {
+  const B = veh.big, tk = B.P.tools.slurry, bh = -Math.sin(B.h), bz = -Math.cos(B.h), sx = Math.cos(B.h), sz = -Math.sin(B.h);
+  tk.localToWorld(sprayP.copy(B.P.splash));
+  sprayN += dt*280; for (; sprayN >= 1; sprayN--) { const back = rr(1.5, 5), side = rr(-4.2, 4.2), c = rr(.75, 1.15);
+    emit(sprayP.x + rr(-.2, .2), sprayP.y, sprayP.z + rr(-.2, .2), bh*back + sx*side, rr(1.2, 3.4), bz*back + sz*side, rr(.5, .85), .42*c, .27*c, .1*c, 9); }
+  sprayT -= dt; if (sprayT <= 0) { sprayT = .14; noiseBurst(320 + Math.random()*260, .2, .32); if (Math.random() < .25) tone(95 + Math.random()*40, .14, 'sine', .22, 55); }
+  if (S.cam) { splatAcc += dt*(S.cam === 1 ? 1.6 : .7); if (splatAcc > 1 || Math.random() < dt*.3) { splatAcc = 0; splatScreen(); } }
+  ['giraffe', 'elephant'].forEach(n => {                   // zwierzak za beczką dostaje prysznic i ucieka
+    const O = veh[n]; if (O.flee > 0 || (O.splatCd || 0) > time) return;
+    const dx = O.x - B.x, dz = O.z - B.z, lz = dx*Math.sin(B.h) + dz*Math.cos(B.h), lx = dx*Math.cos(B.h) - dz*Math.sin(B.h);
+    if (lz > -3.5 || lz < -11 || Math.abs(lx) > 3.4 + O.radius*.4) return;
+    O.splatCd = time + 5; O.flee = 2.6; O.fleeH = Math.atan2(dx, dz) + rr(-.4, .4);
+    const top = n === 'giraffe' ? 5 : 3.2;
+    for (let k = 0; k < 26; k++) emit(O.x + rr(-1, 1), rr(1, top), O.z + rr(-1, 1), rr(-2, 2), rr(1, 3), rr(-2, 2), rr(.5, 1), .4, .26, .1, 9);
+    if (n === 'giraffe') { sfx.giraffe(); toast('Żyrafa: „Fuuuj, gnojówka!” 🦒💨'); } else { sfx.trumpet(); toast('Słoń trąbi z oburzenia i ucieka! 🐘💨'); } });
+}
+function updateFlee(dt) {
+  ['giraffe', 'elephant'].forEach(n => { const O = veh[n]; if (!(O.flee > 0)) return;
+    if (S.active === n) { O.flee = 0; return; }
+    O.flee -= dt; O.h = wrap(O.h + clamp(wrap(O.fleeH - O.h), -3*dt, 3*dt)); O.v = O.flee > 0 ? (n === 'giraffe' ? 4.2 : 3.2) : 0;
+    O.x = clamp(O.x + Math.sin(O.h)*O.v*dt, -WORLD.x, WORLD.x); O.z = clamp(O.z + Math.cos(O.h)*O.v*dt, WORLD.zMin, WORLD.zMax);
+    ORDER.forEach(m => { const Q = veh[m]; if (Q === O) return; const ex = O.x - Q.x, ez = O.z - Q.z, d = Math.hypot(ex, ez), min = O.radius + Q.radius;
+      if (d < min && d > .001) { O.x = Q.x + ex/d*min; O.z = Q.z + ez/d*min; } });
+    obstacles.forEach(o => { const ex = O.x - o.x, ez = O.z - o.z, d = Math.hypot(ex, ez), min = O.radius*.6 + o.r; if (d < min && d > .001) { O.x = o.x + ex/d*min; O.z = o.z + ez/d*min; } });
+    O.g.position.set(O.x, 0, O.z); O.g.rotation.y = O.h; });
+}
+// muchy: kilka rojów krąży nad polanymi kawałkami, jeden zawsze lata za beczką
+const SWARMS = [];
+function buildFlies() {
+  const body = new T.SphereGeometry(.07, 6, 4), wing = new T.PlaneGeometry(.13, .07).translate(.065, 0, 0), bm = lam(0x15130f), wm = new T.MeshBasicMaterial({ color:0xeef4ff, transparent:true, opacity:.65, side:T.DoubleSide });
+  for (let s = 0; s < 5; s++) { const sw = { x:0, z:0, y:0, t:0, flies:[] };
+    for (let f = 0; f < 7; f++) { const g = new T.Group(), b = mesh(body, bm, 0, 0, 0, g); b.scale.set(1, .8, 1.4);
+      const L = mesh(wing, wm, 0, .04, 0, g), Rw = mesh(wing, wm, 0, .04, 0, g); Rw.rotation.y = Math.PI;
+      g.visible = false; scene.add(g); sw.flies.push({ g, L, R:Rw, ph:rr(0, 6.28), w:rr(2.5, 5), r:rr(.4, 1.1) }); }
+    SWARMS.push(sw); }
+}
+let stinkT = 0, buzzT = 0;
+function pickFert(A) { let best = -1, bd = 1e9;            // losowe polane miejsce, raczej blisko gracza
+  for (let k = 0; k < 4; k++) { const i = fertList[(Math.random()*fertList.length) | 0], d = Math.hypot(X0 + (i % FW) + .5 - A.x, Z0 + ((i / FW) | 0) + .5 - A.z); if (d < bd) { bd = d; best = i; } }
+  return best; }
+function updateStink(dt) {
+  const A = veh[S.active], B = veh.big, tankOn = B.tool === 'slurry';
+  if (fertN > 0) { stinkT -= dt; if (stinkT <= 0) { stinkT = .07; const i = pickFert(A);         // zielonkawe obłoczki smrodu
+    emit(X0 + (i % FW) + Math.random(), .25, Z0 + ((i / FW) | 0) + Math.random(), rr(-.2, .2), rr(.4, .8), rr(-.2, .2), rr(1.3, 2), .58, .74, .2, -.25); } }
+  if (!fertN && !tankOn) { SWARMS.forEach(sw => sw.flies.forEach(f => { f.g.visible = false; })); return; }
+  if (!SWARMS.length) buildFlies();
+  let near = 1e9;
+  SWARMS.forEach((sw, si) => {
+    let on = true;
+    if (si === 0) { on = tankOn; if (on) { B.P.tools.slurry.localToWorld(tmpV.set(0, 2.2, -1.85)); sw.x = tmpV.x; sw.y = 1.6; sw.z = tmpV.z; } }
+    else if (!fertN) on = false;
+    else { sw.t -= dt; if (sw.t <= 0) { sw.t = rr(5, 9); const i = pickFert(A); sw.x = X0 + (i % FW) + .5; sw.z = Z0 + ((i / FW) | 0) + .5; sw.y = 0; } }
+    sw.flies.forEach(f => { f.g.visible = on; if (!on) return;
+      const a = time*f.w + f.ph; f.g.position.set(sw.x + Math.sin(a)*f.r + Math.sin(a*2.3)*.15, sw.y + .7 + Math.sin(a*1.7 + f.ph)*.35, sw.z + Math.cos(a*1.3)*f.r);
+      f.g.rotation.y = -a; const fl = Math.sin(time*70 + f.ph)*.9; f.L.rotation.x = fl; f.R.rotation.x = -fl; });
+    if (on) near = Math.min(near, Math.hypot(sw.x - A.x, sw.z - A.z)); });
+  buzzT -= dt; if (near < 6 && buzzT <= 0) { buzzT = .45; tone(190 + Math.random()*50, .42, 'sawtooth', .02 + .03*(1 - near/6), 230); }
+}
+// kleksy na „szybie” kamery (widok z tyłu i z kabiny)
+function splatScreen() {
+  const sp = $('splat'); if (sp.childElementCount > 14) return;
+  const sz = rr(70, 170), x = rr(-5, 95), y = rr(0, 75);
+  const mk = (s, l, t, drip) => { const e = document.createElement('i'); e.style.cssText = `width:${s}px;height:${s*rr(.8, 1.05)}px;left:calc(${l}% - ${s/2}px);top:calc(${t}% - ${s/2}px)`;
+    if (!drip) e.className = 'd'; sp.appendChild(e); setTimeout(() => e.remove(), 4600); };
+  mk(sz, x, y, true); for (let k = 0; k < 4; k++) mk(sz*rr(.1, .22), x + rr(-9, 9), y + rr(-12, 12));
+  noiseBurst(260, .14, .55); tone(150, .12, 'sine', .3, 60);
 }
 
 /* =====================================================================
@@ -652,7 +734,7 @@ function resetTrailer() { const t = veh.tractor, hp = t.inner.localToWorld(t.hit
   trailer.h = t.h; trailer.x = hp.x - Math.sin(t.h)*HITCH_L; trailer.z = hp.z - Math.cos(t.h)*HITCH_L;
   trailer.g.position.set(trailer.x, 0, trailer.z); trailer.g.rotation.y = trailer.h; }
 function newField(kind) {
-  bales.forEach(b => { if (b.m.parent) b.m.parent.remove(b.m); }); bales = []; CAR.tractor.bales.length = 0; CAR.elephant.bales.length = 0; stored = 0; won = false; winT = 0; fieldNo++; tank = 0; siloGrain = 0; trailer.grain = 0; tankToast = false;
+  bales.forEach(b => { if (b.m.parent) b.m.parent.remove(b.m); }); bales = []; CAR.tractor.bales.length = 0; CAR.elephant.bales.length = 0; stored = 0; won = false; winT = 0; fieldNo++; tank = 0; siloGrain = 0; trailer.grain = 0; tankToast = false; smellToast = false;
   buildField(kind);
   place(veh.combine, -24.5, 25, Math.PI); place(veh.tractor, 2, 26.5, Math.PI/2); place(veh.giraffe, -36, 22, Math.PI); place(veh.big, 24, 27.5, Math.PI/2); place(veh.elephant, -41, 6, Math.PI); resetTrailer();
   S.active = 'combine'; camSnap = true; hud();
@@ -663,14 +745,18 @@ function harvestAt(x, z) {
   { const fi = flowerAt.get(i); if (fi !== undefined) { dummy.position.set(0, -9, 0); dummy.scale.set(0, 0, 0); dummy.updateMatrix(); fieldFlowers.setMatrixAt(fi, dummy.matrix); fieldFlowers.instanceMatrix.needsUpdate = true; } }
   cut[i] = 1; setCell(i, true); tmpC.setRGB(.92, .86, .68); crop.setColorAt(i, tmpC); cropDirty = true; cutCount++; sinceBale++;
   AU.thrLevel = Math.min(1, AU.thrLevel + .22);
-  if (S.active === 'combine') { tank = Math.min(TANK_CAP, tank + 1); if (tank >= TANK_CAP && !tankToast) { tankToast = true; toast('Zbiornik pełny! Podjedź pod przyczepę Ursusa, to przesypiesz ziarno.'); } }
+  if (S.active === 'combine') { tank = Math.min(TANK_CAP, tank + (lush[i] ? 2 : 1)); if (tank >= TANK_CAP && !tankToast) { tankToast = true; toast('Zbiornik pełny! Podjedź pod przyczepę Ursusa, to przesypiesz ziarno.'); } }
   const corn = fieldCrop === 'corn';
   for (let k = 0; k < 2; k++) emit(x + rr(-.4, .4), rr(.5, 1.3), z + rr(-.4, .4), rr(-1.5, 1.5), rr(1.5, 4), rr(-1.5, 1.5), rr(.5, 1.1), corn ? .55 : .96, corn ? .75 : .82, corn ? .25 : .36, 7);
   if (sinceBale >= CELLS_PER_BALE || cutCount === totalCells) { sinceBale = 0; spawnBale(); }
 }
 function workAt(x, z, tool) {                       // duży traktor: pług, siewnik albo prasa
   const cx = Math.floor(x - X0), cz = Math.floor(z - Z0); if (cx < 0 || cz < 0 || cx >= FW || cz >= FD) return;
-  const i = cz*FW + cx; if (!inField[i] || !cut[i] || growing > 0) return;
+  const i = cz*FW + cx;
+  if (tool === 'slurry') { if (!inField[i] || fert[i] || (!cut[i] && !growing)) return;     // ściernisko, zaorane, posiane albo rosnące
+    fert[i] = 1; fertN++; fertList.push(i); paintFert(i); workFx = 1;
+    if (!smellToast) { smellToast = true; toast('Ale smrodek! 🤢 Za to łan urośnie szybciej i wyżej.'); } return; }
+  if (!inField[i] || !cut[i] || growing > 0) return;
   if (tool === 'plough') { if (cst[i] & 1) return; cst[i] |= 1; ploughed++; paintCell(i, 1); setCell(i, true); cropDirty = true; workFx = 1;
     if (Math.random() < .5) emit(x, .2, z, rr(-1, 1), rr(1, 2.6), rr(-1, 1), rr(.4, .8), .34, .23, .14, 7); }
   else if (tool === 'seeder') { if (!(cst[i] & 1) || (cst[i] & 2)) return; cst[i] |= 2; sown++; paintCell(i, 2); workFx = 1; if (sown >= totalCells) startGrow(); }
@@ -679,13 +765,15 @@ function workAt(x, z, tool) {                       // duży traktor: pług, sie
 }
 function startGrow() { growing = .001; if (S.crop !== fieldCrop) buildField(S.crop, true); clearStates(); sfx.win(); toast('Wszystko posiane! Rośnie nowy łan 🌱'); }
 function updateGrow(dt) {
-  if (!growing) return; growing = Math.min(1, growing + dt/13); if (++growTick % 3 && growing < 1) return;
-  const q = growing*growing, done = growing >= 1; if (done) growing = 0;
+  if (!growing) return; growing = Math.min(1, growing + dt/13*(1 + .8*fertN/totalCells)); if (++growTick % 3 && growing < 1) return;   // gnojówka przyspiesza
+  const g0 = growing, done = growing >= 1, wasFert = fertN > 0; if (done) { growing = 0; lush.set(fert); }
   for (let i = 0; i < CELLS; i++) { if (!inField[i]) continue; if (done) cut[i] = 0; setCell(i, !done);
+    const gi = done ? 1 : fert[i] ? Math.min(1, g0*1.35) : g0, q = gi*gi;
     tmpC.setRGB(.42 + (ripeC[i*3] - .42)*q, .8 + (ripeC[i*3+1] - .8)*q, .3 + (ripeC[i*3+2] - .3)*q); crop.setColorAt(i, tmpC); }
   cropDirty = true;
+  if (done) { clearFert(); stG.clearRect(0, 0, stCv.width, stCv.height); stDirty = true; }
   if (done) { cutCount = 0; sinceBale = 0; won = false; year++; let acc = 0; const r = Math.random(); applyWeather(WEATHERS.find(w => (acc += w.p) > r) || WEATHERS[0]); applyHeader();
-    toast('Rok ' + year + ': łan dojrzał, można kosić!'); hud(); }
+    toast('Rok ' + year + ': łan dojrzał, można kosić!' + (wasFert ? ' Tam, gdzie była gnojówka, jest wyższy 💪' : '')); hud(); }
 }
 const tmpV = new T.Vector3();
 let smokeT = 0, hudT = 0, won = false, winT = 0, time = 0, lastWork = 0;
@@ -765,8 +853,10 @@ function update(dt) {
   // ----- duży traktor: narzędzie pracuje, gdy jedziesz do przodu
   const B = veh.big;
   if (S.active === 'big') { if (B.tool === 'baler') B.P.pick.rotation.x += dt*9;
-    if (B.v > .4) { const sh = Math.sin(B.h), ch = Math.cos(B.h), z0 = TOOL_Z[B.tool]; for (let lx = -1.75; lx <= 1.76; lx += .4) workAt(B.x + sh*z0 + ch*lx, B.z + ch*z0 - sh*lx, B.tool); } }
-  if (workFx > 0) { workFx -= dt*4; if (time - lastWork > .16) { lastWork = time; noiseBurst(B.tool === 'seeder' ? 2600 : 420, .12, .35); } }
+    if (B.v > .4) { const sh = Math.sin(B.h), ch = Math.cos(B.h), z0 = TOOL_Z[B.tool], hw = TOOL_W[B.tool] || 1.75; for (let lx = -hw; lx <= hw + .01; lx += .4) workAt(B.x + sh*z0 + ch*lx, B.z + ch*z0 - sh*lx, B.tool); } }
+  if (S.active === 'big' && B.tool === 'slurry' && B.v > .4) spraySlurry(dt);
+  if (workFx > 0) { workFx -= dt*4; if (time - lastWork > .16 && B.tool !== 'slurry') { lastWork = time; noiseBurst(B.tool === 'seeder' ? 2600 : 420, .12, .35); } }
+  updateFlee(dt); updateStink(dt);
   updateGrow(dt); updateGrain(dt);
   updateBales(dt);
 
@@ -861,7 +951,7 @@ function selectVehicle(n) { $('pick').hidden = true; if (n === S.active) return;
   veh[n].rpm = .9; camSnap = S.cam === 2; camH = veh[n].h; lookA.yaw = lookA.pitch = 0; hud();
   if (n === 'giraffe') sfx.giraffe(); else if (n === 'elephant') sfx.trumpet(); else tone(90, .35, 'sawtooth', .18, 160); }
 function swapVehicle() { $('pick').hidden = !$('pick').hidden; }
-function nextTool() { const B = veh.big; B.tool = TOOLS[(TOOLS.indexOf(B.tool) + 1) % 3]; TOOLS.forEach(k => { B.P.tools[k].visible = k === B.tool; }); tone(180, .12, 'square', .12, 260); hud(); }
+function nextTool() { const B = veh.big; B.tool = TOOLS[(TOOLS.indexOf(B.tool) + 1) % TOOLS.length]; TOOLS.forEach(k => { B.P.tools[k].visible = k === B.tool; }); tone(180, .12, 'square', .12, 260); hud(); }
 $('pick').innerHTML = ORDER.map(n => '<button class="btn" data-v="' + n + '">' + VEH_UI[n][0] + '<small>' + VEH_UI[n][1] + '</small></button>').join('');
 document.querySelectorAll('#pick [data-v]').forEach(b => b.addEventListener('click', () => selectVehicle(b.dataset.v)));
 
@@ -879,7 +969,7 @@ tap('bSnd', () => { S.muted = !S.muted; if (AU.ctx) AU.master.gain.value = S.mut
 
 function showMenu(kind) {
   S.menu = kind; S.running = false; keys.up = keys.down = keys.left = keys.right = 0;
-  setEngine('combine', 0, false); setEngine('tractor', 0, false); setEngine('big', 0, false); $('pick').hidden = true;
+  setEngine('combine', 0, false); setEngine('tractor', 0, false); setEngine('big', 0, false); $('pick').hidden = true; $('splat').textContent = '';
   if (AU.ctx) { AU.thr.gain.setTargetAtTime(0, AU.ctx.currentTime, .05); AU.mach.gain.setTargetAtTime(0, AU.ctx.currentTime, .05); AU.rainG.gain.setTargetAtTime(0, AU.ctx.currentTime, .05); }
   $('mTitle').textContent = kind === 'win' ? 'Brawo!' : kind === 'pause' ? 'Przerwa' : 'Żniwa!';
   $('mSub').textContent = kind === 'win' ? 'Pole zebrane, słoma w stodole 🎉' : kind === 'pause' ? 'Silnik czeka' : 'Żniwa, orka, siew i zwierzaki';
@@ -896,7 +986,7 @@ async function startGame(fresh) {
   if (fresh || S.menu === 'start') { if (fresh || fieldCrop !== S.crop) newField(S.crop); else { S.active = 'combine'; camSnap = true; } }
   $('menu').hidden = true; $('hud').hidden = false; S.menu = 'play'; S.running = true; camSnap = true; hud();
   veh[S.active].rpm = .9; tone(70, .5, 'sawtooth', .2, 150);
-  if (won && !growing) setTimeout(() => toast('Duży traktor: najpierw pług 🟤, potem siewnik 🌱'), 400);
+  if (won && !growing) setTimeout(() => toast('Duży traktor: pług 🟤, potem siewnik 🌱. Gnojówka 💩 przyspiesza wzrost.'), 400);
   if (tilt.on) toast('Trzymaj telefon wygodnie i przechylaj. 🎯 ustawia środek.');
 }
 tap('bGo', () => startGame(false)); tap('bNew', () => startGame(true));

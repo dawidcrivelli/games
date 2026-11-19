@@ -59,7 +59,7 @@ flowchart LR
 | `models/rafa.rafa.js` | 118 | branchGeo brainGeo tableGeo tubesGeo platesGeo pillarsGeo anemoneGeo kelpGeo grassGeo nubGeo rockGeo urchinGeo clamGeo starGeo shellGeo makeWreck makeChest |
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
 | `models/rolnicze.taxi.js` | 13 | buildKombajn |
-| `models/rolnicze.zniwa.js` | 357 | makeScrew buildCombine buildPlough buildSeeder buildBaler buildBigTractor buildTractor buildTrailer |
+| `models/rolnicze.zniwa.js` | 372 | makeScrew buildCombine buildPlough buildSeeder buildBaler buildSlurryTank buildBigTractor buildTractor buildTrailer |
 | `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 231 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast}; ZOO.pose(a, 'rear'…) — pozy (dęba, skok, przysiad, łapa, byk, wierzgnięcie, oberwanie, zamroczenie, radość, siad) |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |

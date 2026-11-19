@@ -43,6 +43,7 @@ const MODELE = [
   { kat: 'rolnicze', typ: 'pług', gra: 'zniwa', js: 'buildPlough()' },
   { kat: 'rolnicze', typ: 'siewnik', gra: 'zniwa', js: 'buildSeeder()' },
   { kat: 'rolnicze', typ: 'prasa', gra: 'zniwa', js: 'buildBaler({})' },
+  { kat: 'rolnicze', typ: 'beczkowóz', gra: 'zniwa', js: 'buildSlurryTank({})' },
   { kat: 'rolnicze', typ: 'przyczepa', gra: 'zniwa', js: 'buildTrailer()' },
 
   ...[['parowóz', 'buildLoco()'], ['tender', 'buildTender()'], ['wagon osobowy', 'buildCoach()'], ['wagon towarowy', 'buildWagon()'],

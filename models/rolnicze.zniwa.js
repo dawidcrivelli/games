@@ -197,6 +197,21 @@ function buildBaler(P) { const g = new T.Group();
   const pk = new T.Group(); cylX(.12, 1.5, M.dark, 0, 0, 0, pk, 8);
   for (let i = 0; i < 6; i++) for (let k = 0; k < 9; k++) { const a = i/6*6.283, t = box(.02, .2, .02, M.steelL, -.68 + k*.17, Math.cos(a)*.2, Math.sin(a)*.2, pk); t.rotation.x = a; }
   P.pick = bake(pk); P.pick.position.set(0, .34, -.95); b.add(P.pick); return b; }
+function buildSlurryTank(P) { const g = new T.Group();     // beczkowóz z gnojówką: zielona beczka, koła, rozbryzgowy talerz z tyłu
+  box(.12, .12, 1.0, M.dark, 0, .75, -.5, g); box(.9, .1, .1, M.dark, 0, .75, -.15, g); [.4, -.4].forEach(x => box(.08, .6, .08, M.dark, x, 1.0, -.15, g));
+  const L = 2.5, zc = -1.85;
+  cylZ(.82, L, M.tankG, 0, 1.45, zc, g, 20); [zc + L/2, zc - L/2].forEach(z => { const d = mesh(new T.SphereGeometry(.82, 20, 10, 0, 6.283, 0, Math.PI/2), M.tankG, 0, 1.45, z, g); d.rotation.x = z > zc ? Math.PI/2 : -Math.PI/2; d.scale.y = .28; });
+  [zc + .75, zc - .75].forEach(z => cylZ(.84, .1, M.impY, 0, 1.45, z, g, 20));       // obręcze
+  cylY(.26, .2, M.dark, 0, 2.3, zc - .2, g, 14); cylY(.3, .05, M.steelL, 0, 2.41, zc - .2, g, 14);   // właz
+  box(1.9, .1, 2.2, M.dark, 0, .62, zc, g);                                            // rama
+  cylY(.06, .9, M.steelL, .86, 1.5, zc + .5, g, 6);                                     // wskaźnik poziomu
+  for (let i = 0; i < 5; i++) box(.4, .03, .03, M.steel, .62, .8 + i*.28, zc - L/2 - .05, g);   // drabinka
+  [.44, .8].forEach(x => box(.03, 1.3, .03, M.steel, x, 1.4, zc - L/2 - .03, g));
+  cylY(.12, .7, M.dark, 0, .85, zc - L/2 - .15, g, 10);                                 // rura w dół do talerza
+  const plate = rbox(1.1, .06, .5, M.steelL, 0, .5, zc - L/2 - .35, g, .02); plate.rotation.x = -.45;
+  const b = bake(g); [1.12, -1.12].forEach(x => { const w = makeWheel(.62, .3, M.impY, 0, true); w.position.set(x, .62, zc); b.add(w); });
+  P.splash = new T.Vector3(0, .55, zc - L/2 - .55);                                    // skąd tryska (w układzie narzędzia)
+  return b; }
 function buildBigTractor() {
   const v = new T.Group(), st = new T.Group(), P = {};
   rbox(.9, .7, 3.7, M.uGrayD, 0, 1.0, .45, st, .08); cylX(.15, 2.3, M.uGrayD, 0, 1.0, -.75, st, 10); cylX(.1, 2.0, M.uGrayD, 0, .7, 1.9, st, 8); box(.3, .5, .3, M.uGrayD, 0, .85, 1.9, st);
@@ -232,7 +247,7 @@ function buildBigTractor() {
   const wheels = [], steerNodes = [];
   [1.15, -1.15].forEach(x => { const w = makeWheel(1.0, .6, M.white, 22); w.position.set(x, 1.0, -.75); v.add(w); wheels.push({ n:w, r:1.0 }); });
   [1.0, -1.0].forEach(x => { const pv = new T.Group(); pv.position.set(x, .7, 1.9); const w = makeWheel(.7, .44, M.white, 18); pv.add(w); v.add(pv); wheels.push({ n:w, r:.7 }); steerNodes.push({ n:pv, s:1 }); });
-  P.tools = { plough:buildPlough(), seeder:buildSeeder(), baler:buildBaler(P) };
+  P.tools = { plough:buildPlough(), seeder:buildSeeder(), baler:buildBaler(P), slurry:buildSlurryTank(P) };
   Object.keys(P.tools).forEach(k => { P.tools[k].position.set(0, 0, -2.3); P.tools[k].visible = k === 'plough'; v.add(P.tools[k]); });
   const driver = makeFarmer(.75); driver.position.set(0, 1.98, -.8); v.add(driver);
   scene.add(v);
