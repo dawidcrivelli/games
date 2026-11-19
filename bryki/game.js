@@ -2,10 +2,11 @@
 // Dzikie Bryki — MOCKUP: 4 pasy, widok z boku (2.5D), 4 bryki jadą, zmieniają pasy, atakują (💥) i używają mocy (⭐).
 // Modele i pozy: models/pojazdy.bryki.js. Tu: scena, przewijana droga, proste zasady trafień i mrugania.
 const T = THREE, $ = id => document.getElementById(id);
-const LANES = [-4.5, -1.5, 1.5, 4.5], V = 20, XMAX = 9.5;
+// kamera do porównań z adresu: ?kat=8 (skos [°], + widać przody aut) &wys=40 (nachylenie [°], więcej = bardziej z góry) &pas=3.5 (szerokość pasa [m])
+const Q = new URLSearchParams(location.search), KAT = +(Q.get('kat') ?? 0), WYS = +(Q.get('wys') ?? 30), PAS = +(Q.get('pas') ?? 3), ZOOM = +(Q.get('zoom') ?? 1);   // &zoom=.8 bliżej, &ui=0 bez paska przycisków
+const LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6, V = 20, XMAX = 9.5;
 const KINDS = [['rekin', '🦈'], ['ptak', '🐦'], ['osmiornica', '🐙'], ['krab', '🦀']];
 const ACT = { atak: .9, moc: 2.6, oberwal: .45 };          // czas trwania [s]
-const KAT = +(new URLSearchParams(location.search).get('kat') ?? 0);   // obrót kamery [°], do porównań: ?kat=20
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 /* --- renderer, światło, kamera z boku --- */
@@ -19,8 +20,11 @@ const cam = new T.PerspectiveCamera(32, 1, .5, 300);
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
   const d = Math.max(1, 2.1 / cam.aspect);                   // wąski ekran: kamera dalej, żeby zmieścić drogę
-  const yaw = KAT * Math.PI / 180;                          // skos drogi: + widać przody aut, − tyły
-  cam.position.set(21 * d * Math.sin(yaw), 12 * d, 1.6 + 21 * d * Math.cos(yaw)); cam.lookAt(0, .2, 1.6); cam.updateProjectionMatrix();
+  const yaw = KAT * Math.PI / 180, pit = WYS * Math.PI / 180;
+  // odległość tak, żeby droga i wysokość aut zajmowały na ekranie tyle co przy 30° i pasach 3 m
+  const D = ZOOM * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47, tz = Q.get('ui') === '0' ? 0 : ROAD * .13;
+  cam.position.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw));
+  cam.lookAt(0, .2, tz); cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 
@@ -28,12 +32,12 @@ addEventListener('resize', resize); resize();
 const mat = c => new T.MeshLambertMaterial({ color: c });
 const add = (geo, m, x, y, z, par = scene) => { const o = new T.Mesh(geo, m); o.position.set(x, y, z); par.add(o); return o; };
 add(new T.PlaneGeometry(400, 200), mat(0xe8b56a), 0, 0, 0).rotation.x = -Math.PI / 2;
-add(new T.PlaneGeometry(400, 12.6), mat(0x4b4747), 0, .01, 0).rotation.x = -Math.PI / 2;
+add(new T.PlaneGeometry(400, ROAD), mat(0x4b4747), 0, .01, 0).rotation.x = -Math.PI / 2;
 const scroll = [];                                          // obiekty przesuwane z drogą: {o, w (okres), f (paralaksa)}
 const dash = new T.BoxGeometry(2.2, .04, .16), dashM = new T.MeshBasicMaterial({ color: 0xf2efe6 });
-for (let x = -60; x < 60; x += 5) for (const z of [-3, 0, 3]) scroll.push({ o: add(dash, dashM, x, .03, z), w: 120, f: 1 });
+for (let x = -60; x < 60; x += 5) for (const z of [-PAS, 0, PAS]) scroll.push({ o: add(dash, dashM, x, .03, z), w: 120, f: 1 });
 const curb = new T.BoxGeometry(2, .18, .5);
-for (let x = -60, i = 0; x < 60; x += 2, i++) for (const z of [-6.55, 6.55]) scroll.push({ o: add(curb, mat(i % 2 ? 0xf2efe6 : 0xd8342a), x, .09, z), w: 120, f: 1 });
+for (let x = -60, i = 0; x < 60; x += 2, i++) for (const z of [-ROAD / 2 - .25, ROAD / 2 + .25]) scroll.push({ o: add(curb, mat(i % 2 ? 0xf2efe6 : 0xd8342a), x, .09, z), w: 120, f: 1 });
 // rekwizyty: opony, beczki, kaktusy, kamienie — z tyłu i trochę z przodu
 function prop(kind) {
   const g = new T.Group();
@@ -43,7 +47,7 @@ function prop(kind) {
   if (kind === 3) add(new T.DodecahedronGeometry(rnd(.6, 1.4)), mat(0xb47a4a), 0, .3, 0, g).scale.y = .6;
   return g;
 }
-for (let i = 0; i < 26; i++) { const p = prop(i % 4); p.position.set(rnd(-60, 60), 0, i % 5 ? rnd(-28, -8) : rnd(9.5, 11)); p.rotation.y = rnd(0, 6); scene.add(p); scroll.push({ o: p, w: 120, f: 1 }); }
+for (let i = 0; i < 26; i++) { const p = prop(i % 4); p.position.set(rnd(-60, 60), 0, i % 5 ? rnd(-ROAD / 2 - 22, -ROAD / 2 - 2) : rnd(ROAD / 2 + 3, ROAD / 2 + 5)); p.rotation.y = rnd(0, 6); scene.add(p); scroll.push({ o: p, w: 120, f: 1 }); }
 for (let i = 0; i < 9; i++) {                               // płaskowyże w oddali, wolniej (paralaksa)
   const h = rnd(6, 14), m = add(new T.CylinderGeometry(rnd(6, 12), rnd(9, 15), h, 7), mat(0xd08a52), rnd(-110, 110), h / 2, rnd(-95, -70));
   scroll.push({ o: m, w: 220, f: .12 });
@@ -109,7 +113,7 @@ $('cars').addEventListener('pointerdown', e => {
   lastUser = clock; start(cars[bt.dataset.i], bt.dataset.a);
 });
 let running = false;
-$('bGo').onclick = () => { $('menu').hidden = true; $('ui').hidden = false; running = true; };
+$('bGo').onclick = () => { $('menu').hidden = true; $('ui').hidden = Q.get('ui') === '0'; running = true; };
 
 /* --- pętla --- */
 let clock = 0, prev = performance.now(), aiT = 1;
