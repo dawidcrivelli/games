@@ -5,6 +5,7 @@ const T = THREE, $ = id => document.getElementById(id);
 const LANES = [-4.5, -1.5, 1.5, 4.5], V = 20, XMAX = 9.5;
 const KINDS = [['rekin', '🦈'], ['ptak', '🐦'], ['osmiornica', '🐙'], ['krab', '🦀']];
 const ACT = { atak: .9, moc: 2.6, oberwal: .45 };          // czas trwania [s]
+const KAT = +(new URLSearchParams(location.search).get('kat') ?? 0);   // obrót kamery [°], do porównań: ?kat=20
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 /* --- renderer, światło, kamera z boku --- */
@@ -18,7 +19,8 @@ const cam = new T.PerspectiveCamera(32, 1, .5, 300);
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
   const d = Math.max(1, 2.1 / cam.aspect);                   // wąski ekran: kamera dalej, żeby zmieścić drogę
-  cam.position.set(0, 12 * d, 21 * d); cam.lookAt(0, .2, 1.6); cam.updateProjectionMatrix();
+  const yaw = KAT * Math.PI / 180;                          // skos drogi: + widać przody aut, − tyły
+  cam.position.set(21 * d * Math.sin(yaw), 12 * d, 1.6 + 21 * d * Math.cos(yaw)); cam.lookAt(0, .2, 1.6); cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 
