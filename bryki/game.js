@@ -3,7 +3,7 @@
 // Modele: models/pojazdy.bryki.js (auta, pozy), models/trasy.bryki.js (motywy, przeszkody); dźwięki: dzwieki.js.
 // Świat w „s” = metry wzdłuż trasy; na ekranie x = s − camS (kamera jedzie za graczem). Wysokość drogi: H(s) (górki).
 const T = THREE, $ = id => document.getElementById(id);
-const PAS = 3, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
+const PAS = 3.5, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
 const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba'];
 const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸' };
 const MOC_IC = { rekin: '🌊', ptak: '🪽', osmiornica: '🐙', krab: '🛡️', nietoperz: '🦇', zaba: '🦿' };
@@ -11,6 +11,8 @@ const WORD_ATAK = { rekin: 'CHAP!', ptak: 'DZIOB!', osmiornica: 'PLUM!', krab: '
 const WORD_MOC = { rekin: 'PŁETWA!', ptak: 'FRUU!', osmiornica: 'CHWYT!', krab: 'KOLCE!', nietoperz: 'RÓJ!', zaba: 'HOPSA!' };
 const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szczyp', nietoperz: 'pisk', zaba: 'jezyk' };
 const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna' };
+const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: 'Krab', nietoperz: 'Nietoperz', zaba: 'Żaba',
+  pustynia: 'Pustynia', zlomowisko: 'Złomowisko', wulkan: 'Wulkan', lodowiec: 'Lodowiec' };
 const BUB_COL = ['#ffd23f', '#ff4d3a', '#3ad1ff', '#ff7ae0', '#7dff6a'];
 const LEN = 1150, CRUISE = 15, PX = -6, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
 const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 1.4, TURBO_CD = 5, MOC_FILL = 9, HIT_T = 1.2, BLINK_T = 2.2, SPIN_T = .7;
@@ -42,9 +44,10 @@ const cam = new T.PerspectiveCamera(32, 1, .5, 400), camBase = new T.Vector3();
 let camY = 0;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
-  const d = Math.max(1, 2.1 / cam.aspect), pit = 30 * Math.PI / 180, tz = .6;
-  const D = .75 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;   // jak „1” z porównania kamer
-  camBase.set(0, D * Math.sin(pit), tz + D * Math.cos(pit)); cam.position.copy(camBase); cam.lookAt(0, .2, tz); cam.updateProjectionMatrix();
+  // kamera „3” z porównania: skos 8° (widać przody aut), nachylenie 38°, pasy 3,5 m
+  const d = Math.max(1, 2.1 / cam.aspect), pit = 38 * Math.PI / 180, yaw = 8 * Math.PI / 180, tz = .3;
+  const D = .75 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;
+  camBase.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw)); cam.position.copy(camBase); cam.lookAt(0, .2, tz); cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 const V3 = new T.Vector3();
@@ -118,6 +121,16 @@ const ALL = KINDS.map(kind => {
   return { kind, b, sh, dz, len: b.len * .8, s: 0, lane: 0, z: 0, y: 0, ya: 0, vy: 0, v: 0, ai: {} };
 });
 let cars = ALL.slice(0, 4), P = ALL[0];
+// serduszka nad autem: 3 trafienia od innych aut (atak albo taranowanie z boku) = KO, auto wypada i wraca z tyłu
+const heartG = (() => { const sh = new T.Shape(); sh.moveTo(0, -.32); sh.bezierCurveTo(-.5, .02, -.36, .4, 0, .2); sh.bezierCurveTo(.36, .4, .5, .02, 0, -.32);
+  const g = new T.ExtrudeGeometry(sh, { depth: .08, bevelEnabled: false }); g.translate(0, 0, -.04); return g; })();
+const HEART_ON = brMat(0xff3a4a, 'glow'), HEART_OFF = brMat(0x55505a, 'glow');
+for (const c of ALL) {
+  c.hearts = new T.Group(); scene.add(c.hearts);
+  for (let i = 0; i < 3; i++) { const m = new T.Mesh(heartG, HEART_ON); m.position.x = (i - 1) * .62; m.scale.setScalar(1.2); c.hearts.add(m); }
+}
+// celownik: czerwone koło pod autem, które mój atak teraz trafi
+const aims = [0, 1, 2].map(() => { const m = new T.Mesh(new T.RingGeometry(1.5, 2.0, 28), new T.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: .85, depthWrite: false })); m.rotation.x = -Math.PI / 2; scene.add(m); return m; });
 const marker = new T.Group(); scene.add(marker);           // strzałka nad autem gracza: zawsze widać, które jest moje
 brPart(marker, new T.ConeGeometry(.45, .8, 4), brMat(0xffd23f), 0, 0, 0, { r: [Math.PI, Math.PI / 4, 0], ol: .05 });
 // Skład wyścigu: gracz + 3 losowe z pozostałych
@@ -137,11 +150,11 @@ const mocOn = c => c.act === 'moc';
 const under = c => mocOn(c) && c.kind === 'rekin';            // rekin pod asfaltem
 const spiky = c => mocOn(c) && c.kind === 'krab';             // krab w kolcach
 const high = c => mocOn(c) && c.kind === 'zaba' && c.at > .25; // żaba na szczudłach: inne auta jadą pod nią
-const immune = c => c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind)) || c.fin;
+const immune = c => c.ko > 0 || c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind)) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
-    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, bonkT: 0,
+    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, hp: 3, ko: 0, ramT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, bonkT: 0,
     ai: { t: rnd(.2, .6), gap: 0, gapT: 0 } });
 }
 function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.lane = n; return true; }
@@ -152,9 +165,8 @@ function genTrack(th) {
   const add = (typ, s, lane, y = 0) => out.push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
   // górki: łagodny garb (podskok tylko z turbo), skocznia (zawsze podrzuca, nad nią gwiazdki), fala (dwa małe garby)
   HILLS = []; SEGS = [];
-  const tun = { typ: 'tunel', s0: Math.round(LEN * .3), s1: Math.round(LEN * .3) + 50 }, most = { typ: 'most', s0: Math.round(LEN * .62), s1: Math.round(LEN * .62) + 36 };
-  SEGS.push(tun, most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
-  out.push({ typ: 'tunel', s: (tun.s0 + tun.s1) / 2, half: 25, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
+  const most = { typ: 'most', s0: Math.round(LEN * .55), s1: Math.round(LEN * .55) + 36 };
+  SEGS.push(most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
   out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
   const inSeg = (a, b) => SEGS.some(q => b > q.s0 - 6 && a < q.s1 + 6);
   for (let s = 80 + r() * 30; s < LEN - 90; s += 55 + r() * 45) {
@@ -361,18 +373,48 @@ function hit(o, by, how) {
   if (near(o)) snd(how === 'tusz' || how === 'jajo' ? 'chlup' : 'boing');
   bubble(how === 'tusz' ? 'PLASK!' : how === 'jajo' ? 'CHLUP!' : how === 'macka' ? 'CHWYT!' : pick(['BUM!', 'ŁUP!', 'BAM!', 'TRACH!']), o);
   if (o.player) { shake = .4; if (how === 'tusz' || how === 'jajo') splat(how); }
+  if (by) hurt(o, by);
   return true;
+}
+// Serduszko mniej; przy zerze KO
+function hurt(o, by) { o.hp--; if (o.hp <= 0) knockout(o, by); }
+function knockout(c, by) {
+  c.ko = c.player ? 1.4 : 2.2; c.hp = 0; c.act = null; c.hitT = 0; c.spinT = 0;
+  const C = c.b.C;
+  for (let i = 0; i < 24; i++) part({ s: c.s, y: 1 + c.y, z: c.z, vs: rnd(-6, 8), vy: rnd(4, 11), vz: rnd(-4, 4), col: pick([C.a, C.b, C.c, 0x2b2a2e]), size: rnd(.2, .45), life: 1.2, grav: 1, box: 1, op: 1 });
+  for (let i = 0; i < 10; i++) part({ s: c.s + rnd(-1.5, 1.5), y: 1 + rnd(0, 1), z: c.z + rnd(-1, 1), vs: rnd(-1, 1), vy: rnd(1, 3), col: pick([0x3a3633, 0x5a5560, 0xff9a1a]), size: rnd(.5, .9), life: 1.1, grow: 1.5, op: .8 });
+  if (near(c)) { snd('kabum'); bubble('KABUM!', c, 'big'); }
+  if (c.player || Math.abs(c.s - P.s) < 10) shake = .5;
+  if (by?.player) setTimeout(() => bubble('KO! ⭐', by, 'big'), 250);
+}
+function respawn(c) {
+  c.hp = 3; c.blinkT = 2.5; c.v = CRUISE * .6; c.vy = 0;
+  if (!c.player) c.s = Math.min(c.s, P.s - 16);                  // auto komputera wraca z tyłu
+  const free = [0, 1, 2, 3].filter(l => !cars.some(o => o !== c && o.ko <= 0 && laneOf(o) === l && Math.abs(o.s - c.s) < 6));
+  c.lane = free.length ? pick(free) : c.lane; c.z = LANES[c.lane]; c.ya = H(c.s); c.y = 0;
+  if (near(c)) bubble('JESTEM!', c, 'small');
+}
+// Taranowanie z boku: sąsiad traci serduszko i zostaje zepchnięty na dalszy pas (jeśli jest miejsce)
+function ram(o, by, dir) {
+  if (o.ramT > 0 || immune(o)) return false;
+  o.ramT = .9; o.v *= .85; sparkle(o.s, 1.4, o.z);
+  const n = o.lane + dir, room = n >= 0 && n <= 3 && !cars.some(q => q !== o && q !== by && q.ko <= 0 && laneOf(q) === n && Math.abs(q.s - o.s) < (q.len + o.len) / 2);
+  if (room) o.lane = n;
+  if (near(o)) { snd('bonk'); bubble('BONK!', o, 'small'); }
+  if (o.player) shake = .25;
+  hurt(o, by);
+  return room;
 }
 // Czy atak auta c sięga auta o? Każde auto atakuje w inną stronę: rekin i ptak do przodu, ośmiornica do tyłu, krab na boki, nietoperz daleko przed siebie
 function inReach(c, o) {
-  if (o === c || o.fin) return false;
+  if (o === c || o.fin || o.ko > 0) return false;
   const dl = Math.abs(laneOf(o) - laneOf(c)), ds = o.s - c.s, gap = Math.abs(ds) - (c.len + o.len) / 2;
   if (o.y > 1.4 || under(o) || high(o)) return false;
   switch (c.kind) {
-    case 'rekin': return dl === 0 && ds > 0 && gap < 2.5;
-    case 'ptak': return dl === 0 && ds > 0 && gap < 4.5;
-    case 'osmiornica': return dl === 0 && ds < 0 && gap < 6;
-    case 'krab': return (dl === 1 && Math.abs(ds) < 3.6) || (dl === 0 && ds > 0 && gap < 1.5);
+    case 'rekin': return dl === 0 && ds > 0 && gap < 5;
+    case 'ptak': return dl === 0 && ds > 0 && gap < 6.5;
+    case 'osmiornica': return dl === 0 && ds < 0 && gap < 7;
+    case 'krab': return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
     case 'nietoperz': return dl === 0 && ds > 0 && gap < 12;
     case 'zaba': return ds > 0 && ((dl === 0 && gap < 7) || (dl === 1 && ds < 8.5));
   }
@@ -380,9 +422,9 @@ function inReach(c, o) {
 function itemInReach(c, it) {
   if (!it.alive || !['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj)) return false;
   const dl = Math.abs(it.lane - laneOf(c)), ds = it.s - c.s, gap = Math.abs(ds) - (c.len + it.len) / 2;
-  if (c.kind === 'rekin') return dl === 0 && ds > 0 && gap < 3;
-  if (c.kind === 'ptak') return dl === 0 && ds > 0 && gap < 5;
-  if (c.kind === 'krab') return (dl === 1 && Math.abs(ds) < 3.6) || (dl === 0 && ds > 0 && gap < 2);
+  if (c.kind === 'rekin') return dl === 0 && ds > 0 && gap < 5;
+  if (c.kind === 'ptak') return dl === 0 && ds > 0 && gap < 6.5;
+  if (c.kind === 'krab') return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
   if (c.kind === 'nietoperz') return dl === 0 && ds > 0 && gap < 12;
   if (c.kind === 'zaba') return it.rodzaj === 'skrzynia' && ds > 0 && dl <= 1 && gap < 7;
   return false;
@@ -442,7 +484,7 @@ function resolveAct(c) {
   if (c.act === 'atak') {
     if (loud) snd(SND_ATAK[k]);
     bubble(WORD_ATAK[k], c, 'big');
-    if (k === 'rekin') c.lungeT = .3;
+    if (k === 'rekin') c.lungeT = .4;                       // rekin rzuca się do przodu z otwartą paszczą
     if (k === 'ptak') for (let i = 0; i < 5; i++) part({ s: c.s + c.len / 2 + 1, y: 1.2 + c.y, z: c.z, vs: rnd(-2, 4), vy: rnd(1, 4), vz: rnd(-2, 2), col: pick([0xf06a14, 0xb5651d, 0xe2a417]), size: .15, life: .8, grav: 1, box: 1 });
     if (k === 'osmiornica') newItem({ typ: 'tusz', s: c.s - c.len / 2 - 3, lane: laneOf(c), rodzaj: 'tusz', len: 4, hitBy: new Set([c]), owner: c, ttl: 5 });
     if (k === 'nietoperz') { shootWave(c); return; }
@@ -551,13 +593,16 @@ function aiThink(c) {
     const pr = cars.find(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 10 && Math.abs(laneOf(o) - L) === 1);
     if (pr && free(laneOf(pr))) { setLane(c, laneOf(pr)); return; }
   }
+  const side = cars.find(o => o !== c && o.ko <= 0 && !immune(o) && Math.abs(laneOf(o) - L) === 1 && Math.abs(o.s - c.s) < 2.5);
+  if (side && Math.random() < (side.player ? D.aggroP : D.aggro) * .25 && !hazard(laneOf(side), -2, D.look)) { setLane(c, laneOf(side)); return; }   // taranuje sąsiada
   if (c.turboCd <= 0 && Math.random() < D.turbo && !hazard(L, 0, 25)) turbo(c);
 }
 
 /* ---------- ruch aut ---------- */
 const place = c => 1 + cars.filter(o => o !== c && (o.fin && (!c.fin || o.finT < c.finT) || (!o.fin && !c.fin && o.s > c.s))).length;
 function stepCar(c, dt, racing) {
-  for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT']) c[k] -= dt;
+  if (c.ko > 0) { c.s += c.v * .3 * dt; if ((c.ko -= dt) <= 0) respawn(c); return; }     // po KO: chwila przerwy, potem powrót
+  for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ramT']) c[k] -= dt;
   if (racing && !c.fin && (c.mocFill += dt) > MOC_FILL) { c.mocFill = 0; addMoc(c, 1); }
   if (c.act) {
     c.at += dt; const d = c.act === 'atak' ? ATAK_T : MOC_T[c.kind];
@@ -575,7 +620,7 @@ function stepCar(c, dt, racing) {
     if (mocOn(c)) vt *= MOC_V[c.kind];
     if (c.hitT > 0) vt *= .4;
     if (c.slipT > 0) vt *= .65;
-    if (c.lungeT > 0) vt += 10;
+    if (c.lungeT > 0) vt += 14;
     if (c.y < .1) vt *= 1 - clamp(Hd(c.s), -.3, .3) * .4;              // pod górkę trochę wolniej, z górki szybciej
   }
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
@@ -584,11 +629,10 @@ function stepCar(c, dt, racing) {
   const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * 9);
   if (racing && Math.abs(LANES[c.lane] - c.z) > .3 && !spiky(c) && !under(c)) {
     const dir = Math.sign(LANES[c.lane] - c.z);
-    const o = cars.find(o => o !== c && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < 2.3 && Math.abs(o.y - c.y) < 1.2);
+    const o = cars.find(o => o !== c && o.ko <= 0 && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < PAS * .75 && Math.abs(o.y - c.y) < 1.2);
     if (o) {
       if (spiky(o)) hit(c, o, 'pop');
-      c.lane = laneOf({ z: c.z - dir * 1.4 }); c.v *= .92; o.v *= .96;
-      if (c.bonkT <= 0) { c.bonkT = .5; if (near(c)) { snd('bonk'); bubbleAt('BONK!', (c.s + o.s) / 2, 2.2, (c.z + o.z) / 2, 'small'); } }
+      else if (!ram(o, c, dir)) { c.lane = laneOf({ z: c.z - dir * PAS * .45 }); c.v *= .92; }   // brak miejsca: odbijam się
     }
   }
   c.tilt = clamp((c.z - pz) / Math.max(dt, 1e-3) * -.025, -.15, .15);
@@ -620,7 +664,7 @@ function stepCar(c, dt, racing) {
 // Auta na tym samym pasie się odbijają: tylne zwalnia
 function collide() {
   for (const a of cars) for (const o of cars) {
-    if (a === o || a.s > o.s || Math.abs(a.z - o.z) > 1.6 || Math.abs(a.y - o.y) > 1.2) continue;
+    if (a === o || a.ko > 0 || o.ko > 0 || a.s > o.s || Math.abs(a.z - o.z) > 1.6 || Math.abs(a.y - o.y) > 1.2) continue;
     if (under(a) || under(o) || spiky(a) || spiky(o) || high(a) || high(o)) continue;   // te zderzenia liczy mocTick / żaba nad autami
     const ov = (a.len + o.len) / 2 - (o.s - a.s);
     if (ov > 0) {
@@ -642,7 +686,10 @@ function drawCar(c, dt) {
   const pitch = c.y < .05 ? Math.atan(Hd(c.s)) : (mocOn(c) && c.kind === 'ptak') ? 0 : clamp(Math.atan2(c.vy, Math.max(c.v, 4)), -.45, .45);
   g.position.set(x, c.ya, c.z);
   g.rotation.set(c.tilt, c.spinT > 0 ? (1 - c.spinT / c.spinD) * Math.PI * 2 : 0, pitch);
-  g.visible = !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
+  g.visible = c.ko <= 0 && !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
+  c.sh.visible = c.ko <= 0;
+  c.hearts.visible = g.visible && state !== 'menu' && state !== 'done';
+  c.hearts.position.set(x, c.ya + (high(c) ? 5.3 : 3.0), c.z); c.hearts.children.forEach((m, i) => m.material = i < c.hp ? HEART_ON : HEART_OFF);
   c.sh.position.set(x, gy + .03, c.z); c.sh.scale.set(c.b.len * .5 / (1 + c.y * .15), 1.3 / (1 + c.y * .15), 1);
   c.dz.visible = c.hitT > 0; c.dz.position.set(x, 2.6 + c.ya, c.z); c.dz.rotation.y += dt * 6;
   if (c.turboT > 0 && Math.random() < .8) part({ s: c.s - c.len / 2 - .3, y: 1 + c.y + rnd(0, .4), z: c.z + rnd(-.4, .4), vs: -6, vy: rnd(0, 1), col: pick([0xff7a1a, 0xffd23f, 0xff3a1a]), size: .22, life: .3, grow: 1, op: .9 });
@@ -679,12 +726,13 @@ function hud() {
   cars.forEach((c, i) => { progIc[i].style.left = clamp(c.s / LEN, 0, 1) * 100 + '%'; });
   const pl = place(P); if (pl !== lastPlace) { $('place').textContent = ['🥇', '🥈', '🥉', '4️⃣'][pl - 1]; $('place').classList.add('pop'); setTimeout(() => $('place').classList.remove('pop'), 200); lastPlace = pl; }
   cars.forEach((c, i) => {                               // auta poza ekranem: strzałka przy krawędzi
-    const x = c.s - camS, e = edges[i], out = c !== P && (x > 13 || x < -13);
+    const x = c.s - camS, e = edges[i], [X] = toScreen(x, 1, c.z), out = c !== P && c.ko <= 0 && (X < 30 || X > innerWidth - 30);
     e.hidden = !out; if (e.hidden) return;
     const [, Y] = toScreen(0, 1, c.z), right = x > 0;
     e.innerHTML = right ? `${IC[c.kind]}<b>▶</b>` : `<b>◀</b>${IC[c.kind]}`;
     e.style.left = (right ? innerWidth - 150 : 150) + 'px'; e.style.top = Y + 'px';
   });
+  $('hp').textContent = '❤️'.repeat(Math.max(0, P.hp)) + '🖤'.repeat(3 - Math.max(0, P.hp));
   $('bAtak').querySelector('.cd').style.height = clamp(P.atakCd / ATAK_CD, 0, 1) * 100 + '%';
   $('bTurbo').querySelector('.cd').style.height = clamp(P.turboCd / TURBO_CD, 0, 1) * 100 + '%';
   [...$('bMoc').querySelectorAll('.pips b')].forEach((b, i) => b.classList.toggle('on', P.moc > i));
@@ -698,8 +746,8 @@ function menuLayout() {
   cars.forEach((c, i) => { resetCar(c, i, i); c.s = -9.5 + i * 4.6; });
 }
 function buildMenu() {
-  $('pickCar').innerHTML = KINDS.map(k => `<button data-k="${k}">${IC[k]}</button>`).join('');
-  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button data-t="${k}">${TRASY[k].ic}${SET.best[k + diff] ? `<small>${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</small>` : ''}</button>`).join('');
+  $('pickCar').innerHTML = KINDS.map(k => `<button data-k="${k}"><span>${IC[k]}</span><small>${NAZWY[k]}</small></button>`).join('');
+  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button data-t="${k}"><span>${TRASY[k].ic}</span><small>${NAZWY[k]}</small>${SET.best[k + diff] ? `<i>${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</i>` : ''}</button>`).join('');
   [...$('pickCar').children].forEach(b => b.classList.toggle('on', b.dataset.k === SET.car));
   [...$('pickTrack').children].forEach(b => b.classList.toggle('on', b.dataset.t === SET.trasa));
   [...$('pickDiff').children].forEach(b => b.classList.toggle('on', b.dataset.d === diff));
@@ -718,6 +766,7 @@ function startRace() {
   items = genTrack(TH);
   newItem({ typ: 'start', s: 0, lane: 1, rodzaj: '', len: 0, zMid: true }); newItem({ typ: 'meta', s: LEN, lane: 1, rodzaj: '', len: 0, zMid: true });
   $('bMoc').querySelector('.i').textContent = MOC_IC[P.kind];
+  for (const c of ALL) c.hearts.visible = false;
   camS = P.s - PX; raceT = 0; lastPlace = 0; shake = 0;
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = '';
   state = 'count'; countT = 3.2; $('count').hidden = false; $('count').textContent = '';
@@ -783,7 +832,7 @@ $('bHome').onclick = showMenu;
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
 
 /* ---------- pętla ---------- */
-let prev = performance.now(), menuT = 0, dark = 0;
+let prev = performance.now(), menuT = 0;
 function step(dt) {
   if (state === 'pause') return;
   const racing = state === 'race' || state === 'end' || state === 'done';
@@ -805,10 +854,10 @@ function step(dt) {
   if (state === 'end' && (endT -= dt) < 0) showEnd();
   placeDeco(); syncItems(dt); stepParts(dt);
   for (const c of cars) drawCar(c, dt);
-  const inTun = SEGS.some(q => q.typ === 'tunel' && P.s > q.s0 + 3 && P.s < q.s1 - 3);   // w tunelu ciemno, świecą lampy i oczy aut
-  dark += ((inTun ? 1 : 0) - dark) * Math.min(1, dt * 3);
-  hemi.intensity = TH.hemi[2] * (1 - .62 * dark); sun.intensity = TH.sun[1] * (1 - .75 * dark);
-  marker.visible = state !== 'menu' && state !== 'done';
+  const tg = state === 'race' && !P.fin && P.ko <= 0 ? cars.filter(o => inReach(P, o) && !immune(o)) : [];   // celownik i świecący przycisk ataku
+  aims.forEach((m, i) => { const o = tg[i]; m.visible = !!o && P.atakCd <= 0; if (o) { m.position.set(o.s - camS, H(o.s) + .06, o.z); m.scale.setScalar(1 + .12 * Math.sin(performance.now() / 90)); } });
+  $('bAtak').classList.toggle('hot', tg.length > 0 && P.atakCd <= 0);
+  marker.visible = state !== 'menu' && state !== 'done' && P.ko <= 0;
   marker.position.set(P.s - camS, P.ya + 3.4 + Math.abs(Math.sin(performance.now() / 180)) * .4, P.z); marker.rotation.y += dt * 3;
   shake = Math.max(0, shake - dt);
   camY += (H(P.s + 4) * .6 - camY) * Math.min(1, dt * 3);   // kamera lekko podąża za górką

@@ -60,6 +60,7 @@ function snd(name) {
     case 'sprezyna': for (let i = 0; i < 3; i++) T(180 + i * 120, 700 + i * 200, .35, 'sine', .2, i * .12, [24, 60]); M(500, .2, .1); break;                                  // bzzoing-oing
     case 'lubudu': N(.6, .7, 700, 50, .7, 0, 'lowpass'); T(90, 30, .5, 'sine', .55); M(110, .5, .3, .03); M(160, .4, .2, .18); N(.3, .3, 300, 80, 1, .18, 'lowpass'); break;
     // trafienia, przeszkody
+    case 'kabum': N(1.2, .8, 1500, 40, .6, 0, 'lowpass'); T(70, 25, .9, 'sine', .6); M(90, .8, .35, .02); for (let i = 0; i < 6; i++) M(300 + Math.random() * 900, .3, .12, .1 + i * .07); N(.6, .3, 4000, 800, 1, .15); break;   // auto wypada (KO)
     case 'bum': N(.4, .6, 900, 70, .7, 0, 'lowpass'); T(110, 38, .35, 'sine', .45); M(150, .3, .12, .02); break;
     case 'boing': T(170, 560, .1, 'sine', .3); T(560, 140, .45, 'sine', .3, .1, [11, 40]); M(330, .2, .12); break;
     case 'bonk': M(240, .25, .3); T(140, 90, .15, 'square', .15); break;

@@ -436,7 +436,7 @@ function brykaPose(b, pose, k = 1) {
     const a = pose === 'atak' ? k : 0;
     P.jawU.rotation.z = .65 * a; P.jawL.rotation.z = -.38 * a;
     P.fin.scale.setScalar(1 + (pose === 'moc' ? .7 * k : 0));                    // pod asfaltem widać dużą płetwę
-    if (pose === 'moc') { B.position.y = -1.75 * k; b.wheels.forEach(w => w.visible = k < .5); }
+    if (pose === 'moc') { B.position.y = -1.5 * k; b.wheels.forEach(w => w.visible = k < .5); }
   }
   if (b.kind === 'ptak') {
     const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;

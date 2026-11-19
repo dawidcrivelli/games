@@ -191,7 +191,7 @@ function brObst(typ) {
     col = 0x3a3633; const Y = 8.3, L = 6.6;
     for (const [x, z] of [[-.5, -9], [.5, -9], [-.5, -8], [.5, -8]]) brPart(g, brCyl(.09, .09, Y + .5, 5), 0xf2c12e, x, (Y + .5) / 2, z, { ol: .03 });
     for (let y = 1; y < Y; y += 1.5) brPart(g, brBox(1.1, .1, 1.1), 0xf2c12e, 0, y, -8.5, { ol: .02 });
-    brPart(g, brBox(.6, .6, 14.5), 0xf2c12e, 0, Y + .3, -1.5, { ol: .04 });
+    brPart(g, brBox(.6, .6, 17.5), 0xf2c12e, 0, Y + .3, -.5, { ol: .04 });
     for (let i = 0; i < 7; i++) brPart(g, brBox(.62, .62, .5), 0x2b2724, 0, Y + .3, -8 + i * 2.2, { ol: 0 });
     const pv = new THREE.Group(); pv.position.set(0, Y, 0); g.add(pv); g.userData.pivot = pv; g.userData.arm = L;
     for (let i = 0; i < 9; i++) brPart(pv, new THREE.TorusGeometry(.14, .04, 5, 10), 0x6f767d, 0, -i * (L - .8) / 9 - .3, 0, { r: [0, i % 2 ? Math.PI / 2 : 0, 0], ol: 0 });
