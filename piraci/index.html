@@ -81,15 +81,11 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 /* niski ekran (telefon poziomo z paskiem przeglądarki): wszystko liczone od wysokości, żeby nic nie wyszło pod dolną krawędź */
 @media (max-height:520px){#start{gap:1.5vh;padding:6px 12px;overflow:auto}#start h1{font-size:min(9vw,14vh);-webkit-text-stroke-width:2px;text-shadow:0 .9vh 0 #4a2c12}#start .row{font-size:min(5vw,8vh)}
   .mb{width:auto;min-width:30vh;padding:1.2vh 3vh .8vh;font-size:5vh;border-radius:5vh;box-shadow:0 1.6vh 0 #c79a00}.mb.dad{box-shadow:0 1.6vh 0 #c75a35}.mb big{font-size:14vh;line-height:1.05}.mc{gap:3vh}.rs{font-size:max(11px,4vh);padding:.4vh 2.4vh .1vh}}
-#rot{position:fixed;inset:0;z-index:9;background:#12466e;color:#fff;display:none;place-items:center;text-align:center;font-size:26px;font-weight:800;padding:20px}
-#rot big{display:block;font-size:80px;animation:spin 1.6s ease-in-out infinite alternate}
-@media (orientation:portrait) and (max-width:700px){#rot{display:grid}}
 #fade{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s;z-index:4}
 @keyframes pulse{to{transform:scale(1.1)}}
 @keyframes glow{to{filter:brightness(1.4)}}
 @keyframes rise{from{opacity:1}to{opacity:0;margin-top:-70px}}
 @keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(90deg)}}
 </style>
 </head>
 <body>
@@ -160,7 +156,6 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
     <div class="mc"><button class="mb dad" id="bDad"><big>☠️</big>Na serio<small id="sDad">poziom 1</small></button><button class="rs" id="rDad" hidden>🗑️ od nowa</button></div>
   </div>
 </div>
-<div id="rot"><div><big>📱</big>Obróć telefon poziomo</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci.js"></script>
 <script src="../lib/pralnia-arka-rafa-piraci.js"></script>
@@ -172,5 +167,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <script src="../models/piraci.piraci.js"></script>
 <script src="../models/statki.piraci.js"></script>
 <script src="game.js"></script>
+<script src="../lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki.js"></script>
+<script>obrotInit()</script>
 </body>
 </html>

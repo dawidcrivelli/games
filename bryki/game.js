@@ -743,11 +743,11 @@ function hud() {
 function clearRace() { flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
 function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
-  cars.forEach((c, i) => { resetCar(c, i, i); c.s = -9.5 + i * 4.6; });
+  cars.forEach((c, i) => { resetCar(c, i, i); c.s = -14 + i * 3.6; });           // auta po lewej, karta menu po prawej
 }
 function buildMenu() {
-  $('pickCar').innerHTML = KINDS.map(k => `<button data-k="${k}"><span>${IC[k]}</span><small>${NAZWY[k]}</small></button>`).join('');
-  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button data-t="${k}"><span>${TRASY[k].ic}</span><small>${NAZWY[k]}</small>${SET.best[k + diff] ? `<i>${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</i>` : ''}</button>`).join('');
+  $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick" data-k="${k}"><span class="ico">${IC[k]}</span>${NAZWY[k]}</button>`).join('');
+  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${SET.best[k + diff] ? `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</span>` : ''}</button>`).join('');
   [...$('pickCar').children].forEach(b => b.classList.toggle('on', b.dataset.k === SET.car));
   [...$('pickTrack').children].forEach(b => b.classList.toggle('on', b.dataset.t === SET.trasa));
   [...$('pickDiff').children].forEach(b => b.classList.toggle('on', b.dataset.d === diff));
@@ -759,7 +759,7 @@ function showMenu() {
 }
 function startRace() {
   audInit(); snd('klik');
-  try { if (!document.fullscreenElement && matchMedia('(pointer:coarse)').matches) document.documentElement.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {}); } catch (e) {}
+  obrotPelny();
   clearRace(); setTheme(SET.trasa); if (P.kind !== SET.car) lineup();
   const lanes = [1, 0, 2]; let li = 0;
   cars.forEach((c, i) => resetCar(c, i, c === P ? 3 : lanes[li++]));
