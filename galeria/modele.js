@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
 // kategoria → prefiks pliku w models/
-const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron', bryki: 'pojazdy' };
+const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron', bryki: 'pojazdy', trasy: 'trasy' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -68,8 +68,16 @@ const MODELE = [
 
   ...['wood', 'saber', 'bow', 'sword', 'rapier', 'axe', 'katana', 'anchor', 'trident', 'swordfish'].map(id => ({ kat: 'broń', typ: id, gra: 'piraci', js: `mkWeapon('${id}')` })),
   // Dzikie Bryki: każdy pojazd w pozach jazda / atak / moc / oberwał (brykaPose)
-  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
+  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
     .map(pz => ({ kat: 'bryki', typ, gra: 'bryki', js: `(() => { const b = buildBryka('${k}'); brykaPose(b, '${pz}', 1); return b.g; })()` }))),
+
+  // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (models/trasy.bryki.js)
+  ...['glaz', 'beczki', 'opony', 'wrak', 'bryla', 'skrzynia', 'balwan', 'pacholki', 'olej', 'lod', 'lawa', 'rampa', 'turbo', 'gwiazda']
+    .map(t => ({ kat: 'trasy', typ: 'przeszkody', gra: 'bryki', js: `brObst('${t}')` })),
+  ...['kaktus', 'kamien', 'opony', 'beczka', 'zlom', 'wrak', 'skala', 'dym', 'sosna', 'balwan', 'lodblok']
+    .map(t => ({ kat: 'trasy', typ: 'przy drodze', gra: 'bryki', js: `brProp('${t}')` })),
+  ...['plaskowyz', 'dzwig', 'fabryka', 'wulkan', 'gora'].map(t => ({ kat: 'trasy', typ: 'w oddali', gra: 'bryki', js: `brProp('${t}')` })),
+  { kat: 'trasy', typ: 'meta', gra: 'bryki', js: 'brMeta(12.6)' },
 
   { kat: 'broń', typ: 'strzała', gra: 'piraci', js: 'mkArrow()' },
   { kat: 'broń', typ: 'rozgwiazda', gra: 'piraci', js: 'mkStar()' },

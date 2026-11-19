@@ -1,6 +1,6 @@
 // Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku.
 // Widok z boku (2.5D): przód = +x, góra = +y, szerokość wzdłuż z. Kreskówkowe cieniowanie + czarny kontur.
-// buildBryka('rekin'|'ptak'|'osmiornica'|'krab', kolory?) → { g, body, kind, p: części, wheels, len }
+// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz', kolory?) → { g, body, kind, p: części, wheels, len }
 // brykaPose(b, 'jazda'|'atak'|'moc'|'oberwal', k 0..1) · brykaTick(b, dt, prędkość) — koła, bujanie, macki, pióra
 // wymaga z gry: THREE
 
@@ -9,6 +9,7 @@ const BRYKI_KOLORY = () => ({
   ptak: { a: 0xe2a417, b: 0xfbe8b0, c: 0xf06a14 },
   osmiornica: { a: 0x8a3fb8, b: 0x3e2357, c: 0xf28cc8 },
   krab: { a: 0xdd4426, b: 0x5a1f14, c: 0xffb04a },
+  nietoperz: { a: 0x4d4063, b: 0x1d1a24, c: 0xd8342a },
 });
 
 /* --- materiały i proste bryły --- */
@@ -124,7 +125,7 @@ function buildBryka(kind, kol) {
   const C = { ...BRYKI_KOLORY()[kind], ...(kol || {}) };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = { g, body, kind, C, p: {}, wheels: [], t: 0, len: 4.6, pose: {} };
-  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab })[kind](b);
+  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz })[kind](b);
   g.userData.bryka = kind;
   return b;
 }
@@ -340,6 +341,50 @@ function brKrab(b) {
   b.len = 4.6;
 }
 
+// NIETOPERZ: niski czarny klin z uszami, czerwone oczy-szparki, kły i paszcza (pisk), skrzydła z błony na żebrach, dysze odrzutowe
+function brNietoperz(b) {
+  const B = b.body, C = b.C, W = 1.9, Z = W / 2;
+  brPart(B, brExt([[-2.25, .55, 1], [-2.35, 1.1], [-1.5, 1.35], [-.4, 1.72], [.55, 1.68], [1.3, 1.28], [2.15, 1.0, 1], [2.25, .62, 1]], W, .05, 1), C.a);
+  brPart(B, brExt([[-2.2, .5], [2.2, .5], [2.2, .8], [-2.2, .78]], W + .12, .03), C.b);
+  for (const sd of [-1, 1]) brPart(B, brBox(3.2, .08, .03), C.c, -.2, 1.05, sd * (Z + .02), { r: [0, 0, .05], ol: 0 });
+  b.p.ears = [];
+  for (const sd of [-1, 1]) {
+    const e = new THREE.Group(); e.position.set(.25, 1.6, sd * .5); B.add(e); b.p.ears.push(e);
+    brPart(e, brExt([[-.32, 0], [.26, 0], [-.18, 1.05, 1]], .14, .03), C.a);
+    brPart(e, brExt([[-.18, .12], [.12, .12], [-.14, .72, 1]], .17, 0), 0xb0303a, 0, 0, 0, { ol: 0 });
+  }
+  brEye(B, 1.25, 1.18, Z + .02, .19, 1, { glow: 0xff2a2a, slit: true }); brEye(B, 1.25, 1.18, -Z - .02, .19, -1, { glow: 0xff2a2a, slit: true });
+  const fang = new THREE.ConeGeometry(.07, .3, 5);
+  for (const z of [-Z + .12, Z - .12]) for (const x of [2.0, 2.18]) brPart(B, fang, 0xf3f0e4, x, .5, z, { r: [0, 0, Math.PI], ol: .012, s: x > 2.1 ? [1, 1.3, 1] : [.8, .8, .8] });
+  const jaw = new THREE.Group(); jaw.position.set(1.75, .5, 0); B.add(jaw); b.p.jaw = jaw;
+  brPart(jaw, brExt([[-.3, .04], [.85, .02], [.8, -.13, 1], [-.3, -.18]], W - .2, .03), C.b);
+  for (const z of [-Z + .2, Z - .2]) for (const x of [.35, .6]) brPart(jaw, new THREE.ConeGeometry(.05, .2, 5), 0xf3f0e4, x, .12, z, { ol: .01 });
+  brPart(B, brBox(.6, .25, W - .3), 0x5a0f12, 1.9, .48, 0, { ol: 0 });            // gardło, widać przy otwartej paszczy
+  // skrzydła: żebra i błona z wcięciami; moc = rozpostarte w górę
+  b.p.wings = [];
+  const tips = [[-1.7, .22], [-1.95, -.25], [-1.65, -.62], [-1.05, -.82]];
+  const memb = brExt([[0, .1], tips[0], [-1.5, -.04], tips[1], [-1.5, -.36], tips[2], [-1.15, -.52], tips[3], [-.3, -.35]], .05, .01);
+  for (const sd of [-1, 1]) {
+    const w = new THREE.Group(); w.position.set(.15, 1.42, sd * (Z + .1)); B.add(w); b.p.wings.push(w); w.userData.s = sd;
+    brPart(w, memb, 0x2a2233, 0, 0, 0, { ol: .025 });
+    for (const [x, y] of tips) brLimb(w, [0, 0, sd * .04], [x, y, sd * .04], .045, .025, C.a);
+    brPart(w, new THREE.ConeGeometry(.05, .2, 5), 0xf3f0e4, tips[0][0] - .05, tips[0][1] + .1, sd * .04, { r: [0, 0, .6], ol: .01 });
+  }
+  // spojler w kształcie skrzydła, dysze
+  brPart(B, brExt([[-1.4, 1.33], [-1.9, 1.72], [-2.15, 1.92, 1], [-2.22, 1.7], [-2.45, 1.86, 1], [-2.5, 1.6], [-2.75, 1.7, 1], [-2.55, 1.22]], .16, .03), C.b, 0, 0, .55);
+  brPart(B, brExt([[-1.4, 1.33], [-1.9, 1.72], [-2.15, 1.92, 1], [-2.22, 1.7], [-2.45, 1.86, 1], [-2.5, 1.6], [-2.75, 1.7, 1], [-2.55, 1.22]], .16, .03), C.b, 0, 0, -.55);
+  brPart(B, brBox(.9, .1, 1.3), C.b, -2.2, 1.6, 0, { r: [0, 0, .3] });
+  for (const z of [-.45, .45]) {
+    brPart(B, brCyl(.24, .2, .55, 12, 'x'), 0x5a5560, -2.3, .95, z, { ol: .025 });
+    brPart(B, new THREE.CircleGeometry(.17, 12), brMat(0xff7a1a, 'glow'), -2.58, .95, z, { r: [0, -Math.PI / 2, 0], ol: 0 });
+  }
+  brPatch(B, -.9, .95, .5, .3, Z + .02, 0x6b4a7a, -.05);
+  brWeld(B, .1, .82, .05, 1.65, Z + .01);
+  brRivets(B, -2.0, .65, 1.9, .65, 11, Z + .07, 0x8a8494);
+  brWheels(b, [1.2, -1.45], Z + .12, .55, .5, 0xb0303a);
+  b.len = 5.2;
+}
+
 /* --- pozy i animacja --- */
 // k = 0..1; każda poza liczona od zera (neutralnej)
 function brykaPose(b, pose, k = 1) {
@@ -350,7 +395,8 @@ function brykaPose(b, pose, k = 1) {
   if (b.kind === 'rekin') {
     const a = pose === 'atak' ? k : 0;
     P.jawU.rotation.z = .65 * a; P.jawL.rotation.z = -.38 * a;
-    if (pose === 'moc') { B.position.y = -1.45 * k; b.wheels.forEach(w => w.visible = k < .5); }
+    P.fin.scale.setScalar(1 + (pose === 'moc' ? .7 * k : 0));                    // pod asfaltem widać dużą płetwę
+    if (pose === 'moc') { B.position.y = -1.75 * k; b.wheels.forEach(w => w.visible = k < .5); }
   }
   if (b.kind === 'ptak') {
     const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
@@ -372,6 +418,11 @@ function brykaPose(b, pose, k = 1) {
     });
     P.spikes.forEach(s => s.scale.setScalar(1 + .9 * m));
   }
+  if (b.kind === 'nietoperz') {
+    const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
+    P.jaw.rotation.z = -.5 * a; P.ears.forEach(e => e.rotation.z = .6 * a);
+    P.wings.forEach(w => { w.rotation.x = -w.userData.s * .5 * m; w.rotation.z = -1.4 * m; });
+  }
   if (pose === 'oberwal') { B.rotation.z = .22 * k; B.rotation.x = .12 * k; B.position.y = .25 * k; }
   b.baseY = B.position.y;
   brykaTick(b, 0, 0);
@@ -392,6 +443,7 @@ function brykaTick(b, dt, v) {
       sg.rotation.y = Math.sin(t * 3 + tn.ph + i) * .12 * (1 - grab);
     });
   });
+  if (b.kind === 'nietoperz') P.wings.forEach(w => { w.rotation.z = b.pose.pose === 'moc' ? -(1.4 + Math.sin(t * 16) * .45) * b.pose.k : Math.sin(t * 3 + w.userData.s) * .05; });
   if (b.kind === 'krab') P.stalks.forEach((s, i) => { s.rotation.z = Math.sin(t * 4 + i * 2) * .12; s.rotation.x = Math.sin(t * 3 + i) * .1; });
   if (b.kind === 'ptak' && b.pose.pose === 'moc') P.wings.forEach(w => { w.rotation.z = -(1.5 + Math.sin(t * 14) * .4) * b.pose.k; });
   if (b.kind === 'rekin') P.fin.rotation.x = b.pose.pose === 'moc' ? Math.sin(t * 9) * .08 : 0;

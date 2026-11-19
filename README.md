@@ -2,7 +2,7 @@
 
 Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Zakładka „dźwięki”: klaksony i silniki z `lib/` do odsłuchania. Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -63,12 +63,15 @@ flowchart LR
 | `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 231 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast}; ZOO.pose(a, 'rear'…) — pozy (dęba, skok, przysiad, łapa, byk, wierzgnięcie, oberwanie, zamroczenie, radość, siad) |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
+| `models/pojazdy.bryki.js` | 430 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
+| `models/trasy.bryki.js` | 190 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, gwiazdka, rampa, turbo) brMeta |
 
 ## Narzędzia
 
 - `npm i` (puppeteer-core, acorn; Chrome z /Applications).
+- `tools/chrome.mjs` — wspólny Chrome dla narzędzi: macOS/Linux (`CHROME=` ścieżka), proxy, three.js z `node_modules` gdy CDN niedostępny.
 - `node tools/play.mjs [id…]` — każda gra: start, kilka sekund jazdy, błędy JS, zrzut `shots/<id>.jpg` (kafelki launchera). `--orig` / `--dist` testuje `orig/` / `dist/`.
-- `node tools/galeria.mjs` — galeria: błędy budowania modeli, zrzuty `tmp/galeria-*.png`.
+- `node tools/galeria.mjs [kategoria…]` — galeria: błędy budowania modeli, zrzuty `tmp/galeria-*.png`.
 - `node tools/build.mjs [gra…]` — `dist/<gra>.html`, jeden plik (artefakt Claude).
 - Lokalnie: `python3 -m http.server` → http://localhost:8000/.
 
