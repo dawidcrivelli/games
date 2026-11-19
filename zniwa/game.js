@@ -103,12 +103,13 @@ const M = {
    ===================================================================== */
 // ---------- niebo, pogoda dnia i mapa odbić (lakier i szyby odbijają niebo)
 const WEATHERS = [
-  { id:'sun',   p:.28, ico:'☀️', top:0x4f9fe6, hor:0xe2f3f8, fog:0xcfe8f3, fn:110, ff:420, sun:0xfff1d0, si:.74, sd:[26, 46, 20],  hs:0xdff1ff, hg:0x7d7040, hi:.56, cloud:0xffffff, co:.93, sunVis:1, wind:1,   lamp:0 },
-  { id:'gold',  p:.2,  ico:'🌅', top:0x5d86c4, hor:0xffc98a, fog:0xf1cc9c, fn:90,  ff:380, sun:0xffab5e, si:.88, sd:[-50, 16, 24], hs:0xffe0bd, hg:0x7a5a38, hi:.42, cloud:0xffd2ae, co:.9,  sunVis:1, sunCol:0xffb04a, wind:.8, lamp:.5 },
-  { id:'cloud', p:.15, ico:'☁️', top:0x8e9aa6, hor:0xd5dadd, fog:0xc9d0d4, fn:80,  ff:330, sun:0xffffff, si:.26, sd:[20, 50, 10],  hs:0xe6ecf0, hg:0x777060, hi:.84, cloud:0xb4bac0, co:.97, sunVis:0, wind:1.5, lamp:0 },
-  { id:'rain',  p:.12, ico:'🌧️', top:0x5f6b78, hor:0xa9b2b8, fog:0x9aa5ab, fn:45,  ff:210, sun:0xdfe8f0, si:.16, sd:[20, 50, 10],  hs:0xcfd8de, hg:0x60605a, hi:.74, cloud:0x79828a, co:.97, sunVis:0, wind:2,   lamp:.9, rain:1 },
-  { id:'fog',   p:.1,  ico:'🌫️', top:0xbfd0da, hor:0xe6ecef, fog:0xe1e8eb, fn:12,  ff:92,  sun:0xfff4dc, si:.4,  sd:[40, 30, 20],  hs:0xf0f4f6, hg:0x8a8670, hi:.7,  cloud:0xffffff, co:.4,  sunVis:0, wind:.4,  lamp:.8 },
-  { id:'night', p:.15, ico:'🌙', top:0x0a1430, hor:0x25355a, fog:0x1b2843, fn:60,  ff:300, sun:0x9db8ff, si:.34, sd:[-20, 45, -25], hs:0x5b70aa, hg:0x1c2230, hi:.44, cloud:0x36435f, co:.7,  sunVis:0, moon:1, wind:.6, lamp:2 },
+  { id:'sun',   p:.25, top:0x4f9fe6, hor:0xe2f3f8, fog:0xcfe8f3, fn:110, ff:420, sun:0xfff1d0, si:.74, sd:[26, 46, 20],  hs:0xdff1ff, hg:0x7d7040, hi:.56, cloud:0xffffff, co:.93, sunVis:1, wind:1,   lamp:0 },
+  { id:'gold',  p:.15, top:0x5a7cc0, hor:0xffb85a, fog:0xf2c588, fn:170, ff:560, sun:0xff9a3c, si:1.0, sd:[-50, 12, 24], hs:0xffd59a, hg:0x7a5530, hi:.4,  cloud:0xffc27e, co:.9,  sunVis:1, sunCol:0xffa53a, wind:.8, lamp:.5 },
+  { id:'pink',  p:.12, top:0x7a84c8, hor:0xffb0c6, fog:0xf4c4d2, fn:150, ff:520, sun:0xffb4c2, si:.72, sd:[48, 13, -28], hs:0xffd8e4, hg:0x6f5a5c, hi:.5,  cloud:0xffbfd3, co:.92, sunVis:1, sunCol:0xffc3b0, wind:.6, lamp:.3 },
+  { id:'cloud', p:.12, top:0x8e9aa6, hor:0xd5dadd, fog:0xc9d0d4, fn:80,  ff:330, sun:0xffffff, si:.26, sd:[20, 50, 10],  hs:0xe6ecf0, hg:0x777060, hi:.84, cloud:0xb4bac0, co:.97, sunVis:0, wind:1.5, lamp:0 },
+  { id:'rain',  p:.1,  top:0x5f6b78, hor:0xa9b2b8, fog:0x9aa5ab, fn:45,  ff:210, sun:0xdfe8f0, si:.16, sd:[20, 50, 10],  hs:0xcfd8de, hg:0x60605a, hi:.74, cloud:0x79828a, co:.97, sunVis:0, wind:2,   lamp:.9, rain:1 },
+  { id:'storm', p:.11, top:0x23283a, hor:0x535b68, fog:0x464d59, fn:90,  ff:360, sun:0xc8d2e6, si:.12, sd:[20, 50, 10],  hs:0x7c869c, hg:0x2e2e2c, hi:.36,  cloud:0x353b46, co:.98, sunVis:0, wind:2.7, lamp:1.2, storm:1 },
+  { id:'night', p:.15, top:0x0a1430, hor:0x25355a, fog:0x1b2843, fn:60,  ff:300, sun:0x9db8ff, si:.34, sd:[-20, 45, -25], hs:0x5b70aa, hg:0x1c2230, hi:.44, cloud:0x36435f, co:.7,  sunVis:0, moon:1, wind:.6, lamp:2 },
 ];
 let WX = WEATHERS[0];
 const uWind = { value:1 };
@@ -141,9 +142,30 @@ function applyWeather(w) {
   M.win.emissive.setHex(w.lamp >= .5 ? 0xffc45a : 0x000000); M.win.emissiveIntensity = Math.min(1, w.lamp);
   M.soil.color.setHex(w.rain ? 0xb9b3aa : 0xffffff);
   try { if (!pmrem) pmrem = new T.PMREMGenerator(renderer);
-    envGround.material.color.setHex(w.moon ? 0x10151c : w.rain ? 0x5a6455 : 0x7a9a50); envSun.visible = !!w.sunVis; envSun.position.copy(sunBall.position);
+    envGround.material.color.setHex(w.moon ? 0x10151c : w.rain || w.storm ? 0x5a6455 : 0x7a9a50); envSun.visible = !!w.sunVis; envSun.position.copy(sunBall.position);
     const rt = pmrem.fromScene(envScene, 0, .1, 1500); scene.environment = rt.texture; if (envRT) envRT.dispose(); envRT = rt; } catch (e) {}
-  $('wx').textContent = w.ico;
+  storm.t = rr(2, 5); storm.f = 0; bolt.visible = false; skyMat.color.setScalar(1);
+}
+// ---------- burza bez deszczu: błyski, piorun w oddali, grzmot z opóźnieniem
+const storm = { t:3, f:0, boltT:0 };
+const bolt = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({ color:0xf2f6ff, fog:false })); bolt.visible = false; scene.add(bolt);
+function strike() {
+  camera.getWorldDirection(tmpV); const a = Math.random() < .75 ? Math.atan2(tmpV.x, tmpV.z) + rr(-.55, .55) : rr(0, 6.283), d = rr(170, 330), x0 = camera.position.x + Math.sin(a)*d, z0 = camera.position.z + Math.cos(a)*d, pts = [];   // piorun zwykle przed kamerą
+  let x = x0, z = z0; for (let y = 150; y > 0; y -= rr(12, 22)) { pts.push(new T.Vector3(x, y, z)); x += rr(-9, 9); z += rr(-9, 9); } pts.push(new T.Vector3(x, 0, z));
+  bolt.geometry.dispose(); bolt.geometry = new T.TubeGeometry(new T.CatmullRomCurve3(pts, false, 'catmullrom', 0), pts.length*3, 1.1, 4, false);
+  bolt.visible = true; storm.boltT = rr(.12, .25); storm.f = 1;
+  const delay = d/340*rr(.7, 1.1); thunder(delay, 1 - (d - 170)/260);
+}
+function thunder(delay, k) { const c = AU.ctx; if (!c || !AU.noiseBuf) return; const t = c.currentTime + delay, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s.buffer = AU.noiseBuf; s.loop = true; f.type = 'lowpass'; f.frequency.setValueAtTime(420, t); f.frequency.exponentialRampToValueAtTime(90, t + 2.6);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.55 + .5*k, t + .08); g.gain.exponentialRampToValueAtTime(.25, t + .7); g.gain.exponentialRampToValueAtTime(.001, t + 3.2);
+  s.connect(f); f.connect(g); g.connect(AU.master); s.start(t); s.stop(t + 3.3); }
+function updateStorm(dt) {
+  if (!WX.storm) return;
+  storm.t -= dt; if (storm.t <= 0) { storm.t = rr(3, 9); strike(); if (Math.random() < .35) setTimeout(strike, rr(250, 600)); }
+  if (storm.boltT > 0) { storm.boltT -= dt; if (storm.boltT <= 0) bolt.visible = false; }
+  storm.f = Math.max(0, storm.f - dt*3.2); const fl = storm.f*(.7 + .3*Math.sin(storm.f*40));      // migotanie
+  hemi.intensity = WX.hi + fl*2.4; skyMat.color.setScalar(1 + fl*2.2); M.cloud.color.setHex(WX.cloud).multiplyScalar(1 + fl*2.5);
 }
 { // łąka z plamami koloru
   const g = new T.PlaneGeometry(900, 900, 70, 70); g.rotateX(-Math.PI/2);
@@ -514,20 +536,25 @@ function spraySlurry(dt) {
   sprayN += dt*280; for (; sprayN >= 1; sprayN--) { const back = rr(1.5, 5), side = rr(-4.2, 4.2), c = rr(.75, 1.15);
     emit(sprayP.x + rr(-.2, .2), sprayP.y, sprayP.z + rr(-.2, .2), bh*back + sx*side, rr(1.2, 3.4), bz*back + sz*side, rr(.5, .85), .42*c, .27*c, .1*c, 9); }
   sprayT -= dt; if (sprayT <= 0) { sprayT = .14; noiseBurst(320 + Math.random()*260, .2, .32); if (Math.random() < .25) tone(95 + Math.random()*40, .14, 'sine', .22, 55); }
-  if (S.cam) { splatAcc += dt*(S.cam === 1 ? 1.6 : .7); if (splatAcc > 1 || Math.random() < dt*.3) { splatAcc = 0; splatScreen(); } }
-  ['giraffe', 'elephant'].forEach(n => {                   // zwierzak za beczką dostaje prysznic i ucieka
+  if (S.cam) { splatAcc += dt*(S.cam === 1 ? 2.4 : 1.1); if (splatAcc > 1) { splatAcc = 0; splatScreen(); } }
+}
+function scareAnimals() {                                // zwierzaki czują jadący beczkowóz: przed traktorem, przy beczce albo w strumieniu
+  const B = veh.big, sh = Math.sin(B.h), ch = Math.cos(B.h);
+  ['giraffe', 'elephant'].forEach(n => {
     const O = veh[n]; if (O.flee > 0 || (O.splatCd || 0) > time) return;
-    const dx = O.x - B.x, dz = O.z - B.z, lz = dx*Math.sin(B.h) + dz*Math.cos(B.h), lx = dx*Math.cos(B.h) - dz*Math.sin(B.h);
-    if (lz > -3.5 || lz < -11 || Math.abs(lx) > 3.4 + O.radius*.4) return;
-    O.splatCd = time + 5; O.flee = 2.6; O.fleeH = Math.atan2(dx, dz) + rr(-.4, .4);
-    const top = n === 'giraffe' ? 5 : 3.2;
-    for (let k = 0; k < 26; k++) emit(O.x + rr(-1, 1), rr(1, top), O.z + rr(-1, 1), rr(-2, 2), rr(1, 3), rr(-2, 2), rr(.5, 1), .4, .26, .1, 9);
-    if (n === 'giraffe') { sfx.giraffe(); toast('Żyrafa: „Fuuuj, gnojówka!” 🦒💨'); } else { sfx.trumpet(); toast('Słoń trąbi z oburzenia i ucieka! 🐘💨'); } });
+    const dx = O.x - B.x, dz = O.z - B.z, lz = dx*sh + dz*ch, lx = dx*ch - dz*sh, r = O.radius*.5;
+    const front = Math.hypot(lx, lz - 3) < 8 + r, tank = Math.hypot(lx, lz + 4.2) < 4.5 + r;
+    const hit = B.v > .4 && lz < -3.5 && lz > -11 && Math.abs(lx) < 3.4 + r;
+    if (!front && !tank && !hit) return;
+    O.splatCd = time + 4.5; O.flee = 3; O.fleeH = Math.atan2(dx, dz) + rr(-.4, .4);
+    if (hit) { const top = n === 'giraffe' ? 5 : 3.2; for (let k = 0; k < 26; k++) emit(O.x + rr(-1, 1), rr(1, top), O.z + rr(-1, 1), rr(-2, 2), rr(1, 3), rr(-2, 2), rr(.5, 1), .4, .26, .1, 9); }
+    if (n === 'giraffe') { sfx.giraffe(); toast(hit ? 'Żyrafa: „Fuuuj, gnojówka!” 🦒💨' : 'Żyrafa czuje gnojówkę i ucieka! 🦒💨'); }
+    else { sfx.trumpet(); toast(hit ? 'Słoń trąbi z oburzenia i ucieka! 🐘💨' : 'Słoń wyczuł gnojówkę i ucieka! 🐘💨'); } });
 }
 function updateFlee(dt) {
   ['giraffe', 'elephant'].forEach(n => { const O = veh[n]; if (!(O.flee > 0)) return;
     if (S.active === n) { O.flee = 0; return; }
-    O.flee -= dt; O.h = wrap(O.h + clamp(wrap(O.fleeH - O.h), -3*dt, 3*dt)); O.v = O.flee > 0 ? (n === 'giraffe' ? 4.2 : 3.2) : 0;
+    O.flee -= dt; O.h = wrap(O.h + clamp(wrap(O.fleeH - O.h), -3*dt, 3*dt)); O.v = O.flee > 0 ? (n === 'giraffe' ? 7 : 5.5) : 0;   // szybciej niż traktor, inaczej by je dogonił
     O.x = clamp(O.x + Math.sin(O.h)*O.v*dt, -WORLD.x, WORLD.x); O.z = clamp(O.z + Math.cos(O.h)*O.v*dt, WORLD.zMin, WORLD.zMax);
     ORDER.forEach(m => { const Q = veh[m]; if (Q === O) return; const ex = O.x - Q.x, ez = O.z - Q.z, d = Math.hypot(ex, ez), min = O.radius + Q.radius;
       if (d < min && d > .001) { O.x = Q.x + ex/d*min; O.z = Q.z + ez/d*min; } });
@@ -566,14 +593,14 @@ function updateStink(dt) {
     if (on) near = Math.min(near, Math.hypot(sw.x - A.x, sw.z - A.z)); });
   buzzT -= dt; if (near < 6 && buzzT <= 0) { buzzT = .45; tone(190 + Math.random()*50, .42, 'sawtooth', .02 + .03*(1 - near/6), 230); }
 }
-// kleksy na „szybie” kamery (widok z tyłu i z kabiny)
+// kropelki gnojówki na „szybie” kamery (widok z tyłu i z kabiny)
 function splatScreen() {
-  const sp = $('splat'); if (sp.childElementCount > 14) return;
-  const sz = rr(70, 170), x = rr(-5, 95), y = rr(0, 75);
-  const mk = (s, l, t, drip) => { const e = document.createElement('i'); e.style.cssText = `width:${s}px;height:${s*rr(.8, 1.05)}px;left:calc(${l}% - ${s/2}px);top:calc(${t}% - ${s/2}px)`;
-    if (!drip) e.className = 'd'; sp.appendChild(e); setTimeout(() => e.remove(), 4600); };
-  mk(sz, x, y, true); for (let k = 0; k < 4; k++) mk(sz*rr(.1, .22), x + rr(-9, 9), y + rr(-12, 12));
-  noiseBurst(260, .14, .55); tone(150, .12, 'sine', .3, 60);
+  const sp = $('splat'); if (sp.childElementCount > 40) return;
+  const x = rr(0, 100), y = rr(0, 85), n = 3 + ((Math.random()*4) | 0);
+  for (let k = 0; k < n; k++) { const e = document.createElement('i'), sz = rr(5, 15);
+    e.style.cssText = `width:${sz}px;height:${sz*rr(.8, 1.1)}px;left:calc(${x + rr(-6, 6)}% - ${sz/2}px);top:calc(${y + rr(-7, 7)}% - ${sz/2}px)`;
+    sp.appendChild(e); setTimeout(() => e.remove(), 3600); }
+  noiseBurst(900, .06, .25);
 }
 
 /* =====================================================================
@@ -754,6 +781,7 @@ function workAt(x, z, tool) {                       // duży traktor: pług, sie
   const cx = Math.floor(x - X0), cz = Math.floor(z - Z0); if (cx < 0 || cz < 0 || cx >= FW || cz >= FD) return;
   const i = cz*FW + cx;
   if (tool === 'slurry') { if (!inField[i] || fert[i] || (!cut[i] && !growing)) return;     // ściernisko, zaorane, posiane albo rosnące
+    if (cut[i] && !growing && !(cst[i] & 1)) { cst[i] |= 1; ploughed++; setCell(i, true); cropDirty = true; }   // gnojówka na ściernisku = zaorane (dalej siew)
     fert[i] = 1; fertN++; fertList.push(i); paintFert(i); workFx = 1;
     if (!smellToast) { smellToast = true; toast('Ale smrodek! 🤢 Za to łan urośnie szybciej i wyżej.'); } return; }
   if (!inField[i] || !cut[i] || growing > 0) return;
@@ -855,6 +883,7 @@ function update(dt) {
   if (S.active === 'big') { if (B.tool === 'baler') B.P.pick.rotation.x += dt*9;
     if (B.v > .4) { const sh = Math.sin(B.h), ch = Math.cos(B.h), z0 = TOOL_Z[B.tool], hw = TOOL_W[B.tool] || 1.75; for (let lx = -hw; lx <= hw + .01; lx += .4) workAt(B.x + sh*z0 + ch*lx, B.z + ch*z0 - sh*lx, B.tool); } }
   if (S.active === 'big' && B.tool === 'slurry' && B.v > .4) spraySlurry(dt);
+  if (S.active === 'big' && B.tool === 'slurry' && Math.abs(B.v) > .4) scareAnimals();
   if (workFx > 0) { workFx -= dt*4; if (time - lastWork > .16 && B.tool !== 'slurry') { lastWork = time; noiseBurst(B.tool === 'seeder' ? 2600 : 420, .12, .35); } }
   updateFlee(dt); updateStink(dt);
   updateGrow(dt); updateGrain(dt);
@@ -1006,7 +1035,7 @@ function frame(now) {
   if (S.running && now - lastRaw < 400) { qAcc += now - lastRaw; if (++qN >= 90) { const avg = qAcc/qN; qAcc = 0; qN = 0;
     if (avg > 38 && qLevel < 2) { qLevel++; if (qLevel === 1) { renderer.setPixelRatio(1); resize(); } else sun.castShadow = false; } } }
   lastRaw = now;
-  updateRain(dt);
+  updateRain(dt); updateStorm(dt);
   turbines.forEach(t => { t.rotation.z += dt*.9; });
   clouds.forEach(c => { c.position.x += dt*1.6; if (c.position.x > 400) c.position.x = -400; });
   if (S.running) update(dt);
