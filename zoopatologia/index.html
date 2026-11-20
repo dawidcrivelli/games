@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zoopatologia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+<header id="hud">
+  <div class="stat px" id="moneyBox"><b id="money">0</b><span class="lab">zł</span></div>
+  <div class="stat px"><span class="lab">Sława</span><span class="meter" id="repMeter"><i id="repBar"></i></span><b id="rep">50</b></div>
+  <div class="stat px"><span class="lab">Dzień</span><b id="day">1</b></div>
+  <div class="sp"></div>
+  <button class="pbtn px" id="speedBtn" aria-label="Prędkość">1×</button>
+  <button class="pbtn px" id="pauseBtn" aria-label="Pauza">❚❚</button>
+</header>
+<div id="ticker" class="px"></div>
+<div id="zoom"><button class="pbtn px" id="zin" aria-label="Przybliż">+</button><button class="pbtn px" id="zout" aria-label="Oddal">−</button></div>
+<nav id="bar">
+  <button class="bbtn px" data-ui="build">Buduj</button>
+  <button class="bbtn px" data-ui="staff">Personel</button>
+  <button class="bbtn px" data-ui="research" id="resBtn">Badania</button>
+  <button class="bbtn px" data-ui="bank">Bank</button>
+  <button class="bbtn px" data-ui="goals">Cele</button>
+  <button class="bbtn px" data-ui="menu">Menu</button>
+</nav>
+<section id="panel" class="px hide"></section>
+<div class="modal open" id="modal"><div class="mbox px" id="mbox"></div></div>
+
+<script src="js/stale.js"></script>
+<script src="js/stan.js"></script>
+<script src="js/siatka.js"></script>
+<script src="js/ruch.js"></script>
+<script src="js/dzwiek.js"></script>
+<script src="js/mapa_statyczna_2.js"></script>
+<script src="js/rysowanie_pikseli.js"></script>
+<script src="js/budynki_z_zewnatrz.js"></script>
+<script src="js/budynki_przekroj_z.js"></script>
+<script src="js/portrety.js"></script>
+<script src="js/wiadomosci.js"></script>
+<script src="js/choroby.js"></script>
+<script src="js/rozmnazanie_i_hybrydy.js"></script>
+<script src="js/zwierzeta.js"></script>
+<script src="js/budynki_logika.js"></script>
+<script src="js/badania.js"></script>
+<script src="js/goscie.js"></script>
+<script src="js/personel.js"></script>
+<script src="js/zdarzenia.js"></script>
+<script src="js/petla.js"></script>
+<script src="js/kamera_i_render.js"></script>
+<script src="js/wejscie_dotykowe.js"></script>
+<script src="js/panele.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/kampania_i_modal.js"></script>
+<script src="js/zapis.js"></script>
+<script src="js/start.js"></script>
+<!-- offline tylko na serwerze; lokalnie cache psułby podgląd zmian -->
+<script>if('serviceWorker' in navigator&&!/^(localhost|127\.)/.test(location.hostname))navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

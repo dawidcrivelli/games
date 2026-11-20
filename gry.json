@@ -11,6 +11,6 @@
   { "id": "egzorcysta-vs-cholota", "title": "Egzorcysta vs Chołota", "emoji": "🧟", "opis": "Obrona zagrody przed chołotą (2D).", "url": "https://dawidcrivelli.github.io/egzorcysta-vs-cholota/" },
   { "id": "lowca-pokemonow", "title": "Łowca Pokémonów", "emoji": "⚡", "opis": "2D.", "url": "https://dawidcrivelli.github.io/lowca-pokemonow/" },
   { "id": "lowca-dinozaurow", "title": "Łowca Dinozaurów", "emoji": "🦖", "opis": "2D.", "url": "https://dawidcrivelli.github.io/lowca-dinozaurow/" },
-  { "id": "kosmopatologia", "title": "Kosmopatologia", "emoji": "🚀", "opis": "2D.", "url": "https://dawidcrivelli.github.io/kosmopatologia/" },
-  { "id": "zoopatologia", "title": "Zoopatologia", "emoji": "🦒", "opis": "2D.", "url": "https://dawidcrivelli.github.io/zoopatologia/" }
+  { "id": "kosmopatologia", "title": "Kosmopatologia", "emoji": "🚀", "opis": "Prowadź psujący się statek z załogą przez awarie i obcych (2D)." },
+  { "id": "zoopatologia", "title": "Zoopatologia", "emoji": "🦒", "opis": "Lecz zmutowane zwierzęta, krzyżuj hybrydy, prowadź zoo (2D)." }
 ]

@@ -1,0 +1,16 @@
+{
+  "name": "Zoopatologia",
+  "short_name": "Zoopatologia",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ff4f8b",
+  "theme_color": "#ff4f8b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

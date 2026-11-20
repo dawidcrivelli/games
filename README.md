@@ -2,7 +2,7 @@
 
 Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [kosmopatologia](https://dawidcrivelli.github.io/games/kosmopatologia/) (2D), [zoopatologia](https://dawidcrivelli.github.io/games/zoopatologia/) (2D).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Zakładka „dźwięki”: klaksony i silniki z `lib/` do odsłuchania. Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -18,10 +18,11 @@ flowchart LR
 ```
 
 - Zwykłe skrypty, wspólny zasięg globalny; kolejność w `<gra>/index.html`.
-- Nazwa pliku = gry, które go używają. Nowe biblioteki: `lib/<funkcja>.<gry>.js` (jak `models/`), np. `lib/klaksony.ciuchcia-taxi.js`; starsze `lib/<gry>.js` to mieszanka helperów z `tools/split.mjs`. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
+- Stary układ: nazwa pliku = gry, które go używają (z `tools/split.mjs`). W przebudowie na pliki wg funkcji (`lib/<area>/<name>.js`, bez nazw gier) — `PLAN.md`. Kto używa pliku: `node tools/deps.mjs`.
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa, piraci), `models/morze.js` → `MORZE` (rafa, arka, piraci; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
 - `zle-owoce/` — gra 2D (canvas, bez three.js), niezależna od `lib/` i `models/`: `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka).
+- `kosmopatologia/`, `zoopatologia/` — gry 2D (canvas, pikselowa grafika) przeniesione z osobnych repo (stan z 2026-11-08: kosmopatologia `c5066df`, zoopatologia `7a5440b`; historia zostaje tam). `index.html`, `css/app.css`, `js/*.js` w kolejności z `index.html`; PWA: `manifest.json` + `sw.js` (offline). Nowy plik w `js/` → dopisz do `CORE` w `sw.js` i zmień `VERSION`.
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
 ## Katalog
@@ -72,7 +73,9 @@ flowchart LR
 - `tools/chrome.mjs` — wspólny Chrome dla narzędzi: macOS/Linux (`CHROME=` ścieżka), proxy, three.js z `node_modules` gdy CDN niedostępny.
 - `node tools/play.mjs [id…]` — każda gra: start, kilka sekund jazdy, błędy JS, zrzut `shots/<id>.jpg` (kafelki launchera). `--orig` / `--dist` testuje `orig/` / `dist/`.
 - `node tools/galeria.mjs [kategoria…]` — galeria: błędy budowania modeli, zrzuty `tmp/galeria-*.png`.
-- `node tools/build.mjs [gra…]` — `dist/<gra>.html`, jeden plik (artefakt Claude).
+- `node tools/build.mjs [gra…]` — `dist/<gra>.html`, jeden plik (artefakt Claude): wkleja lokalne skrypty i CSS, usuwa PWA.
+- `node tools/deps.mjs [fragment]` — pliki `lib/`, `models/`: które gry je ładują i co biorą z innych plików / z gry (ukryte zależności).
+- `node tools/dups.mjs [--all]` — funkcje o tej samej nazwie w kilku plikach, pogrupowane w identyczne warianty (kandydaci do deduplikacji).
 - Lokalnie: `python3 -m http.server` → http://localhost:8000/.
 
 Nowa gra: katalog `<id>/` z `index.html` + `game.js`, wpis w `gry.json` (+ `START` w `tools/play.mjs`), `node tools/play.mjs <id>`.
