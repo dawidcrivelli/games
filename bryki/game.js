@@ -15,9 +15,11 @@ const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: '
   pustynia: 'Pustynia', zlomowisko: 'Złomowisko', wulkan: 'Wulkan', lodowiec: 'Lodowiec' };
 const BUB_COL = ['#ffd23f', '#ff4d3a', '#3ad1ff', '#ff7ae0', '#7dff6a'];
 const LEN = 1150, CRUISE = 15, PX = -8, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
-const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 1.4, TURBO_CD = 5, MOC_FILL = 9, HIT_T = 1.0, BLINK_T = 1.4, SPIN_T = .7, GHOST_T = 1.6;
-const MOC_T = { rekin: 3, ptak: 3.2, osmiornica: 1.1, krab: 4, nietoperz: 1.4, zaba: 3 };
-const MOC_V = { rekin: 1.3, ptak: 1.25, osmiornica: 1, krab: 1.15, nietoperz: 1.1, zaba: 1.2 };
+const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT_T = 1.0, BLINK_T = 1.4, SPIN_T = .7, GHOST_T = 1.6;
+// Moc: u każdego 3 s, ta sama prędkość i odporność; różni się tylko sposobem trafiania aut wokół
+const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3 };
+const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3 };
+const REACH = 7;                                            // zwykły atak: u wszystkich do przodu, ten sam zasięg [m]
 const DIFF = {
   latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .06, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
   trudny: { cruise: 1.0, think: .28, react: .92, aggro: .7, aggroP: .28, look: 20, turbo: .25, band: .02, gap: [-6, 16] },
@@ -158,7 +160,7 @@ const mocOn = c => c.act === 'moc';
 const under = c => mocOn(c) && c.kind === 'rekin';            // rekin pod asfaltem
 const spiky = c => mocOn(c) && c.kind === 'krab';             // krab w kolcach
 const high = c => mocOn(c) && c.kind === 'zaba' && c.at > .25; // żaba na szczudłach: inne auta jadą pod nią
-const immune = c => c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind)) || c.fin;
+const immune = c => c.blinkT > 0 || mocOn(c) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
@@ -171,19 +173,12 @@ function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.l
 function genTrack(th) {
   const r = mulberry(th.seed * 7 + (diff === 'trudny' ? 3 : 0)), R = a => a[Math.floor(r() * a.length)], out = [];
   const add = (typ, s, lane, y = 0) => out.push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
-  // górki: łagodny garb (podskok tylko z turbo), skocznia (zawsze podrzuca, nad nią gwiazdki), fala (dwa małe garby)
+  // jedyna górka to most
   HILLS = []; SEGS = [];
   const most = { typ: 'most', s0: Math.round(LEN * .55), s1: Math.round(LEN * .55) + 36 };
   SEGS.push(most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
   out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
   const inSeg = (a, b) => SEGS.some(q => b > q.s0 - 6 && a < q.s1 + 6);
-  for (let s = 80 + r() * 30; s < LEN - 90; s += 55 + r() * 45) {
-    if (inSeg(s, s + 25)) continue;
-    const t = r();
-    if (t < .4) HILLS.push({ s, L: 16 + r() * 6, A: .8 + r() * .5 });
-    else if (t < .75) { const q = { s, L: 10 + r() * 2, A: 1.3 + r() * .4 }; HILLS.push(q); const l = R([0, 1, 2, 3]); for (let i = 0; i < 3; i++) add('gwiazda', s + q.L * .55 + i * 2.4, l, 2.1 + (i === 1) * .4); }
-    else { HILLS.push({ s, L: 8, A: .7 }); HILLS.push({ s: s + 9, L: 8, A: .7 }); }
-  }
   const onHill = s => HILLS.some(q => s > q.s - 4 && s < q.s + q.L + 4);
   const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'ruch', 'ruch', 'ruch'];
   let s = 55;
@@ -359,10 +354,9 @@ function act(c, a) {
   if (a === 'atak') { if (c.atakCd > 0) return false; c.atakCd = ATAK_CD; }
   if (a === 'moc') { if (c.moc < 3 && state !== 'menu') return false; if (state !== 'menu') c.moc = 0; }
   c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false;
-  if (c.kind === 'zaba' && a === 'atak') {                 // język celuje w najbliższe auto przed sobą, też na skos
+  if (c.kind === 'zaba' && a === 'atak') {                 // język sięga do najbliższego auta przed sobą
     const t = state === 'menu' ? null : cars.filter(o => inReach(c, o)).sort((p, q) => p.s - q.s)[0];
-    c.tgt = t; const dx = t ? Math.max(1, t.s - c.s - c.len / 2) : 6.5, dz = t ? t.z - c.z : 0;
-    c.b.tongueYaw = -Math.atan2(dz, dx); c.b.tongueLen = Math.min(8, Math.hypot(dx, dz));
+    c.b.tongueYaw = 0; c.b.tongueLen = t ? clamp(t.s - c.s - c.len / 2, 2, REACH + 1) : REACH;
   }
   if (state === 'menu') snd(a === 'atak' ? SND_ATAK[c.kind] : SND_MOC[c.kind]);
   return true;
@@ -389,36 +383,29 @@ function hit(o, by, how) {
   if (by) addMoc(by, 1);
   return true;
 }
-// Czy atak auta c sięga auta o? Każde auto atakuje w inną stronę: rekin i ptak do przodu, ośmiornica do tyłu, krab na boki, nietoperz daleko przed siebie
+// Zwykły atak: u wszystkich tak samo — pierwsze auto albo przeszkoda na moim pasie, do REACH m przed maską (różni się tylko wygląd)
 function inReach(c, o) {
-  if (o === c || o.fin) return false;
-  const dl = Math.abs(laneOf(o) - laneOf(c)), ds = o.s - c.s, gap = Math.abs(ds) - (c.len + o.len) / 2;
-  if (o.y > 1.4 || under(o) || high(o)) return false;
-  switch (c.kind) {
-    case 'rekin': return dl === 0 && ds > 0 && gap < 5;
-    case 'ptak': return dl === 0 && ds > 0 && gap < 6.5;
-    case 'osmiornica': return dl === 0 && ds < 0 && gap < 7;
-    case 'krab': return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
-    case 'nietoperz': return dl === 0 && ds > 0 && gap < 12;
-    case 'zaba': return ds > 0 && ((dl === 0 && gap < 7) || (dl === 1 && ds < 8.5));
-  }
+  if (o === c || o.fin || o.y > 1.4 || under(o) || high(o)) return false;
+  const ds = o.s - c.s;
+  return laneOf(o) === laneOf(c) && ds > 0 && ds - (c.len + o.len) / 2 < REACH;
 }
 function itemInReach(c, it) {
   if (!it.alive || !['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj)) return false;
-  const dl = Math.abs(it.lane - laneOf(c)), ds = it.s - c.s, gap = Math.abs(ds) - (c.len + it.len) / 2;
-  if (c.kind === 'rekin') return dl === 0 && ds > 0 && gap < 5;
-  if (c.kind === 'ptak') return dl === 0 && ds > 0 && gap < 6.5;
-  if (c.kind === 'krab') return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
-  if (c.kind === 'nietoperz') return dl === 0 && ds > 0 && gap < 12;
-  if (c.kind === 'zaba') return it.rodzaj === 'skrzynia' && ds > 0 && dl <= 1 && gap < 7;
-  return false;
+  const ds = it.s - c.s;
+  return it.lane === laneOf(c) && ds > 0 && ds - (c.len + it.len) / 2 < REACH;
 }
-// Pociski: fala dźwiękowa nietoperza (leci pasem do przodu), rój małych nietoperzy (każdy goni auto)
+// Pociski: kula tuszu ośmiornicy i fala dźwiękowa nietoperza (lecą pasem do przodu), rój małych nietoperzy (każdy goni auto)
+function shootInk(c) {
+  const g = new T.Group(); scene.add(g);
+  brPart(g, new T.SphereGeometry(.42, 12, 9), brMat(0x101018), 0, 0, 0, { ol: .03 });
+  for (let i = 0; i < 3; i++) brPart(g, new T.SphereGeometry(.22 - i * .05, 8, 6), brMat(0x101018), -.45 - i * .35, .05, 0, { ol: 0 });
+  shots.push({ typ: 'tusz', g, s: c.s + c.len / 2 + .5, z: c.z, lane: laneOf(c), y: 1.25 + c.y, vy: 2, vs: c.v + 24, left: REACH + 2, owner: c });
+}
 const ringG = new T.TorusGeometry(.7, .07, 6, 20);
 function shootWave(c) {
   const g = new T.Group(); scene.add(g);
   for (let i = 0; i < 3; i++) { const m = new T.Mesh(ringG, new T.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: .85, depthWrite: false })); m.rotation.y = Math.PI / 2; m.position.x = -i * .55; m.scale.setScalar(.6 + i * .25); g.add(m); }
-  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 22, left: 13, owner: c });
+  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 24, left: REACH + 2, owner: c });
 }
 function miniBat() {
   const g = new T.Group();
@@ -431,18 +418,17 @@ function miniBat() {
   }
   return g;
 }
-function swarm(c) {
-  const tg = cars.filter(o => o !== c && !o.fin && o.s > c.s - 3 && o.s - c.s < 35).sort((a, b) => a.s - b.s).slice(0, 3);
-  for (let i = 0; i < 8; i++) {
-    const g = miniBat(); scene.add(g);
-    shots.push({ typ: 'bat', g, s: c.s + rnd(-1, 1), z: c.z + rnd(-1, 1), lane: laneOf(c), y: 1.6 + c.y + rnd(0, 1), target: tg.length ? tg[i % tg.length] : null, t: 0, owner: c, ph: rnd(0, 6) });
-  }
-}
 function stepShots(dt) {
   for (let i = shots.length - 1; i >= 0; i--) {
     const p = shots[i]; let done = false;
-    if (p.typ === 'fala') {
-      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / 13, 0, 1) * .85; });
+    if (p.typ === 'tusz') {                                // kula tuszu: trafia pierwsze auto albo przeszkodę na pasie; na końcu lotu zostaje kałuża
+      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.vy -= 6 * dt; p.y = Math.max(.3, p.y + p.vy * dt);
+      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 + .3 && o.y < 1.4 && !under(o) && !high(o)) { hit(o, p.owner, 'tusz'); done = true; break; }
+      if (!done) for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) { destroy(it, p.owner); done = true; break; }
+      if (p.left < 0) done = true;
+      p.g.position.set(p.s - camS, H(p.s) + p.y, p.z);
+    } else if (p.typ === 'fala') {
+      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / (REACH + 2), 0, 1) * .85; });
       for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 && o.y < 1.4 && !under(o)) { hit(o, p.owner); done = true; break; }
       for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) destroy(it, p.owner);
       if (p.left < 0) done = true;
@@ -468,36 +454,37 @@ function resolveAct(c) {
   if (c.act === 'atak') {
     if (loud) snd(SND_ATAK[k]);
     bubble(WORD_ATAK[k], c, 'big');
-    if (k === 'rekin') c.lungeT = .4;                       // rekin rzuca się do przodu z otwartą paszczą
     if (k === 'ptak') for (let i = 0; i < 5; i++) part({ s: c.s + c.len / 2 + 1, y: 1.2 + c.y, z: c.z, vs: rnd(-2, 4), vy: rnd(1, 4), vz: rnd(-2, 2), col: pick([0xf06a14, 0xb5651d, 0xe2a417]), size: .15, life: .8, grav: 1, box: 1 });
-    if (k === 'osmiornica') newItem({ typ: 'tusz', s: c.s - c.len / 2 - 3, lane: laneOf(c), rodzaj: 'tusz', len: 4, hitBy: new Set([c]), owner: c, ttl: 5 });
+    if (k === 'osmiornica') { shootInk(c); return; }
     if (k === 'nietoperz') { shootWave(c); return; }
-    if (k === 'zaba') {                                    // język: trafia cel, po drodze zjada gwiazdki i skrzynie, żaba podciąga się do przodu
-      if (c.tgt && inReach(c, c.tgt)) hit(c.tgt, c);
-      for (const it of items) if (it.alive && (it.rodzaj === 'gwiazda' || it.rodzaj === 'skrzynia') && Math.abs(it.lane - laneOf(c)) <= 1 && it.s > c.s && it.s - c.s < 8.5 && !it.move) {
-        if (it.rodzaj === 'gwiazda') { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); } else destroy(it, c);
-      }
-      c.lungeT = .25; return;
-    }
-    for (const o of cars) if (inReach(c, o)) hit(o, c, k === 'osmiornica' ? 'tusz' : null);
+    if (k === 'zaba') for (const it of items) if (it.alive && it.rodzaj === 'gwiazda' && it.lane === laneOf(c) && it.s > c.s && it.s - c.s < REACH + 3) { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); }   // język zjada też gwiazdki
+    const t = cars.filter(o => inReach(c, o)).sort((a, b) => a.s - b.s)[0];
+    if (t) hit(t, c);
     for (const it of items) if (itemInReach(c, it)) destroy(it, c);
   } else {
     if (loud) snd(SND_MOC[k]);
     bubble(WORD_MOC[k], c, 'big');
     if (k === 'rekin') for (let i = 0; i < 12; i++) part({ s: c.s, y: .2, z: c.z + rnd(-1, 1), vs: rnd(-3, 6), vy: rnd(3, 7), vz: rnd(-2, 2), col: 0x6b6560, size: .22, life: .7, grav: 1, box: 1 });
-    if (k === 'osmiornica') {                              // macka łapie najbliższe auto obok i ciągnie je w tył, sama strzela do przodu
-      const t = cars.filter(o => o !== c && !o.fin && Math.abs(laneOf(o) - laneOf(c)) <= 1 && Math.abs(o.s - c.s) < 9 && !immune(o))
-        .sort((a, b) => Math.abs(a.s - c.s) - Math.abs(b.s - c.s))[0];
-      c.b.p.grab = c.b.p.tent[t && laneOf(t) < laneOf(c) ? 0 : 3];
-      if (t && hit(t, c, 'macka')) { t.s -= 5; t.v *= .3; }
-      c.turboT = Math.max(c.turboT, 1.8);
-    }
-    if (k === 'nietoperz') swarm(c);
+    if (k === 'nietoperz') { c.batT = 0; c.orbit = new T.Group(); scene.add(c.orbit); for (let i = 0; i < 12; i++) { const m = miniBat(); m.scale.setScalar(1.9); c.orbit.add(m); } }
   }
 }
-// Moc trwa: rekin pod asfaltem podrzuca auta, ptak zrzuca jajka, krab w kolcach taranuje
+// Moc trwa 3 s: rekin pod asfaltem podrzuca auta, ptak zrzuca jajka, krab w kolcach taranuje, ośmiornica łapie mackami na boki,
+// nietoperz krąży w roju i wysyła nietoperze na auta przed sobą, żaba jedzie górą i ląduje z hukiem
 function mocTick(c, dt) {
   if (state === 'menu') return;
+  if (c.kind === 'osmiornica') for (const o of cars) {
+    if (o === c || immune(o) || o.y > 1.4 || Math.abs(laneOf(o) - laneOf(c)) > 1 || Math.abs(o.s - c.s) > 3.8) continue;
+    if (hit(o, c, 'macka')) o.s -= 3;
+  }
+  if (c.kind === 'nietoperz') {
+    if ((c.batT -= dt) < 0) {                               // co sekundę 3 nietoperze lecą na najbliższe auto przed sobą
+      c.batT = 1;
+      const t = cars.filter(o => o !== c && !o.fin && !immune(o) && o.s > c.s - 2 && o.s - c.s < 30).sort((a, b) => a.s - b.s)[0];
+      for (let i = 0; i < 3; i++) { const g = miniBat(); scene.add(g); shots.push({ typ: 'bat', g, s: c.s + rnd(-1, 1), z: c.z + rnd(-1, 1), lane: laneOf(c), y: 1.8 + c.y, target: t || null, t: 0, owner: c, ph: rnd(0, 6) }); }
+      if (near(c)) snd('roj');
+    }
+    for (const o of cars) if (o !== c && !immune(o) && o.y < 1.4 && Math.abs(laneOf(o) - laneOf(c)) <= 1 && Math.abs(o.s - c.s) < 3) hit(o, c, 'pop');
+  }
   if (c.kind === 'rekin' && Math.random() < dt * 35) part({ s: c.s + rnd(-1, 2), y: .2, z: c.z + rnd(-.9, .9), vs: rnd(-2, 2), vy: rnd(2, 4), col: TH.road === 0x7f98ad ? 0xffffff : 0x6b6560, size: .16, life: .5, grav: 1, box: 1 });
   if (c.kind === 'ptak' && c.at > .4 && (c.eggT -= dt) < 0) {
     c.eggT = .4;
@@ -516,7 +503,7 @@ function mocTick(c, dt) {
   if (c.kind === 'rekin' || c.kind === 'krab') for (const o of cars) {
     if (o === c || immune(o) || o.y > 1.4) continue;
     const dl = Math.abs(laneOf(o) - laneOf(c)), gap = Math.abs(o.s - c.s) - (c.len + o.len) / 2;
-    if ((dl === 0 && gap < .2) || (c.kind === 'krab' && dl === 1 && Math.abs(o.s - c.s) < 2.5))
+    if ((dl === 0 && gap < .3) || (dl === 1 && Math.abs(o.s - c.s) < 3))
       if (hit(o, c, 'pop')) o.s += Math.sign(o.s - c.s || 1) * 2.5;
   }
 }
@@ -557,15 +544,14 @@ function aiThink(c) {
   if (hazard(L, 0, D.look)) {
     const it = items.find(it => it.alive && it.lane === L && it.rodzaj === 'twarda' && it.s > c.s && itemInReach(c, it));
     if (it && c.atakCd <= 0 && Math.random() < .6) { act(c, 'atak'); return; }
-    if (c.moc >= 3 && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind) && Math.random() < .5) { act(c, 'moc'); return; }
+    if (c.moc >= 3 && Math.random() < .5) { act(c, 'moc'); return; }
     if (Math.random() < D.react) { const o = [L - 1, L + 1].filter(free); if (o.length) setLane(c, pick(o)); }
     return;
   }
   const tgt = cars.find(o => inReach(c, o) && !immune(o));
   if (tgt && c.atakCd <= 0 && Math.random() < (tgt.player ? D.aggroP : D.aggro)) { act(c, 'atak'); return; }
   if (c.moc >= 3) {
-    const useful = c.kind === 'osmiornica' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 8)
-      : c.kind === 'krab' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 6)
+    const useful = c.kind === 'osmiornica' || c.kind === 'krab' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 6)
       : c.kind === 'nietoperz' ? cars.some(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 30)
       : c.kind === 'zaba' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 10)
       : cars.some(o => o !== c && laneOf(o) === L && o.s > c.s && o.s - c.s < 14) || Math.random() < .1;
@@ -602,7 +588,6 @@ function stepCar(c, dt, racing) {
     if (c.hitT > 0) vt *= .4;
     if (c.slipT > 0) vt *= .65;
     if (c.lungeT > 0) vt += 14;
-    if (c.y < .1) vt *= 1 - clamp(Hd(c.s), -.3, .3) * .4;              // pod górkę trochę wolniej, z górki szybciej
   }
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
   c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
@@ -663,6 +648,14 @@ function drawCar(c, dt) {
     pose = c.act; k = c.act === 'atak' ? Math.min(1, c.at / .2, (d - c.at) / .3) : Math.min(1, c.at / .25, (d - c.at) / .3);
   }
   brykaPose(c.b, pose, clamp(k, 0, 1)); brykaTick(c.b, dt, c.v);
+  if (c.orbit) {                                           // rój nietoperzy krąży wokół auta, póki trwa moc
+    if (!(mocOn(c) && c.kind === 'nietoperz')) { scene.remove(c.orbit); c.orbit = null; }
+    else c.orbit.children.forEach((m, i) => {
+      const a = c.at * 5 + i * Math.PI * 2 / 12, f = Math.sin(c.at * 30 + i) * .9;
+      m.position.set(c.s - camS + Math.cos(a) * 2.8, c.ya + 1.8 + Math.sin(c.at * 7 + i) * .5, c.z + Math.sin(a) * 2.1); m.rotation.y = -a;
+      m.userData.w1.rotation.x = f; m.userData.w2.rotation.x = -f;
+    });
+  }
   const g = c.b.g, x = c.s - camS, gy = H(c.s);
   const pitch = c.y < .05 ? Math.atan(Hd(c.s)) : (mocOn(c) && c.kind === 'ptak') ? 0 : clamp(Math.atan2(c.vy, Math.max(c.v, 4)), -.45, .45);
   g.position.set(x, c.ya, c.z);
@@ -711,13 +704,14 @@ function hud() {
     e.style.left = (right ? innerWidth - 150 : 150) + 'px'; e.style.top = Y + 'px';
   });
   $('bAtak').querySelector('.cd').style.height = clamp(P.atakCd / ATAK_CD, 0, 1) * 100 + '%';
-  $('bTurbo').querySelector('.cd').style.height = clamp(P.turboCd / TURBO_CD, 0, 1) * 100 + '%';
+  $('bTurbo').classList.toggle('act', P.turboT > 0);                 // turbo działa: przycisk płonie; potem ciemna nakładka = ładowanie
+  $('bTurbo').querySelector('.cd').style.height = (P.turboT > 0 ? 0 : clamp(P.turboCd / (TURBO_CD - TURBO_T), 0, 1) * 100) + '%';
   [...$('bMoc').querySelectorAll('.pips b')].forEach((b, i) => b.classList.toggle('on', P.moc > i));
   $('bMoc').classList.toggle('full', P.moc >= 3 && !P.act);
 }
 
 /* ---------- przebieg: menu → odliczanie → wyścig → wyniki ---------- */
-function clearRace() { flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
+function clearRace() { ALL.forEach(c => { if (c.orbit) { scene.remove(c.orbit); c.orbit = null; } }); flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
 function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
   cars.forEach((c, i) => { resetCar(c, i, i); c.s = -14 + i * 3.6; });           // auta po lewej, karta menu po prawej
@@ -837,7 +831,7 @@ function step(dt) {
   if (state === 'end' && (endT -= dt) < 0) showEnd();
   placeDeco(); syncItems(dt); stepParts(dt);
   for (const c of cars) drawCar(c, dt);
-  const tg = state === 'race' && !P.fin ? cars.filter(o => inReach(P, o) && !immune(o)) : [];   // celownik i świecący przycisk ataku
+  const tg = state === 'race' && !P.fin ? [...cars.filter(o => inReach(P, o) && !immune(o)), ...items.filter(it => it.rodzaj === 'twarda' && itemInReach(P, it)).map(it => ({ s: it.s, z: it.z ?? LANES[it.lane] }))] : [];   // celownik i świecący przycisk ataku
   aims.forEach((m, i) => { const o = tg[i]; m.visible = !!o && P.atakCd <= 0; if (o) { m.position.set(o.s - camS, H(o.s) + .06, o.z); m.scale.setScalar(1 + .12 * Math.sin(performance.now() / 90)); } });
   $('bAtak').classList.toggle('hot', tg.length > 0 && P.atakCd <= 0);
   marker.visible = state !== 'menu' && state !== 'done';

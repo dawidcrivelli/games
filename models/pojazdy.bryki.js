@@ -265,11 +265,11 @@ function brOsmiornica(b) {
   }
   b.p.grab = b.p.tent[3];                                       // macka do łapania (strona +z)
   // armatka z tuszem
-  const gun = new THREE.Group(); gun.position.set(-2.1, 1.2, 0); B.add(gun); b.p.gun = gun;
+  const gun = new THREE.Group(); gun.position.set(1.85, 1.22, 0); gun.rotation.y = Math.PI; B.add(gun); b.p.gun = gun;   // armatka z tuszem z przodu
   brPart(gun, brCyl(.3, .24, .7, 12, 'x'), 0x2e2e36, -.2, 0, 0, { ol: .03 });
   brPart(gun, new THREE.TorusGeometry(.3, .07, 6, 14), 0xc9a24a, -.55, 0, 0, { r: [0, Math.PI / 2, 0], ol: .02 });
   brPart(gun, new THREE.SphereGeometry(.12, 6, 5), brMat(0x0b0b10), -.5, -.22, 0, { ol: 0, s: [1, 1.5, 1] });
-  const ink = new THREE.Group(); ink.position.set(-2.8, 1.2, 0); B.add(ink); ink.visible = false; b.p.ink = ink;
+  const ink = new THREE.Group(); ink.position.set(3.3, 1.25, 0); ink.rotation.y = Math.PI; B.add(ink); ink.visible = false; b.p.ink = ink;
   for (const [x, y, z, r] of [[0, 0, 0, .45], [-.55, .2, .3, .55], [-.5, -.15, -.35, .5], [-1.1, .1, 0, .65], [-.9, .45, -.2, .4]])
     brPart(ink, new THREE.SphereGeometry(r, 10, 8), brMat(0x101018), x, y, z, { ol: .03 });
   brPatch(B, .7, .76, .5, .3, Z + .02, 0x6b7c8a, .05);
@@ -445,14 +445,14 @@ function brykaPose(b, pose, k = 1) {
     B.position.y = .9 * m; b.wheels.forEach(w => w.position.y = w.userData.r + .9 * m);
   }
   if (b.kind === 'osmiornica') {
-    P.ink.visible = pose === 'atak' && k > .05; P.ink.scale.setScalar(Math.max(.01, k));
+    P.ink.visible = pose === 'atak' && k > .05; P.ink.scale.setScalar(Math.max(.01, k * .55));
     P.gun.scale.x = 1 + (pose === 'atak' ? .25 * Math.sin(k * Math.PI) : 0);
     b.grabK = pose === 'moc' ? k : 0;
   }
   if (b.kind === 'krab') {
     const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
-    P.arms.forEach(arm => {
-      arm.rotation.y = -arm.userData.s * (.25 + 1.15 * a);
+    P.arms.forEach(arm => {                                  // atak: szczypce wysuwają się do przodu i zaciskają
+      arm.rotation.y = -arm.userData.s * .25 * (1 - a); arm.position.x = 1.15 + .9 * a;
       arm.userData.claw.rotation.z = .15 + .25 * a;
       arm.userData.finger.rotation.z = .65 * Math.sin(Math.min(1, a * 1.3) * Math.PI) + .08;
     });
@@ -481,7 +481,7 @@ function brykaTick(b, dt, v) {
   b.wheels.forEach(w => w.rotation.z -= v * dt / w.userData.r);
   b.body.position.y = (b.baseY || 0) + Math.sin(t * 17) * .025 * Math.min(1, v / 8);   // bujanie na resorach
   if (b.kind === 'osmiornica') P.tent.forEach((tn, j) => {
-    const grab = tn === P.grab ? (b.grabK || 0) : 0;
+    const grab = tn === P.tent[0] || tn === P.tent[3] ? (b.grabK || 0) : 0;   // moc: obie boczne macki na boki
     tn.root.rotation.y = tn.ry + (-tn.s * Math.PI / 2 - tn.ry) * grab;
     tn.root.scale.setScalar(1 + .9 * grab);
     tn.segs.forEach((sg, i) => {
