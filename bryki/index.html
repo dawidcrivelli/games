@@ -22,17 +22,19 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #place.pop{transform:scale(1.35)}
 #prog{flex:1;max-width:560px;margin:0 auto;height:14px;border-radius:99px;background:rgba(30,18,10,.45);position:relative;border:2px solid rgba(255,255,255,.7)}
 #prog i{position:absolute;right:-14px;top:50%;transform:translateY(-55%);font-style:normal;font-size:26px}
+#prog span img{height:28px;display:block}#prog span.me img{height:38px}
 #prog span{position:absolute;top:50%;font-size:22px;transform:translate(-50%,-55%);transition:left .1s linear;filter:drop-shadow(0 1px 0 #000)}
 #prog span.me{font-size:30px;z-index:2;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 1px 0 #000)}
 .side{position:absolute;bottom:calc(10px + var(--sb));display:flex;flex-direction:column;gap:10px;align-items:center}
-#left{left:calc(10px + var(--sl))}#right{right:calc(10px + var(--sr))}
+#left{left:calc(8px + var(--sl));top:calc(58px + var(--st));gap:12px}
+#left .gb{width:112px;flex:1;max-height:190px;font-size:56px;border-radius:28px;background:rgba(255,243,214,.5)}#right{right:calc(10px + var(--sr))}
 .gb{width:80px;height:80px;border-radius:24px;background:rgba(255,243,214,.8);box-shadow:0 5px 0 var(--edge);font-size:38px;display:grid;place-items:center}
 #bAtak.hot{background:#ff3a2a;animation:pulse .25s infinite alternate}
-#hp{font-size:20px;letter-spacing:-2px;filter:drop-shadow(0 1px 0 var(--edge))}
 .gb.dn,.gb:active{transform:translateY(4px);box-shadow:0 1px 0 var(--edge)}
 .gb .cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(30,18,10,.5);pointer-events:none}
 #bAtak{width:98px;height:98px;border-radius:50%;font-size:48px;background:rgba(255,120,90,.85)}
 #bTurbo{width:70px;height:70px;font-size:32px;background:rgba(140,220,255,.85)}
+#bTurbo.act{background:#ff9a1a;animation:pulse .18s infinite alternate;box-shadow:0 0 22px 6px #ffd23f,0 5px 0 var(--edge)}
 #bMoc{background:rgba(255,243,214,.8)}
 #bMoc .pips{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;gap:4px}
 #bMoc .pips b{width:14px;height:14px;border-radius:50%;background:rgba(30,18,10,.3);border:2px solid rgba(30,18,10,.5)}
@@ -40,36 +42,38 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #bMoc.full{background:var(--gold);animation:pulse .35s infinite alternate}
 #bMoc span.i{margin-top:-14px}
 .edge{position:absolute;font-size:30px;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 0 var(--edge));display:flex;align-items:center;gap:0}
-.edge b{font-size:20px;color:#fff;-webkit-text-stroke:1px var(--edge)}
+.edge img{height:40px;display:block}.edge b{font-size:20px;color:#fff;-webkit-text-stroke:1px var(--edge)}
+.bub.pic img{width:110px;display:block;filter:drop-shadow(0 3px 0 #111) drop-shadow(0 0 6px #fff)}
 #splat{position:absolute;inset:0;overflow:hidden}
 #splat i{position:absolute;border-radius:50%;transform:translate(-50%,-50%);animation:splat 2s ease-in forwards}
 @keyframes splat{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}8%{opacity:.95;transform:translate(-50%,-50%) scale(1.1)}70%{opacity:.85}100%{opacity:0;transform:translate(-50%,-30%) scale(1)}}
 #count{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:110px;line-height:1;filter:drop-shadow(0 6px 0 var(--edge))}
 #count.go{animation:go .7s ease-out forwards}
 @keyframes go{to{transform:translate(-50%,-50%) scale(2.2);opacity:0}}
-#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:calc(10px + var(--st)) calc(14px + var(--sr)) calc(10px + var(--sb)) 12px;
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:flex-end;overflow:hidden !important;padding:calc(10px + var(--st)) calc(14px + var(--sr)) calc(10px + var(--sb)) 12px;
   background:linear-gradient(90deg,rgba(0,0,0,0) 30%,rgba(242,182,50,.25));overflow:auto}
-.card{background:var(--card);border-radius:28px;padding:10px 16px 14px;width:min(600px,100%);box-shadow:0 7px 0 var(--plate-edge),0 18px 40px var(--shade);text-align:center}
+.card{transform-origin:right center;background:var(--card);border-radius:28px;padding:10px 16px 14px;width:min(600px,100%);box-shadow:0 7px 0 var(--plate-edge),0 18px 40px var(--shade);text-align:center}
 .card h1{display:inline;font-size:2.1rem;line-height:1;margin:0;font-weight:800;color:var(--red);text-shadow:0 3px 0 var(--plate-edge)}
 .card .sub{display:inline;margin-left:10px;font-size:1rem;font-weight:700}
 .q{font-size:.95rem;font-weight:700;margin:8px 0 5px;text-align:left}
 .grid{display:grid;gap:8px}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}.g1{grid-template-columns:1fr}
 .duo{display:grid;grid-template-columns:2fr 1fr;gap:0 14px}
 .pick{height:46px;position:relative}
+.pick.car{height:52px;justify-content:flex-start;padding-left:4px;gap:4px}.pick.car img{height:46px;margin:-6px 0}
 #bGo{width:100%;height:56px;margin-top:12px;font-size:1.6rem;background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-edge),0 10px 16px var(--shade)}
 #bGo:active{box-shadow:0 2px 0 var(--red-edge)}
 #bSnd{position:fixed;left:calc(12px + var(--sl));top:calc(10px + var(--st));width:56px;height:48px;font-size:1.4rem}
 @media (min-height:520px){.pick{height:56px}#bGo{height:66px}.card{padding:16px 20px 20px}}
 #podium{display:flex;align-items:flex-end;gap:10px}
 #podium div{display:flex;flex-direction:column;align-items:center;background:var(--plate);border-radius:18px 18px 8px 8px;box-shadow:0 5px 0 var(--plate-edge);width:88px;padding:6px 0 4px;font-size:40px;line-height:1.05}
-#podium div b{font-size:34px}
+#podium div b{font-size:34px}#podium div img{width:84px;margin:-6px 0 0}
 #podium div.me{background:var(--wheat);animation:pulse .4s infinite alternate}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="hud" class="ov" hidden>
-  <div id="top"><div id="place">🥇</div><div id="hp">❤️❤️❤️</div><div id="prog"><i>🏁</i></div><button id="bPause" class="rb">⏸</button></div>
+  <div id="top"><div id="place">🥇</div><div id="prog"><i>🏁</i></div><button id="bPause" class="rb">⏸</button></div>
   <div id="edges"></div>
   <div id="fx"></div>
   <div id="splat"></div>

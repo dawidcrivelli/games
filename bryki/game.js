@@ -13,13 +13,15 @@ const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szcz
 const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna' };
 const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: 'Krab', nietoperz: 'Nietoperz', zaba: 'Żaba',
   pustynia: 'Pustynia', zlomowisko: 'Złomowisko', wulkan: 'Wulkan', lodowiec: 'Lodowiec' };
-const LEN = 1150, CRUISE = 15, PX = -6, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
-const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 1.4, TURBO_CD = 5, MOC_FILL = 9, HIT_T = 1.2, BLINK_T = 2.2, SPIN_T = .7;
-const MOC_T = { rekin: 3, ptak: 3.2, osmiornica: 1.1, krab: 4, nietoperz: 1.4, zaba: 3 };
-const MOC_V = { rekin: 1.3, ptak: 1.25, osmiornica: 1, krab: 1.15, nietoperz: 1.1, zaba: 1.2 };
+const LEN = 1150, CRUISE = 15, PX = -8, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
+const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT_T = 1.0, BLINK_T = 1.4, SPIN_T = .7, GHOST_T = 1.6;
+// Moc: u każdego 3 s, ta sama prędkość i odporność; różni się tylko sposobem trafiania aut wokół
+const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3 };
+const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3 };
+const REACH = 7;                                            // zwykły atak: u wszystkich do przodu, ten sam zasięg [m]
 const DIFF = {
-  latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .16, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
-  trudny: { cruise: 1.0, think: .28, react: .92, aggro: .7, aggroP: .5, look: 20, turbo: .25, band: .02, gap: [-6, 16] },
+  latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .06, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
+  trudny: { cruise: 1.0, think: .28, react: .92, aggro: .7, aggroP: .28, look: 20, turbo: .25, band: .02, gap: [-6, 16] },
 };
 const HAZ = ['twarda', 'lawa', 'slisko', 'tusz', 'jajo'];
 const TRASY = brykiTrasy(), TRASY_KEYS = Object.keys(TRASY);
@@ -45,7 +47,7 @@ function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
   // kamera „3” z porównania: skos 8° (widać przody aut), nachylenie 38°, pasy 3,5 m
   const d = Math.max(1, 2.1 / cam.aspect), pit = 38 * Math.PI / 180, yaw = 8 * Math.PI / 180, tz = .3;
-  const D = .75 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;
+  const D = .95 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;
   camBase.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw)); cam.position.copy(camBase); cam.lookAt(0, .2, tz); cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
@@ -120,14 +122,22 @@ const ALL = KINDS.map(kind => {
   return { kind, b, sh, dz, len: b.len * .8, s: 0, lane: 0, z: 0, y: 0, ya: 0, vy: 0, v: 0, ai: {} };
 });
 let cars = ALL.slice(0, 4), P = ALL[0];
-// serduszka nad autem: 3 trafienia od innych aut (atak albo taranowanie z boku) = KO, auto wypada i wraca z tyłu
-const heartG = (() => { const sh = new T.Shape(); sh.moveTo(0, -.32); sh.bezierCurveTo(-.5, .02, -.36, .4, 0, .2); sh.bezierCurveTo(.36, .4, .5, .02, 0, -.32);
-  const g = new T.ExtrudeGeometry(sh, { depth: .08, bevelEnabled: false }); g.translate(0, 0, -.04); return g; })();
-const HEART_ON = brMat(0xff3a4a, 'glow'), HEART_OFF = brMat(0x55505a, 'glow');
-for (const c of ALL) {
-  c.hearts = new T.Group(); scene.add(c.hearts);
-  for (let i = 0; i < 3; i++) { const m = new T.Mesh(heartG, HEART_ON); m.position.x = (i - 1) * .62; m.scale.setScalar(1.2); c.hearts.add(m); }
-}
+// Obrazki aut (z przodu, z ukosa) do menu, paska postępu, podium — zamiast emotek
+const THUMB = (() => {
+  const W = 200, Hh = 130, r = new T.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true }), out = {};
+  r.setPixelRatio(1); r.setSize(W, Hh);
+  const sc = new T.Scene(), cm = new T.PerspectiveCamera(28, W / Hh, .1, 100);
+  sc.add(new T.HemisphereLight(0xffffff, 0x8a7a66, .85)); const l = new T.DirectionalLight(0xffffff, .8); l.position.set(4, 6, 5); sc.add(l);
+  for (const k of KINDS) {
+    const b = buildBryka(k); brykaPose(b, 'jazda', 0); sc.add(b.g);
+    const box = new T.Box3().setFromObject(b.g), c = box.getCenter(new T.Vector3()), R = box.getSize(new T.Vector3()).length() / 2;
+    cm.position.copy(c).add(new T.Vector3(1.15, .5, 1).normalize().multiplyScalar(R / Math.sin(14 * Math.PI / 180) * .6)); cm.lookAt(c);
+    r.render(sc, cm); out[k] = r.domElement.toDataURL(); sc.remove(b.g);
+  }
+  r.dispose(); r.forceContextLoss?.();
+  return out;
+})();
+const img = (k, cls = '') => `<img class="${cls}" src="${THUMB[k]}" alt="${k}">`;
 // celownik: czerwone koło pod autem, które mój atak teraz trafi
 const aims = [0, 1, 2].map(() => { const m = new T.Mesh(new T.RingGeometry(1.5, 2.0, 28), new T.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: .85, depthWrite: false })); m.rotation.x = -Math.PI / 2; scene.add(m); return m; });
 const marker = new T.Group(); scene.add(marker);           // strzałka nad autem gracza: zawsze widać, które jest moje
@@ -149,11 +159,11 @@ const mocOn = c => c.act === 'moc';
 const under = c => mocOn(c) && c.kind === 'rekin';            // rekin pod asfaltem
 const spiky = c => mocOn(c) && c.kind === 'krab';             // krab w kolcach
 const high = c => mocOn(c) && c.kind === 'zaba' && c.at > .25; // żaba na szczudłach: inne auta jadą pod nią
-const immune = c => c.ko > 0 || c.blinkT > 0 || (mocOn(c) && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind)) || c.fin;
+const immune = c => c.blinkT > 0 || mocOn(c) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
-    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, hp: 3, ko: 0, ramT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, bonkT: 0,
+    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, bonkT: 0,
     ai: { t: rnd(.2, .6), gap: 0, gapT: 0 } });
 }
 function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.lane = n; return true; }
@@ -162,19 +172,12 @@ function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.l
 function genTrack(th) {
   const r = mulberry(th.seed * 7 + (diff === 'trudny' ? 3 : 0)), R = a => a[Math.floor(r() * a.length)], out = [];
   const add = (typ, s, lane, y = 0) => out.push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
-  // górki: łagodny garb (podskok tylko z turbo), skocznia (zawsze podrzuca, nad nią gwiazdki), fala (dwa małe garby)
+  // jedyna górka to most
   HILLS = []; SEGS = [];
   const most = { typ: 'most', s0: Math.round(LEN * .55), s1: Math.round(LEN * .55) + 36 };
   SEGS.push(most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
   out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
   const inSeg = (a, b) => SEGS.some(q => b > q.s0 - 6 && a < q.s1 + 6);
-  for (let s = 80 + r() * 30; s < LEN - 90; s += 55 + r() * 45) {
-    if (inSeg(s, s + 25)) continue;
-    const t = r();
-    if (t < .4) HILLS.push({ s, L: 16 + r() * 6, A: .8 + r() * .5 });
-    else if (t < .75) { const q = { s, L: 10 + r() * 2, A: 1.3 + r() * .4 }; HILLS.push(q); const l = R([0, 1, 2, 3]); for (let i = 0; i < 3; i++) add('gwiazda', s + q.L * .55 + i * 2.4, l, 2.1 + (i === 1) * .4); }
-    else { HILLS.push({ s, L: 8, A: .7 }); HILLS.push({ s: s + 9, L: 8, A: .7 }); }
-  }
   const onHill = s => HILLS.some(q => s > q.s - 4 && s < q.s + q.L + 4);
   const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'ruch', 'ruch', 'ruch'];
   let s = 55;
@@ -186,7 +189,8 @@ function genTrack(th) {
       case 'dwie': add(R(th.twarde), s, L[0]); add(R(th.twarde), s + r() * 3, L[1]); break;
       case 'skrzynie': add(R(th.miekkie), s, L[0]); add(R(th.miekkie), s + 2, L[1]); if (r() < .5) add(R(th.miekkie), s + 4, L[2]); break;
       case 'gwiazdy': for (let i = 0; i < 4; i++) add('gwiazda', s + i * 2.5, L[0]); break;
-      case 'rampa': add('rampa', s, L[0]); for (let i = 0; i < 3; i++) add('gwiazda', s + 5 + i * 2.6, L[0], 1.3 + Math.sin((i + 1) / 4 * Math.PI) * .7); add(R(th.twarde), s + 8, L[0]); break;
+      // skok z rampy: ok. 18 m, szczyt 2,5 m nad drogą; przeszkoda w połowie lotu, gwiazdki wzdłuż łuku
+      case 'rampa': add('rampa', s, L[0]); [[4.5, 2], [8, 2.6], [12, 1.8]].forEach(([d, y]) => add('gwiazda', s + d, L[0], y)); add(R(th.twarde), s + 8.5, L[0]); s += 8; break;
       case 'turbo': add('turbo', s, L[0]); add('turbo', s + 9, L[1]); break;
       case 'slisko': add(th.slisko, s, L[0]); if (r() < .5) add(th.slisko, s + 4, L[1]); break;
       case 'slalom': for (let i = 0; i < 3; i++) add(R(th.twarde), s + i * 8, L[i]); s += 14; break;
@@ -348,10 +352,9 @@ function act(c, a) {
   if (a === 'atak') { if (c.atakCd > 0) return false; c.atakCd = ATAK_CD; }
   if (a === 'moc') { if (c.moc < 3 && state !== 'menu') return false; if (state !== 'menu') c.moc = 0; }
   c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false;
-  if (c.kind === 'zaba' && a === 'atak') {                 // język celuje w najbliższe auto przed sobą, też na skos
+  if (c.kind === 'zaba' && a === 'atak') {                 // język sięga do najbliższego auta przed sobą
     const t = state === 'menu' ? null : cars.filter(o => inReach(c, o)).sort((p, q) => p.s - q.s)[0];
-    c.tgt = t; const dx = t ? Math.max(1, t.s - c.s - c.len / 2) : 6.5, dz = t ? t.z - c.z : 0;
-    c.b.tongueYaw = -Math.atan2(dz, dx); c.b.tongueLen = Math.min(8, Math.hypot(dx, dz));
+    c.b.tongueYaw = 0; c.b.tongueLen = t ? clamp(t.s - c.s - c.len / 2, 2, REACH + 1) : REACH;
   }
   if (state === 'menu') snd(a === 'atak' ? SND_ATAK[c.kind] : SND_MOC[c.kind]);
   return true;
@@ -361,77 +364,46 @@ function turbo(c) {
   c.turboT = TURBO_T; c.turboCd = TURBO_CD; if (c.player) { snd('turbo'); bubble('WRUUM!', c, 'small'); }
   return true;
 }
+// Trafienie: auto kręci się, mocno zwalnia (zostaje w tyle) i przez chwilę jest „duchem” — inne auta przejeżdżają obok bez zderzeń.
+// Atakujący dostaje gwiazdkę do mocy. Zderzenia aut nigdy nie karzą.
 function hit(o, by, how) {
   if (immune(o)) return false;
-  o.hitT = HIT_T; o.blinkT = BLINK_T; o.spinT = o.spinD = SPIN_T; o.v *= .5; o.slipT = 0;
+  o.hitT = HIT_T; o.blinkT = BLINK_T; o.ghostT = GHOST_T; o.spinT = o.spinD = SPIN_T; o.v *= .3; o.slipT = 0;
   if (o.act === 'moc' || o.act === 'atak') o.act = null;
   if (how === 'pop') o.vy = Math.max(o.vy, 7);
   sparkle(o.s, 1.6 + o.y, o.z);
   if (near(o)) snd(how === 'tusz' || how === 'jajo' ? 'chlup' : 'boing');
   bubble(how === 'tusz' ? 'PLASK!' : how === 'jajo' ? 'CHLUP!' : how === 'macka' ? 'CHWYT!' : pick(['BUM!', 'ŁUP!', 'BAM!', 'TRACH!']), o);
-  if (o.player) { shake = .4; if (how === 'tusz' || how === 'jajo') splat(how); }
-  if (by) hurt(o, by);
+  if (o.player) {
+    shake = .4; if (how === 'tusz' || how === 'jajo') splat(how);
+    if (by) setTimeout(() => bubbleAt(`<img src="${THUMB[by.kind]}">`, o.s, 4.2, o.z, 'emoji pic'), 120);   // kto mnie trafił
+  }
+  if (by) addMoc(by, 1);
   return true;
 }
-// Serduszko mniej; przy zerze KO
-function hurt(o, by) { o.hp--; if (o.hp <= 0) knockout(o, by); }
-function knockout(c, by) {
-  c.ko = c.player ? 1.4 : 2.2; c.hp = 0; c.act = null; c.hitT = 0; c.spinT = 0;
-  const C = c.b.C;
-  for (let i = 0; i < 24; i++) part({ s: c.s, y: 1 + c.y, z: c.z, vs: rnd(-6, 8), vy: rnd(4, 11), vz: rnd(-4, 4), col: pick([C.a, C.b, C.c, 0x2b2a2e]), size: rnd(.2, .45), life: 1.2, grav: 1, box: 1, op: 1 });
-  for (let i = 0; i < 10; i++) part({ s: c.s + rnd(-1.5, 1.5), y: 1 + rnd(0, 1), z: c.z + rnd(-1, 1), vs: rnd(-1, 1), vy: rnd(1, 3), col: pick([0x3a3633, 0x5a5560, 0xff9a1a]), size: rnd(.5, .9), life: 1.1, grow: 1.5, op: .8 });
-  if (near(c)) { snd('kabum'); bubble('KABUM!', c, 'big'); }
-  if (c.player || Math.abs(c.s - P.s) < 10) shake = .5;
-  if (by?.player) setTimeout(() => bubble('KO! ⭐', by, 'big'), 250);
-}
-function respawn(c) {
-  c.hp = 3; c.blinkT = 2.5; c.v = CRUISE * .6; c.vy = 0;
-  if (!c.player) c.s = Math.min(c.s, P.s - 16);                  // auto komputera wraca z tyłu
-  const free = [0, 1, 2, 3].filter(l => !cars.some(o => o !== c && o.ko <= 0 && laneOf(o) === l && Math.abs(o.s - c.s) < 6));
-  c.lane = free.length ? pick(free) : c.lane; c.z = LANES[c.lane]; c.ya = H(c.s); c.y = 0;
-  if (near(c)) bubble('JESTEM!', c, 'small');
-}
-// Taranowanie z boku: sąsiad traci serduszko i zostaje zepchnięty na dalszy pas (jeśli jest miejsce)
-function ram(o, by, dir) {
-  if (o.ramT > 0 || immune(o)) return false;
-  o.ramT = .9; o.v *= .85; sparkle(o.s, 1.4, o.z);
-  const n = o.lane + dir, room = n >= 0 && n <= 3 && !cars.some(q => q !== o && q !== by && q.ko <= 0 && laneOf(q) === n && Math.abs(q.s - o.s) < (q.len + o.len) / 2);
-  if (room) o.lane = n;
-  if (near(o)) { snd('bonk'); bubble('BONK!', o, 'small'); }
-  if (o.player) shake = .25;
-  hurt(o, by);
-  return room;
-}
-// Czy atak auta c sięga auta o? Każde auto atakuje w inną stronę: rekin i ptak do przodu, ośmiornica do tyłu, krab na boki, nietoperz daleko przed siebie
+// Zwykły atak: u wszystkich tak samo — pierwsze auto albo przeszkoda na moim pasie, do REACH m przed maską (różni się tylko wygląd)
 function inReach(c, o) {
-  if (o === c || o.fin || o.ko > 0) return false;
-  const dl = Math.abs(laneOf(o) - laneOf(c)), ds = o.s - c.s, gap = Math.abs(ds) - (c.len + o.len) / 2;
-  if (o.y > 1.4 || under(o) || high(o)) return false;
-  switch (c.kind) {
-    case 'rekin': return dl === 0 && ds > 0 && gap < 5;
-    case 'ptak': return dl === 0 && ds > 0 && gap < 6.5;
-    case 'osmiornica': return dl === 0 && ds < 0 && gap < 7;
-    case 'krab': return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
-    case 'nietoperz': return dl === 0 && ds > 0 && gap < 12;
-    case 'zaba': return ds > 0 && ((dl === 0 && gap < 7) || (dl === 1 && ds < 8.5));
-  }
+  if (o === c || o.fin || o.y > 1.4 || under(o) || high(o)) return false;
+  const ds = o.s - c.s;
+  return laneOf(o) === laneOf(c) && ds > 0 && ds - (c.len + o.len) / 2 < REACH;
 }
 function itemInReach(c, it) {
   if (!it.alive || !['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj)) return false;
-  const dl = Math.abs(it.lane - laneOf(c)), ds = it.s - c.s, gap = Math.abs(ds) - (c.len + it.len) / 2;
-  if (c.kind === 'rekin') return dl === 0 && ds > 0 && gap < 5;
-  if (c.kind === 'ptak') return dl === 0 && ds > 0 && gap < 6.5;
-  if (c.kind === 'krab') return (dl === 1 && Math.abs(ds) < 4.5) || (dl === 0 && ds > 0 && gap < 2.5);
-  if (c.kind === 'nietoperz') return dl === 0 && ds > 0 && gap < 12;
-  if (c.kind === 'zaba') return it.rodzaj === 'skrzynia' && ds > 0 && dl <= 1 && gap < 7;
-  return false;
+  const ds = it.s - c.s;
+  return it.lane === laneOf(c) && ds > 0 && ds - (c.len + it.len) / 2 < REACH;
 }
-// Pociski: fala dźwiękowa nietoperza (leci pasem do przodu), rój małych nietoperzy (każdy goni auto)
+// Pociski: kula tuszu ośmiornicy i fala dźwiękowa nietoperza (lecą pasem do przodu), rój małych nietoperzy (każdy goni auto)
+function shootInk(c) {
+  const g = new T.Group(); scene.add(g);
+  brPart(g, new T.SphereGeometry(.42, 12, 9), brMat(0x101018), 0, 0, 0, { ol: .03 });
+  for (let i = 0; i < 3; i++) brPart(g, new T.SphereGeometry(.22 - i * .05, 8, 6), brMat(0x101018), -.45 - i * .35, .05, 0, { ol: 0 });
+  shots.push({ typ: 'tusz', g, s: c.s + c.len / 2 + .5, z: c.z, lane: laneOf(c), y: 1.25 + c.y, vy: 2, vs: c.v + 24, left: REACH + 2, owner: c });
+}
 const ringG = new T.TorusGeometry(.7, .07, 6, 20);
 function shootWave(c) {
   const g = new T.Group(); scene.add(g);
   for (let i = 0; i < 3; i++) { const m = new T.Mesh(ringG, new T.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: .85, depthWrite: false })); m.rotation.y = Math.PI / 2; m.position.x = -i * .55; m.scale.setScalar(.6 + i * .25); g.add(m); }
-  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 22, left: 13, owner: c });
+  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 24, left: REACH + 2, owner: c });
 }
 function miniBat() {
   const g = new T.Group();
@@ -444,18 +416,17 @@ function miniBat() {
   }
   return g;
 }
-function swarm(c) {
-  const tg = cars.filter(o => o !== c && !o.fin && o.s > c.s - 3 && o.s - c.s < 35).sort((a, b) => a.s - b.s).slice(0, 3);
-  for (let i = 0; i < 8; i++) {
-    const g = miniBat(); scene.add(g);
-    shots.push({ typ: 'bat', g, s: c.s + rnd(-1, 1), z: c.z + rnd(-1, 1), lane: laneOf(c), y: 1.6 + c.y + rnd(0, 1), target: tg.length ? tg[i % tg.length] : null, t: 0, owner: c, ph: rnd(0, 6) });
-  }
-}
 function stepShots(dt) {
   for (let i = shots.length - 1; i >= 0; i--) {
     const p = shots[i]; let done = false;
-    if (p.typ === 'fala') {
-      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / 13, 0, 1) * .85; });
+    if (p.typ === 'tusz') {                                // kula tuszu: trafia pierwsze auto albo przeszkodę na pasie; na końcu lotu zostaje kałuża
+      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.vy -= 6 * dt; p.y = Math.max(.3, p.y + p.vy * dt);
+      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 + .3 && o.y < 1.4 && !under(o) && !high(o)) { hit(o, p.owner, 'tusz'); done = true; break; }
+      if (!done) for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) { destroy(it, p.owner); done = true; break; }
+      if (p.left < 0) done = true;
+      p.g.position.set(p.s - camS, H(p.s) + p.y, p.z);
+    } else if (p.typ === 'fala') {
+      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / (REACH + 2), 0, 1) * .85; });
       for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 && o.y < 1.4 && !under(o)) { hit(o, p.owner); done = true; break; }
       for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) destroy(it, p.owner);
       if (p.left < 0) done = true;
@@ -481,36 +452,37 @@ function resolveAct(c) {
   if (c.act === 'atak') {
     if (loud) snd(SND_ATAK[k]);
     bubble(WORD_ATAK[k], c, 'big');
-    if (k === 'rekin') c.lungeT = .4;                       // rekin rzuca się do przodu z otwartą paszczą
     if (k === 'ptak') for (let i = 0; i < 5; i++) part({ s: c.s + c.len / 2 + 1, y: 1.2 + c.y, z: c.z, vs: rnd(-2, 4), vy: rnd(1, 4), vz: rnd(-2, 2), col: pick([0xf06a14, 0xb5651d, 0xe2a417]), size: .15, life: .8, grav: 1, box: 1 });
-    if (k === 'osmiornica') newItem({ typ: 'tusz', s: c.s - c.len / 2 - 3, lane: laneOf(c), rodzaj: 'tusz', len: 4, hitBy: new Set([c]), owner: c, ttl: 5 });
+    if (k === 'osmiornica') { shootInk(c); return; }
     if (k === 'nietoperz') { shootWave(c); return; }
-    if (k === 'zaba') {                                    // język: trafia cel, po drodze zjada gwiazdki i skrzynie, żaba podciąga się do przodu
-      if (c.tgt && inReach(c, c.tgt)) hit(c.tgt, c);
-      for (const it of items) if (it.alive && (it.rodzaj === 'gwiazda' || it.rodzaj === 'skrzynia') && Math.abs(it.lane - laneOf(c)) <= 1 && it.s > c.s && it.s - c.s < 8.5 && !it.move) {
-        if (it.rodzaj === 'gwiazda') { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); } else destroy(it, c);
-      }
-      c.lungeT = .25; return;
-    }
-    for (const o of cars) if (inReach(c, o)) hit(o, c, k === 'osmiornica' ? 'tusz' : null);
+    if (k === 'zaba') for (const it of items) if (it.alive && it.rodzaj === 'gwiazda' && it.lane === laneOf(c) && it.s > c.s && it.s - c.s < REACH + 3) { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); }   // język zjada też gwiazdki
+    const t = cars.filter(o => inReach(c, o)).sort((a, b) => a.s - b.s)[0];
+    if (t) hit(t, c);
     for (const it of items) if (itemInReach(c, it)) destroy(it, c);
   } else {
     if (loud) snd(SND_MOC[k]);
     bubble(WORD_MOC[k], c, 'big');
     if (k === 'rekin') for (let i = 0; i < 12; i++) part({ s: c.s, y: .2, z: c.z + rnd(-1, 1), vs: rnd(-3, 6), vy: rnd(3, 7), vz: rnd(-2, 2), col: 0x6b6560, size: .22, life: .7, grav: 1, box: 1 });
-    if (k === 'osmiornica') {                              // macka łapie najbliższe auto obok i ciągnie je w tył, sama strzela do przodu
-      const t = cars.filter(o => o !== c && !o.fin && Math.abs(laneOf(o) - laneOf(c)) <= 1 && Math.abs(o.s - c.s) < 9 && !immune(o))
-        .sort((a, b) => Math.abs(a.s - c.s) - Math.abs(b.s - c.s))[0];
-      c.b.p.grab = c.b.p.tent[t && laneOf(t) < laneOf(c) ? 0 : 3];
-      if (t && hit(t, c, 'macka')) { t.s -= 5; t.v *= .3; }
-      c.turboT = Math.max(c.turboT, 1.8);
-    }
-    if (k === 'nietoperz') swarm(c);
+    if (k === 'nietoperz') { c.batT = 0; c.orbit = new T.Group(); scene.add(c.orbit); for (let i = 0; i < 12; i++) { const m = miniBat(); m.scale.setScalar(1.9); c.orbit.add(m); } }
   }
 }
-// Moc trwa: rekin pod asfaltem podrzuca auta, ptak zrzuca jajka, krab w kolcach taranuje
+// Moc trwa 3 s: rekin pod asfaltem podrzuca auta, ptak zrzuca jajka, krab w kolcach taranuje, ośmiornica łapie mackami na boki,
+// nietoperz krąży w roju i wysyła nietoperze na auta przed sobą, żaba jedzie górą i ląduje z hukiem
 function mocTick(c, dt) {
   if (state === 'menu') return;
+  if (c.kind === 'osmiornica') for (const o of cars) {
+    if (o === c || immune(o) || o.y > 1.4 || Math.abs(laneOf(o) - laneOf(c)) > 1 || Math.abs(o.s - c.s) > 3.8) continue;
+    if (hit(o, c, 'macka')) o.s -= 3;
+  }
+  if (c.kind === 'nietoperz') {
+    if ((c.batT -= dt) < 0) {                               // co sekundę 3 nietoperze lecą na najbliższe auto przed sobą
+      c.batT = 1;
+      const t = cars.filter(o => o !== c && !o.fin && !immune(o) && o.s > c.s - 2 && o.s - c.s < 30).sort((a, b) => a.s - b.s)[0];
+      for (let i = 0; i < 3; i++) { const g = miniBat(); scene.add(g); shots.push({ typ: 'bat', g, s: c.s + rnd(-1, 1), z: c.z + rnd(-1, 1), lane: laneOf(c), y: 1.8 + c.y, target: t || null, t: 0, owner: c, ph: rnd(0, 6) }); }
+      if (near(c)) snd('roj');
+    }
+    for (const o of cars) if (o !== c && !immune(o) && o.y < 1.4 && Math.abs(laneOf(o) - laneOf(c)) <= 1 && Math.abs(o.s - c.s) < 3) hit(o, c, 'pop');
+  }
   if (c.kind === 'rekin' && Math.random() < dt * 35) part({ s: c.s + rnd(-1, 2), y: .2, z: c.z + rnd(-.9, .9), vs: rnd(-2, 2), vy: rnd(2, 4), col: TH.road === 0x7f98ad ? 0xffffff : 0x6b6560, size: .16, life: .5, grav: 1, box: 1 });
   if (c.kind === 'ptak' && c.at > .4 && (c.eggT -= dt) < 0) {
     c.eggT = .4;
@@ -529,7 +501,7 @@ function mocTick(c, dt) {
   if (c.kind === 'rekin' || c.kind === 'krab') for (const o of cars) {
     if (o === c || immune(o) || o.y > 1.4) continue;
     const dl = Math.abs(laneOf(o) - laneOf(c)), gap = Math.abs(o.s - c.s) - (c.len + o.len) / 2;
-    if ((dl === 0 && gap < .2) || (c.kind === 'krab' && dl === 1 && Math.abs(o.s - c.s) < 2.5))
+    if ((dl === 0 && gap < .3) || (dl === 1 && Math.abs(o.s - c.s) < 3))
       if (hit(o, c, 'pop')) o.s += Math.sign(o.s - c.s || 1) * 2.5;
   }
 }
@@ -546,6 +518,7 @@ function stepEggs(dt) {
 }
 // Najazd na przedmiot na pasie
 function touch(c, it) {
+  if (it.rodzaj === 'rampa' && c.s < it.s - .3) return;     // wybicie dopiero, gdy auto wjedzie na rampę
   if (it.hitBy.has(c)) return; it.hitBy.add(c);
   const shield = spiky(c);
   switch (it.rodzaj) {
@@ -555,7 +528,7 @@ function touch(c, it) {
     case 'miekka': destroy(it, null); if (!shield) c.v *= .9; break;
     case 'slisko': if (!shield && !immune(c) && c.y < .1) { c.slipT = 1; c.spinT = c.spinD = 1; if (near(c)) { snd('poslizg'); bubble('ŚLIIIZG!', c, 'small'); } } break;
     case 'lawa': if (!shield) hit(c, null, 'lawa'); break;
-    case 'rampa': if (c.y < .1) { c.vy = Hd(c.s) * c.v + 9.5; if (c.player) { snd('skok'); bubble('HOP!', c, 'small'); } } break;
+    case 'rampa': if (c.y < .1) { c.vy = Hd(c.s) * c.v + 11; c.v = Math.max(c.v, CRUISE * 1.3); if (c.player) { snd('skok'); bubble('HOP!', c, 'small'); } } break;   // rampa sama dodaje prędkość
     case 'turbo': c.turboT = Math.max(c.turboT, 1.3); if (c.player) { snd('turbo'); bubble('WRUUM!', c, 'small'); } break;
     case 'tusz': case 'jajo': if (!shield) hit(c, it.owner, it.rodzaj); break;
   }
@@ -570,15 +543,14 @@ function aiThink(c) {
   if (hazard(L, 0, D.look)) {
     const it = items.find(it => it.alive && it.lane === L && it.rodzaj === 'twarda' && it.s > c.s && itemInReach(c, it));
     if (it && c.atakCd <= 0 && Math.random() < .6) { act(c, 'atak'); return; }
-    if (c.moc >= 3 && ['rekin', 'ptak', 'krab', 'zaba'].includes(c.kind) && Math.random() < .5) { act(c, 'moc'); return; }
+    if (c.moc >= 3 && Math.random() < .5) { act(c, 'moc'); return; }
     if (Math.random() < D.react) { const o = [L - 1, L + 1].filter(free); if (o.length) setLane(c, pick(o)); }
     return;
   }
   const tgt = cars.find(o => inReach(c, o) && !immune(o));
   if (tgt && c.atakCd <= 0 && Math.random() < (tgt.player ? D.aggroP : D.aggro)) { act(c, 'atak'); return; }
   if (c.moc >= 3) {
-    const useful = c.kind === 'osmiornica' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 8)
-      : c.kind === 'krab' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 6)
+    const useful = c.kind === 'osmiornica' || c.kind === 'krab' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 6)
       : c.kind === 'nietoperz' ? cars.some(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 30)
       : c.kind === 'zaba' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 10)
       : cars.some(o => o !== c && laneOf(o) === L && o.s > c.s && o.s - c.s < 14) || Math.random() < .1;
@@ -590,16 +562,13 @@ function aiThink(c) {
     const pr = cars.find(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 10 && Math.abs(laneOf(o) - L) === 1);
     if (pr && free(laneOf(pr))) { setLane(c, laneOf(pr)); return; }
   }
-  const side = cars.find(o => o !== c && o.ko <= 0 && !immune(o) && Math.abs(laneOf(o) - L) === 1 && Math.abs(o.s - c.s) < 2.5);
-  if (side && Math.random() < (side.player ? D.aggroP : D.aggro) * .25 && !hazard(laneOf(side), -2, D.look)) { setLane(c, laneOf(side)); return; }   // taranuje sąsiada
   if (c.turboCd <= 0 && Math.random() < D.turbo && !hazard(L, 0, 25)) turbo(c);
 }
 
 /* ---------- ruch aut ---------- */
 const place = c => 1 + cars.filter(o => o !== c && (o.fin && (!c.fin || o.finT < c.finT) || (!o.fin && !c.fin && o.s > c.s))).length;
 function stepCar(c, dt, racing) {
-  if (c.ko > 0) { c.s += c.v * .3 * dt; if ((c.ko -= dt) <= 0) respawn(c); return; }     // po KO: chwila przerwy, potem powrót
-  for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ramT']) c[k] -= dt;
+  for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ghostT']) c[k] -= dt;
   if (racing && !c.fin && (c.mocFill += dt) > MOC_FILL) { c.mocFill = 0; addMoc(c, 1); }
   if (c.act) {
     c.at += dt; const d = c.act === 'atak' ? ATAK_T : MOC_T[c.kind];
@@ -618,18 +587,17 @@ function stepCar(c, dt, racing) {
     if (c.hitT > 0) vt *= .4;
     if (c.slipT > 0) vt *= .65;
     if (c.lungeT > 0) vt += 14;
-    if (c.y < .1) vt *= 1 - clamp(Hd(c.s), -.3, .3) * .4;              // pod górkę trochę wolniej, z górki szybciej
   }
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
   c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
-  // zmiana pasa; gdy obok jedzie auto — odbicie z powrotem („BONK!”)
+  // zmiana pasa; gdy obok jedzie auto — tylko odbicie z powrotem, bez kary
   const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * 9);
   if (racing && Math.abs(LANES[c.lane] - c.z) > .3 && !spiky(c) && !under(c)) {
     const dir = Math.sign(LANES[c.lane] - c.z);
-    const o = cars.find(o => o !== c && o.ko <= 0 && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < PAS * .75 && Math.abs(o.y - c.y) < 1.2);
+    const o = c.ghostT <= 0 && cars.find(o => o !== c && o.ghostT <= 0 && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < PAS * .75 && Math.abs(o.y - c.y) < 1.2);
     if (o) {
       if (spiky(o)) hit(c, o, 'pop');
-      else if (!ram(o, c, dir)) { c.lane = laneOf({ z: c.z - dir * PAS * .45 }); c.v *= .92; }   // brak miejsca: odbijam się
+      else { c.lane = laneOf({ z: c.z - dir * PAS * .45 }); if (c.bonkT <= 0 && c.player) { c.bonkT = .5; snd('bonk'); } }   // brak miejsca: wracam na swój pas
     }
   }
   c.tilt = clamp((c.z - pz) / Math.max(dt, 1e-3) * -.025, -.15, .15);
@@ -661,7 +629,7 @@ function stepCar(c, dt, racing) {
 // Auta na tym samym pasie się odbijają: tylne zwalnia
 function collide() {
   for (const a of cars) for (const o of cars) {
-    if (a === o || a.ko > 0 || o.ko > 0 || a.s > o.s || Math.abs(a.z - o.z) > 1.6 || Math.abs(a.y - o.y) > 1.2) continue;
+    if (a === o || a.ghostT > 0 || o.ghostT > 0 || a.s > o.s || Math.abs(a.z - o.z) > 1.6 || Math.abs(a.y - o.y) > 1.2) continue;
     if (under(a) || under(o) || spiky(a) || spiky(o) || high(a) || high(o)) continue;   // te zderzenia liczy mocTick / żaba nad autami
     const ov = (a.len + o.len) / 2 - (o.s - a.s);
     if (ov > 0) {
@@ -679,14 +647,19 @@ function drawCar(c, dt) {
     pose = c.act; k = c.act === 'atak' ? Math.min(1, c.at / .2, (d - c.at) / .3) : Math.min(1, c.at / .25, (d - c.at) / .3);
   }
   brykaPose(c.b, pose, clamp(k, 0, 1)); brykaTick(c.b, dt, c.v);
+  if (c.orbit) {                                           // rój nietoperzy krąży wokół auta, póki trwa moc
+    if (!(mocOn(c) && c.kind === 'nietoperz')) { scene.remove(c.orbit); c.orbit = null; }
+    else c.orbit.children.forEach((m, i) => {
+      const a = c.at * 5 + i * Math.PI * 2 / 12, f = Math.sin(c.at * 30 + i) * .9;
+      m.position.set(c.s - camS + Math.cos(a) * 2.8, c.ya + 1.8 + Math.sin(c.at * 7 + i) * .5, c.z + Math.sin(a) * 2.1); m.rotation.y = -a;
+      m.userData.w1.rotation.x = f; m.userData.w2.rotation.x = -f;
+    });
+  }
   const g = c.b.g, x = c.s - camS, gy = H(c.s);
   const pitch = c.y < .05 ? Math.atan(Hd(c.s)) : (mocOn(c) && c.kind === 'ptak') ? 0 : clamp(Math.atan2(c.vy, Math.max(c.v, 4)), -.45, .45);
   g.position.set(x, c.ya, c.z);
   g.rotation.set(c.tilt, c.spinT > 0 ? (1 - c.spinT / c.spinD) * Math.PI * 2 : 0, pitch);
-  g.visible = c.ko <= 0 && !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
-  c.sh.visible = c.ko <= 0;
-  c.hearts.visible = g.visible && state !== 'menu' && state !== 'done';
-  c.hearts.position.set(x, c.ya + (high(c) ? 5.3 : 3.0), c.z); c.hearts.children.forEach((m, i) => m.material = i < c.hp ? HEART_ON : HEART_OFF);
+  g.visible = !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
   c.sh.position.set(x, gy + .03, c.z); c.sh.scale.set(c.b.len * .5 / (1 + c.y * .15), 1.3 / (1 + c.y * .15), 1);
   c.dz.visible = c.hitT > 0; c.dz.position.set(x, 2.6 + c.ya, c.z); c.dz.rotation.y += dt * 6;
   if (c.turboT > 0 && Math.random() < .8) part({ s: c.s - c.len / 2 - .3, y: 1 + c.y + rnd(0, .4), z: c.z + rnd(-.4, .4), vs: -6, vy: rnd(0, 1), col: pick([0xff7a1a, 0xffd23f, 0xff3a1a]), size: .22, life: .3, grow: 1, op: .9 });
@@ -716,43 +689,50 @@ function engines() {
 let progIc = [], edges = [], lastPlace = 0;
 function buildHud() {
   $('prog').querySelectorAll('span').forEach(e => e.remove()); $('edges').innerHTML = '';
-  progIc = cars.map(c => { const s = document.createElement('span'); s.textContent = IC[c.kind]; s.classList.toggle('me', c === P); $('prog').append(s); return s; });
+  progIc = cars.map(c => { const s = document.createElement('span'); s.innerHTML = img(c.kind); s.classList.toggle('me', c === P); $('prog').append(s); return s; });
   edges = cars.map(() => { const d = document.createElement('div'); d.className = 'edge'; d.hidden = true; $('edges').append(d); return d; });
 }
 function hud() {
   cars.forEach((c, i) => { progIc[i].style.left = clamp(c.s / LEN, 0, 1) * 100 + '%'; });
   const pl = place(P); if (pl !== lastPlace) { $('place').textContent = ['🥇', '🥈', '🥉', '4️⃣'][pl - 1]; $('place').classList.add('pop'); setTimeout(() => $('place').classList.remove('pop'), 200); lastPlace = pl; }
   cars.forEach((c, i) => {                               // auta poza ekranem: strzałka przy krawędzi
-    const x = c.s - camS, e = edges[i], [X] = toScreen(x, 1, c.z), out = c !== P && c.ko <= 0 && (X < 30 || X > innerWidth - 30);
+    const x = c.s - camS, e = edges[i], [X] = toScreen(x, 1, c.z), out = c !== P && (X < 30 || X > innerWidth - 30);
     e.hidden = !out; if (e.hidden) return;
     const [, Y] = toScreen(0, 1, c.z), right = x > 0;
-    e.innerHTML = right ? `${IC[c.kind]}<b>▶</b>` : `<b>◀</b>${IC[c.kind]}`;
+    e.innerHTML = right ? `${img(c.kind)}<b>▶</b>` : `<b>◀</b>${img(c.kind)}`;
     e.style.left = (right ? innerWidth - 150 : 150) + 'px'; e.style.top = Y + 'px';
   });
-  $('hp').textContent = '❤️'.repeat(Math.max(0, P.hp)) + '🖤'.repeat(3 - Math.max(0, P.hp));
   $('bAtak').querySelector('.cd').style.height = clamp(P.atakCd / ATAK_CD, 0, 1) * 100 + '%';
-  $('bTurbo').querySelector('.cd').style.height = clamp(P.turboCd / TURBO_CD, 0, 1) * 100 + '%';
+  $('bTurbo').classList.toggle('act', P.turboT > 0);                 // turbo działa: przycisk płonie; potem ciemna nakładka = ładowanie
+  $('bTurbo').querySelector('.cd').style.height = (P.turboT > 0 ? 0 : clamp(P.turboCd / (TURBO_CD - TURBO_T), 0, 1) * 100) + '%';
   [...$('bMoc').querySelectorAll('.pips b')].forEach((b, i) => b.classList.toggle('on', P.moc > i));
   $('bMoc').classList.toggle('full', P.moc >= 3 && !P.act);
 }
 
 /* ---------- przebieg: menu → odliczanie → wyścig → wyniki ---------- */
-function clearRace() { flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
+function clearRace() { ALL.forEach(c => { if (c.orbit) { scene.remove(c.orbit); c.orbit = null; } }); flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
 function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
   cars.forEach((c, i) => { resetCar(c, i, i); c.s = -14 + i * 3.6; });           // auta po lewej, karta menu po prawej
 }
 function buildMenu() {
-  $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick" data-k="${k}"><span class="ico">${IC[k]}</span>${NAZWY[k]}</button>`).join('');
+  $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick car" data-k="${k}">${img(k)}${NAZWY[k]}</button>`).join('');
   $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${SET.best[k + diff] ? `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</span>` : ''}</button>`).join('');
   [...$('pickCar').children].forEach(b => b.classList.toggle('on', b.dataset.k === SET.car));
   [...$('pickTrack').children].forEach(b => b.classList.toggle('on', b.dataset.t === SET.trasa));
   [...$('pickDiff').children].forEach(b => b.classList.toggle('on', b.dataset.d === diff));
   $('bSnd').textContent = AUD.on ? '🔊' : '🔇';
 }
+// Karta menu zawsze mieści się na ekranie (niski telefon z paskiem przeglądarki): zmniejszamy ją w całości
+function fitMenu() {
+  const c = document.querySelector('#menu .card'); if (!c || $('menu').hidden) return;
+  c.style.transform = ''; const k = Math.min(1, (innerHeight - 14) / c.offsetHeight, (innerWidth - 20) / c.offsetWidth);
+  c.style.transform = `scale(${k.toFixed(3)})`;
+}
+addEventListener('resize', () => setTimeout(fitMenu, 50));
 function showMenu() {
   state = 'menu'; ['hud', 'end', 'pause'].forEach(id => $(id).hidden = true); $('menu').hidden = false; $('confetti').innerHTML = '';
-  menuLayout(); buildMenu();
+  menuLayout(); buildMenu(); fitMenu();
 }
 function startRace() {
   audInit(); snd('klik');
@@ -763,7 +743,6 @@ function startRace() {
   items = genTrack(TH);
   newItem({ typ: 'start', s: 0, lane: 1, rodzaj: '', len: 0, zMid: true }); newItem({ typ: 'meta', s: LEN, lane: 1, rodzaj: '', len: 0, zMid: true });
   $('bMoc').querySelector('.i').textContent = MOC_IC[P.kind];
-  for (const c of ALL) c.hearts.visible = false;
   camS = P.s - PX; raceT = 0; lastPlace = 0; shake = 0;
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = '';
   state = 'count'; countT = 3.2; $('count').hidden = false; $('count').textContent = '';
@@ -774,7 +753,7 @@ function showEnd() {
   const order = [...finOrder, ...cars.filter(c => !c.fin).sort((a, b) => b.s - a.s)], pl = order.indexOf(P) + 1;
   const key = SET.trasa + diff; if (!SET.best[key] || pl < SET.best[key]) SET.best[key] = pl; save();
   const med = ['🥇', '🥈', '🥉', '🏅'], show = [1, 0, 2, 3].map(i => order[i]);   // podium: 2 · 1 · 3 · 4
-  $('podium').innerHTML = show.map((c, j) => { const i = order.indexOf(c); return `<div class="${c === P ? 'me' : ''}" style="padding-top:${[22, 40, 10, 2][j]}px">${IC[c.kind]}<b>${med[i]}</b></div>`; }).join('');
+  $('podium').innerHTML = show.map((c, j) => { const i = order.indexOf(c); return `<div class="${c === P ? 'me' : ''}" style="padding-top:${[22, 40, 10, 2][j]}px">${img(c.kind)}<b>${med[i]}</b></div>`; }).join('');
   $('hud').hidden = true; $('end').hidden = false;
   const cf = $('confetti'); cf.innerHTML = '';
   for (let i = 0; i < (pl === 1 ? 40 : 18); i++) { const d = document.createElement('i'); d.textContent = pick(pl === 1 ? ['🎉', '⭐', '🏆', '✨'] : ['⭐', '✨', '🎈']); Object.assign(d.style, { left: rnd(0, 100) + '%', animationDuration: rnd(2, 4) + 's', animationDelay: rnd(0, 1.5) + 's' }); cf.append(d); }
@@ -851,10 +830,10 @@ function step(dt) {
   if (state === 'end' && (endT -= dt) < 0) showEnd();
   placeDeco(); syncItems(dt); stepParts(dt);
   for (const c of cars) drawCar(c, dt);
-  const tg = state === 'race' && !P.fin && P.ko <= 0 ? cars.filter(o => inReach(P, o) && !immune(o)) : [];   // celownik i świecący przycisk ataku
+  const tg = state === 'race' && !P.fin ? [...cars.filter(o => inReach(P, o) && !immune(o)), ...items.filter(it => it.rodzaj === 'twarda' && itemInReach(P, it)).map(it => ({ s: it.s, z: it.z ?? LANES[it.lane] }))] : [];   // celownik i świecący przycisk ataku
   aims.forEach((m, i) => { const o = tg[i]; m.visible = !!o && P.atakCd <= 0; if (o) { m.position.set(o.s - camS, H(o.s) + .06, o.z); m.scale.setScalar(1 + .12 * Math.sin(performance.now() / 90)); } });
   $('bAtak').classList.toggle('hot', tg.length > 0 && P.atakCd <= 0);
-  marker.visible = state !== 'menu' && state !== 'done' && P.ko <= 0;
+  marker.visible = state !== 'menu' && state !== 'done';
   marker.position.set(P.s - camS, P.ya + 3.4 + Math.abs(Math.sin(performance.now() / 180)) * .4, P.z); marker.rotation.y += dt * 3;
   shake = Math.max(0, shake - dt);
   camY += (H(P.s + 4) * .6 - camY) * Math.min(1, dt * 3);   // kamera lekko podąża za górką
