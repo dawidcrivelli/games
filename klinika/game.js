@@ -3,12 +3,13 @@
 // kamera obraca się na bok (2.5D), lupą szuka problemów („!”), potem lupa rośnie na cały ekran i leczymy palcem:
 //   połknięta rzecz → przeciągnij przełykiem do pyszczka (dotknięcie ścianki = czkawka, nie przegrana) · BEEEK!
 //   organ nie na miejscu → przenieś na świecący cień · krzywa szyja żyrafy → włóż 7 kręgów (liczymy) · złamana kość → złóż + kolorowy gips.
-// Bez przegranej i bez czasu. Modele: models/pacjenci.klinika.js, anatomia.klinika.js, gabinet.klinika.js; dźwięk i lektor: dzwieki.js.
+// Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/zwierzeta.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomia.klinika.js
+// (models/pacjenci.klinika.js); budynek kliniki w przekroju (models/gabinet.klinika.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
 const T = THREE, $ = id => document.getElementById(id);
-const KINDS = ['zyrafa', 'slon', 'opiekun'];
-const IC = { zyrafa: '🦒', slon: '🐘', opiekun: '🤠' };
-const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', opiekun: 'Opiekun' };
+const KINDS = ['zyrafa', 'slon', 'doktor'];
+const IC = { zyrafa: '🦒', slon: '🐘', doktor: '🧑‍⚕️' };
+const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', doktor: 'Pan Doktor' };
 const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek'];
 const RZ_IC = { kaczka: '🦆', budzik: '⏰', skarpetka: '🧦', klucz: '🔑', rybka: '🐟', pilka: '⚽', klocek: '🧱' };
 const RZ_MOWA = { kaczka: 'Gumowa kaczka! Kaczek się nie je!', budzik: 'Budzik! To on dzwonił w brzuchu!', skarpetka: 'Skarpetka! Fuj, to nie do jedzenia!',
@@ -17,10 +18,11 @@ const ORG_IC = { serce: '❤️', pluca: '🫁', zoladek: '🍲', mozg: '🧠' }
 const ORG_MOWA = { serce: 'Serce! Bije cały czas: bum, bum!', pluca: 'Płuca! Nimi oddychamy.', zoladek: 'Żołądek! Tu wpada jedzenie.', mozg: 'Mózg! Nim myślimy.' };
 const ORG_SND = { serce: 'bum', pluca: 'wdech', zoladek: 'bulg', mozg: 'mysl' };
 const ORG_NAZWA = { serce: 'serce', pluca: 'płuca', zoladek: 'żołądek', mozg: 'mózg' };
-const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', opiekun: 'Twoje serce jest takie duże jak twoja pięść!' };
+const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
-const rnd = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.max(a, Math.min(b, v)), pick = a => a[Math.random() * a.length | 0];
+const { rnd, pick, M, MT, ball, box, cg, mesh, grp, G, mergeC, mK } = ZOO;     // pomocniki 3D z models/zwierzeta.js (jak w Pralni i Arce)
+const PI = Math.PI, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), MVC = new T.MeshLambertMaterial({ vertexColors: true });   // MVC: ludziki z Piratów
 const ease = t => t * t * (3 - 2 * t), V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const SET = Object.assign({ wyleczeni: {}, kind: 'zyrafa' }, JSON.parse(localStorage.getItem('klinika') || '{}'));
 const save = () => localStorage.setItem('klinika', JSON.stringify(SET));
@@ -28,9 +30,13 @@ const save = () => localStorage.setItem('klinika', JSON.stringify(SET));
 /* ---------- renderer, światło, kamera, rentgen w lupie ---------- */
 const renderer = new T.WebGLRenderer({ canvas: $('c'), antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-const scene = new T.Scene(), BG = new T.Color(0xfff0c8), XBG = new T.Color(0x0a1830);
-const hemi = new T.HemisphereLight(0xffffff, 0xd8c8a8, .72), sun = new T.DirectionalLight(0xffffff, .5); sun.position.set(-4, 10, 7);
-hemi.layers.enableAll(); sun.layers.enableAll(); scene.add(hemi, sun);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // cienie raz na klatkę (nie w przebiegu rentgena)
+const scene = new T.Scene(), XBG = new T.Color(0x0a1830);
+// światło jak w Arce Noego: niebo + słońce z cieniem
+const hemi = new T.HemisphereLight(0xffffff, 0xb08a5a, .7), sun = new T.DirectionalLight(0xfff3d6, .8);
+sun.position.set(2, 18, 14); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -.002;
+{ const sc = sun.shadow.camera; sc.left = -14; sc.right = 14; sc.top = 14; sc.bottom = -6; sc.near = 1; sc.far = 60; sc.updateProjectionMatrix(); }
+hemi.layers.enableAll(); sun.layers.enableAll(); scene.add(hemi, sun, sun.target);
 const cam = new T.PerspectiveCamera(32, 1, .5, 200), camLook = V(0, 2, 0);
 const rt = new T.WebGLRenderTarget(4, 4);
 const lupaMat = new T.ShaderMaterial({
@@ -48,8 +54,8 @@ const lupaScene = new T.Scene(), lupaCam = new T.OrthographicCamera(-1, 1, 1, -1
 lupaScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), lupaMat));
 const lupa = { c: new T.Vector2(.5, .5), cc: new T.Vector2(.5, .5), r: 0, cel: 0 };   // c: środek (uv), cc: cel środka
 
-const GAB = klGabinet(); scene.add(GAB.g);
-const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-6.4, -3.2, -.4][i], 0, [-.8, .3, .9][i]); scene.add(p.g); return p; });
+const GAB = klGabinet(); scene.add(GAB.g); const BG = GAB.niebo;
+const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-7.2, -3.4, -.6][i], 0, [-.6, .3, 1.3][i]); scene.add(p.g); return p; });
 
 let lezace = [];                                         // wyciągnięte rzeczy w misce (zostają w gabinecie do końca wizyty)
 let state = 'menu', stT = 0, czas = 0, P = null, zadania = [], zi = -1, problemy = [], zadT = 0, idleT = 0, nastepny = 0;
@@ -62,7 +68,7 @@ function resize() {
 addEventListener('resize', () => resize());
 
 /* ---------- widoki kamery: 3D z ukosa / prosto z boku (2.5D) ---------- */
-function widokMenu() { return { pos: V(4.6, 4.6, 17), look: V(.2, 2.3, 0) }; }
+function widokMenu() { return { pos: V(5.5, 6.2, 21), look: V(1.2, 4.0, 0) }; }
 function widok3D() {
   const h = P.box.y1, look = V(0, h * .42, 0), D = Math.max(12, h * 2.9);
   return { pos: look.clone().add(V(.42, .24, .88).normalize().multiplyScalar(D)), look };
@@ -91,29 +97,31 @@ function toScreen(w) { V3.copy(w).project(cam); return [(V3.x + 1) / 2 * innerWi
 function lokal(x, y) {                                   // punkt palca na płaszczyźnie pacjenta (z = 0), w układzie pacjenta
   ndc.set(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1); ray.setFromCamera(ndc, cam);
   const hit = V(); if (!ray.ray.intersectPlane(plaszcz, hit)) return null;
-  return P.g.worldToLocal(hit);
+  return P.w.worldToLocal(hit);
 }
+// piksele ekranu → jednostki pacjenta (P.w) w widoku z boku: tolerancje palca nie zależą od wielkości pacjenta
+function px2lok(px) { return px / innerHeight * 2 * Math.abs(cam.position.z) * Math.tan(cam.fov / 2 * PI / 180) / P.k; }
 const swiat = o => o.getWorldPosition(V());
-const wLok = p => P.g.localToWorld(p.clone());
-function glowaW() {
-  if (P.glowa) return P.glowa.localToWorld(V(.1, .45, 0));
-  return P.g.localToWorld(V(1.6, 3.3, 0));
-}
+const wLok = p => P.w.localToWorld(p.clone());
+function glowaW() { return swiat(P.glowa).add(V(0, P.box.y1 * .1, 0)); }
 function dymek(txt, w, cls = '') { if (!w) return; const [X, Y] = toScreen(w); komiksDymek($('fx'), txt, X, Y, cls); }
 
 /* ---------- zabiegi ---------- */
 // Każdy zabieg: { typ, ic, objaw (słowa pacjenta), znalezione (lektor przy „!”), prep() przed wejściem, kotwice() → [() → punkt świata],
 //   start(), down(p), move(p), up(p), step(dt), hint() → [skąd, dokąd] w świecie, done }
 function zPolkniete(kind) {
-  const S = P.rzeczS, W = .48 + .12 * S, krz = klKrz(P.przelyk), N = 90, pts = [], cum = [0];
-  for (let i = 0; i <= N; i++) pts.push(krz.getPointAt(i / N));
-  for (let i = 1; i <= N; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
-  const Lt = cum[N];
+  const S = P.rzeczS, N = 90; let W = 1, pts = [], cum = [0], Lt = 1, sciezka = [];
+  function buduj() {                                       // przełyk zależy od szyi i głowy — liczony przy wejściu i na starcie zabiegu
+    sciezka = P.przelyk(); const krz = klKrz(sciezka); pts = []; cum = [0];
+    for (let i = 0; i <= N; i++) pts.push(krz.getPointAt(i / N));
+    for (let i = 1; i <= N; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+    Lt = cum[N];
+  }
   const at = s => { s = clamp(s, 0, Lt); let i = 1; while (i < N && cum[i] < s) i++; const u = (s - cum[i - 1]) / Math.max(1e-6, cum[i] - cum[i - 1]); return pts[i - 1].clone().lerp(pts[i], u); };
   function proj(p, s0) {                                  // najbliższy punkt przełyku w okolicy s0
     let best = { s: s0, d: 1e9 };
     for (let i = 1; i <= N; i++) {
-      if (cum[i] < s0 - 1.2 || cum[i - 1] > s0 + 1.6) continue;
+      if (cum[i] < s0 - Lt * .25 || cum[i - 1] > s0 + Lt * .35) continue;
       const a = pts[i - 1], b = pts[i], ab = V(b.x - a.x, b.y - a.y, 0), L2 = ab.lengthSq() || 1e-6;
       const u = clamp(((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / L2, 0, 1), d = Math.hypot(a.x + ab.x * u - p.x, a.y + ab.y * u - p.y);
       if (d < best.d) best = { s: cum[i - 1] + u * (cum[i] - cum[i - 1]), d };
@@ -123,36 +131,36 @@ function zPolkniete(kind) {
   let item, rura, s = 0, grab = false, out = null, ringT = 1.5, gigT = 1, wob = 0;
   const Z = { typ: 'polkniete', ic: RZ_IC[kind], done: false, rzecz: kind,
     objaw: kind === 'budzik' ? 'w brzuchu coś dzwoni' : 'brzuch boli', znalezione: 'Coś jest w brzuchu!' };
-  Z.prep = () => { item = klX(anRzecz(kind, S * .85)); item.position.copy(at(0)).setZ(.6); P.g.add(item); };
+  Z.prep = () => { buduj(); item = klX(anRzecz(kind, S * .85)); item.position.copy(at(0)).setZ(.6 * S); P.w.add(item); };
   Z.kotwice = () => [() => swiat(item)];
-  Z.start = () => { rura = klX(anPrzelyk(P.przelyk, .12 + .05 * S)); rura.position.z = .45; P.g.add(rura); mow('Wyciągnij to przez przełyk do buzi!'); };
-  Z.down = p => { if (out || !p) return; if (Math.hypot(p.x - item.position.x, p.y - item.position.y) < .45 + .3 * S) { grab = true; snd(kind === 'kaczka' ? 'kwa' : 'pyk'); } };
+  Z.start = () => { buduj(); W = px2lok(46); rura = klX(anPrzelyk(sciezka, px2lok(10))); rura.position.z = .4 * S; P.w.add(rura); mow('Wyciągnij to przez przełyk do buzi!'); };
+  Z.down = p => { if (out || !p) return; if (Math.hypot(p.x - item.position.x, p.y - item.position.y) < px2lok(65)) { grab = true; snd(kind === 'kaczka' ? 'kwa' : 'pyk'); } };
   Z.move = p => {
     if (!grab || !p) return;
     const q = proj(p, s);
-    if (q.d > W) { grab = false; s = Math.max(0, s - .9); wob = 1; snd('hik'); if (kind === 'kaczka') snd('kwa'); dymek('HIK!', swiat(item), 'small'); P.trzes = .5; return; }
-    s = Math.max(s - .3, q.s);
-    if (s >= Lt - .12) wyplun();
+    if (q.d > W) { grab = false; s = Math.max(0, s - Lt * .15); wob = 1; if (P.a.tickle !== undefined) P.a.tickle = 1; snd('hik'); if (kind === 'kaczka') snd('kwa'); dymek('HIK!', swiat(item), 'small'); P.trzes = .5; return; }
+    s = Math.max(s - Lt * .05, q.s);
+    if (s >= Lt * .98) wyplun();
   };
   Z.up = () => { grab = false; };
   function wyplun() {
-    grab = false; out = { t: 0, a: item.position.clone(), b: P.g.worldToLocal(GAB.miska.localToWorld(V(0, .5, 0))) };
+    grab = false; out = { t: 0, a: item.position.clone(), b: P.w.worldToLocal(GAB.miska.localToWorld(V(0, .5, 0))) };
     klObie(item); snd('bek'); dymek('BEEEK!', glowaW(), 'big'); P.bek = 1; idleT = 0;
     setTimeout(() => mow(RZ_MOWA[kind]), 700);
   }
   Z.step = dt => {
     if (!out) {
-      const tg = at(s); tg.z = .6; item.position.lerp(tg, Math.min(1, dt * 14));
+      const tg = at(s); tg.z = .6 * S; item.position.lerp(tg, Math.min(1, dt * 14));
       wob = Math.max(0, wob - dt * 2); item.rotation.z = Math.sin(czas * 9) * (.1 + .3 * wob + (grab ? .12 : 0));
       if (kind === 'budzik' && (ringT -= dt) < 0) { ringT = 3.2; snd('dzwon'); wob = 1; dymek('DRRR!', swiat(item), 'small'); }
-      if (grab && (gigT -= dt) < 0) { gigT = rnd(1.4, 2.6); snd('chichot'); dymek('hi hi', glowaW(), 'small'); }
+      if (grab && (gigT -= dt) < 0) { gigT = rnd(1.4, 2.6); snd('chichot'); dymek('hi hi', glowaW(), 'small'); if (P.a.tickle !== undefined) P.a.tickle = .7; }
     } else if (!Z.done) {
       out.t = Math.min(1, out.t + dt / 1.1); const e = out.t;
-      item.position.lerpVectors(out.a, out.b, e); item.position.y += Math.sin(e * Math.PI) * 2.2; item.rotation.z += dt * 9 * (1 - e);
-      if (out.t >= 1) { item.rotation.z = 0; snd('lad'); GAB.g.attach(item); lezace.push(item); if (rura) { P.g.remove(rura); rura = null; } Z.done = true; }
+      item.position.lerpVectors(out.a, out.b, e); item.position.y += Math.sin(e * Math.PI) * 2.2 / P.k; item.rotation.z += dt * 9 * (1 - e);
+      if (out.t >= 1) { item.rotation.z = 0; snd('lad'); GAB.g.attach(item); lezace.push(item); if (rura) { P.w.remove(rura); rura = null; } Z.done = true; }
     }
   };
-  Z.hint = () => out ? null : [swiat(item), wLok(at(Math.min(Lt, s + 1.8)))];
+  Z.hint = () => out ? null : [swiat(item), wLok(at(Math.min(Lt, s + Lt * .3)))];
   return Z;
 }
 function zOrgan(names) {
@@ -160,24 +168,24 @@ function zOrgan(names) {
   const Z = { typ: 'organ', ic: ORG_IC[names[0]], done: false, objaw: 'kręci mi się w głowie', znalezione: names.map(n => ORG_NAZWA[n]).join(' i ') + ' nie na miejscu!' };
   Z.prep = () => {
     const used = new Set();
-    for (const x of L) { const opt = x.d.zle.filter(z => !used.has(z + '')); const sp = pick(opt); used.add(sp + ''); x.d.o.position.set(sp[0], sp[1], .5); x.d.o.userData.zywy = false; }
+    for (const x of L) { const opt = x.d.zle.filter(z => !used.has(z + '')); const sp = pick(opt); used.add(sp + ''); x.d.o.position.set(sp[0], sp[1], x.d.dom[2] + .3); x.d.o.userData.zywy = false; }
   };
   Z.kotwice = () => L.map(x => () => swiat(x.d.o));
   Z.start = () => {
-    for (const x of L) { x.duch = klX(anDuch(x.d.o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(x.d.o.scale); P.g.add(x.duch); }
+    for (const x of L) { x.duch = klX(anDuch(x.d.o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(x.d.o.scale); P.w.add(x.duch); }
     mow('Połóż ' + names.map(n => ORG_NAZWA[n]).join(' i ') + ' na swoje miejsce!');
   };
-  const r = x => .35 + .45 * x.d.o.scale.x;
+  const r = x => px2lok(55) + .4 * x.d.o.scale.x;
   Z.down = p => {
     if (!p) return;
     const x = L.filter(x => !x.ok && !x.snap).sort((a, b) => a.d.o.position.distanceTo(p) - b.d.o.position.distanceTo(p))[0];
     if (x && Math.hypot(p.x - x.d.o.position.x, p.y - x.d.o.position.y) < r(x)) { drag = x; off.set(x.d.o.position.x - p.x, x.d.o.position.y - p.y, 0); snd('pyk'); }
   };
-  Z.move = p => { if (drag && p) drag.d.o.position.set(p.x + off.x, p.y + off.y, .7); };
+  Z.move = p => { if (drag && p) drag.d.o.position.set(p.x + off.x, p.y + off.y, drag.d.dom[2] + .5); };
   Z.up = () => {
     if (!drag) return; const x = drag, o = x.d.o; drag = null;
-    if (Math.hypot(o.position.x - x.d.dom[0], o.position.y - x.d.dom[1]) < .5 + .25 * o.scale.x) x.snap = { a: o.position.clone(), t: 0 };
-    else o.position.z = .5;
+    if (Math.hypot(o.position.x - x.d.dom[0], o.position.y - x.d.dom[1]) < px2lok(60) + .25 * o.scale.x) x.snap = { a: o.position.clone(), t: 0 };
+    else o.position.z = x.d.dom[2] + .3;
   };
   Z.step = dt => {
     anDuch.m && (anDuch.m.opacity = .22 + .14 * Math.sin(czas * 5));
@@ -187,7 +195,7 @@ function zOrgan(names) {
       if (x.snap) {
         x.snap.t = Math.min(1, x.snap.t + dt / .35); o.position.lerpVectors(x.snap.a, V(...x.d.dom), ease(x.snap.t)); o.rotation.z *= .8;
         if (x.snap.t >= 1) {
-          x.snap = null; x.ok = true; o.rotation.z = 0; o.userData.zywy = true; P.g.remove(x.duch);
+          x.snap = null; x.ok = true; o.rotation.z = 0; o.userData.zywy = true; P.w.remove(x.duch);
           snd('pyk'); setTimeout(() => snd(ORG_SND[x.n]), 250); mow(ORG_MOWA[x.n]); dymek(ORG_IC[x.n], swiat(o), 'emoji');
           if (L.every(y => y.ok)) setTimeout(() => { Z.done = true; }, 1800);
         }
@@ -198,14 +206,14 @@ function zOrgan(names) {
   return Z;
 }
 function zKregi() {
-  const K = P.kregi, kaw = [], duchy = []; let n = 0, drag = null, rot = K.opad, gRot = K.glowaOpad;
+  const K = P.kregi, kaw = [], duchy = []; let n = 0, drag = null, opad = 1;
   const Z = { typ: 'kregi', ic: '🦴', done: false, objaw: 'szyja mi się chwieje', znalezione: 'W szyi brakuje kości!' };
   const slotW = i => K.grupa.localToWorld(V(K.sloty[i].x, K.sloty[i].y, 0));
   Z.prep = () => {
-    K.grupa.rotation.z = rot; P.glowaRz = gRot;
-    for (let i = 0; i < 7; i++) {
-      const k = klX(anKreg(.14)); k.position.set(P.box.x0 - .45 - (i % 3) * .5, .45 + Math.floor(i / 3) * .5 + (i % 2) * .1, .6); k.rotation.z = rnd(-1, 1);
-      P.g.add(k); kaw.push({ k, ok: false, fly: null });
+    K.ustaw(opad);
+    for (let i = 0; i < 7; i++) {                          // kupka kręgów na podłodze, przed pacjentem z lewej
+      const k = klX(anKreg(.14)); k.position.copy(P.w.worldToLocal(V(P.box.x0 - .4 - (i % 3) * .45, .4 + Math.floor(i / 3) * .45 + (i % 2) * .1, 1))); k.rotation.z = rnd(-1, 1);
+      P.w.add(k); kaw.push({ k, ok: false, fly: null });
     }
   };
   Z.kotwice = () => [() => slotW(3)];
@@ -216,24 +224,24 @@ function zKregi() {
   Z.down = p => {
     if (!p) return;
     const c = kaw.filter(c => !c.ok && !c.fly).sort((a, b) => a.k.position.distanceTo(p) - b.k.position.distanceTo(p))[0];
-    if (c && Math.hypot(p.x - c.k.position.x, p.y - c.k.position.y) < .5) { drag = c; snd('stuk'); }
+    if (c && Math.hypot(p.x - c.k.position.x, p.y - c.k.position.y) < px2lok(55)) { drag = c; snd('stuk'); }
   };
-  Z.move = p => { if (drag && p) drag.k.position.set(p.x, p.y, .7); };
+  Z.move = p => { if (drag && p) drag.k.position.set(p.x, p.y, 1.2); };
   Z.up = p => {
     if (!drag) return; const c = drag; drag = null;
-    const pk = P.g.worldToLocal(swiat(c.k)); let best = 9;
-    for (let i = 0; i < 7; i++) best = Math.min(best, P.g.worldToLocal(slotW(i)).distanceTo(pk));
-    if (best < 1.1 && n < 7) { c.fly = { a: c.k.position.clone(), r: c.k.rotation.z, t: 0, i: n++ }; }
-    else c.k.position.z = .6;
+    const pk = c.k.position; let best = 1e9;
+    for (let i = 0; i < 7; i++) { const q = P.w.worldToLocal(slotW(i)); best = Math.min(best, Math.hypot(q.x - pk.x, q.y - pk.y)); }
+    if (best < px2lok(120) && n < 7) { c.fly = { a: c.k.position.clone(), r: c.k.rotation.z, t: 0, i: n++ }; }
+    else c.k.position.z = 1;
   };
   Z.step = dt => {
-    const cel = K.opad * (1 - kaw.filter(c => c.ok).length / 7), gcel = K.glowaOpad * (1 - kaw.filter(c => c.ok).length / 7);
-    rot += (cel - rot) * Math.min(1, dt * 4); gRot += (gcel - gRot) * Math.min(1, dt * 4);
-    K.grupa.rotation.z = rot + Math.sin(czas * 2.2) * .05 * (cel / K.opad || 0); P.glowaRz = gRot;
+    const cel = 1 - kaw.filter(c => c.ok).length / 7;
+    opad += (cel - opad) * Math.min(1, dt * 4); K.ustaw(opad + Math.sin(czas * 2.2) * .05 * cel);
     anDuch.m && (anDuch.m.opacity = .22 + .14 * Math.sin(czas * 5));
     for (const c of kaw) if (c.fly) {
       const f = c.fly, s = K.sloty[f.i]; f.t = Math.min(1, f.t + dt / .4);
-      const b = P.g.worldToLocal(slotW(f.i)); c.k.position.lerpVectors(f.a, b, ease(f.t)); c.k.rotation.z = f.r + (K.grupa.rotation.z + s.rz - f.r) * ease(f.t);
+      const b = P.w.worldToLocal(slotW(f.i)), e3 = new T.Euler().setFromQuaternion(P.w.getWorldQuaternion(new T.Quaternion()).invert().multiply(K.grupa.getWorldQuaternion(new T.Quaternion())));
+      c.k.position.lerpVectors(f.a, b, ease(f.t)); c.k.rotation.z = f.r + (e3.z + s.rz - f.r) * ease(f.t);
       if (f.t >= 1) {
         c.fly = null; c.ok = true; K.grupa.add(c.k); c.k.position.set(s.x, s.y, 0); c.k.rotation.z = s.rz; K.grupa.remove(duchy[f.i]);
         const ile = kaw.filter(c => c.ok).length; snd('stuk'); snd('pyk'); mow(LICZ[ile - 1]); dymek(String(ile), swiat(c.k), 'small');
@@ -247,20 +255,20 @@ function zKregi() {
 }
 function zKosc() {
   const B = P.kosc, k = B.dol, Lk = k.userData.L; let drag = false, ok = false, snap = null, duch = null, gips = null, off = V();
-  const Z = { typ: 'kosc', ic: '🩹', done: false, objaw: P.kind === 'opiekun' ? 'ręka boli' : 'noga boli', znalezione: 'Złamana kość!' };
+  const Z = { typ: 'kosc', ic: '🩹', done: false, objaw: P.kind === 'doktor' ? 'ręka boli' : 'noga boli', znalezione: 'Złamana kość!' };
   const srodek = (x, y, rz) => V(x - Math.sin(rz) * Lk / 2, y + Math.cos(rz) * Lk / 2, 0);   // środek kości w układzie kończyny
   const srW = () => B.grupa.localToWorld(srodek(k.position.x, k.position.y, k.rotation.z));
   const domW = () => B.grupa.localToWorld(srodek(B.dom.x, B.dom.y, B.dom.rz));
   Z.prep = () => { k.position.set(B.zle.x, B.zle.y, .1); k.rotation.z = B.zle.rz; P.kulawy = B.grupa; };
   Z.kotwice = () => [srW];
   Z.start = () => {
-    P.kulawy = null; B.grupa.rotation.set(0, 0, B.grupa.userData.rz0 ?? B.grupa.rotation.z);
+    P.kulawy = null;
     duch = klX(anDuch(k)); duch.position.set(B.dom.x, B.dom.y, 0); duch.rotation.z = B.dom.rz; B.grupa.add(duch);
     mow('Kość się złamała! Złóż ją z powrotem.');
   };
   Z.down = p => {
     if (ok || snap || !p) return; const w = wLok(p), c = srW();
-    if (Math.hypot(w.x - c.x, w.y - c.y) < .6) { drag = true; off.set(c.x - w.x, c.y - w.y, 0); snd('pyk'); }
+    if (Math.hypot(w.x - c.x, w.y - c.y) < px2lok(65) * P.k) { drag = true; off.set(c.x - w.x, c.y - w.y, 0); snd('pyk'); }
   };
   Z.move = p => {
     if (!drag || !p) return;
@@ -270,7 +278,7 @@ function zKosc() {
   };
   Z.up = () => {
     if (!drag) return; drag = false;
-    if (srW().distanceTo(domW()) < .45) snap = { a: k.position.clone(), r: k.rotation.z, t: 0 };
+    if (srW().distanceTo(domW()) < px2lok(60) * P.k) snap = { a: k.position.clone(), r: k.rotation.z, t: 0 };
   };
   Z.step = dt => {
     anDuch.m && (anDuch.m.opacity = .22 + .14 * Math.sin(czas * 5));
@@ -320,9 +328,9 @@ function startWizyta(kind) {
   SET.kind = kind; save();
   if (P) scene.remove(P.g);
   MENU_P.forEach(p => p.g.visible = false);
-  P = klPacjent(kind); P.g.position.set(-12, 0, 0); if (kind === 'opiekun') P.g.rotation.y = Math.PI / 2;
-  scene.add(P.g); P.nogi.concat(P.rece).forEach(n => n.g.userData.rz0 = n.g.rotation.z);
-  GAB.miska.position.set(P.box.x0 - 1.0, 0, .8);
+  P = klPacjent(kind); P.g.position.set(-14, 0, 0);
+  scene.add(P.g);
+  GAB.miska.position.set(P.box.x0 - 1.0, .06, 1.2);
   zadania = zabiegi(kind); zi = -1; zadania.forEach(z => z.prep());
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = ''; czysc();
   $('zad').innerHTML = zadania.map(z => `<b>${z.ic}</b>`).join('');
@@ -346,7 +354,7 @@ function nastepneZadanie() {
   zadania[zi].start();
 }
 function zdrowy() {
-  setState('zdrowy'); lupa.cel = 0; camGo(widok3D(), 1.4); snd('sukces');
+  setState('zdrowy'); lupa.cel = 0; camGo(widok3D(), 1.4); snd('sukces'); if (!P.a.human) P.a.jumpT = 2.4;
   SET.wyleczeni[P.kind] = (SET.wyleczeni[P.kind] || 0) + 1; save();
   setTimeout(() => { mow('Zdrowy! ' + FAKT[P.kind]); if (P.kind === 'slon') snd('trab'); else if (P.kind === 'zyrafa') snd('mruk'); }, 900);
   const cf = $('confetti'); cf.innerHTML = '';
@@ -395,29 +403,28 @@ $('bSnd').onclick = $('bSnd2').onclick = () => { audInit(); audMute(!AUD.on); if
 addEventListener('keydown', e => { if (e.code === 'Enter' && state === 'menu') startWizyta(SET.kind); if (e.code === 'Space' && state === 'objaw') rentgen(); });
 
 /* ---------- pętla ---------- */
-const STOPA = { zyrafa: 'krok', slon: 'krok_slon', opiekun: 'krok' };
+const STOPA = { zyrafa: 'krok', slon: 'krok_slon', doktor: 'krok' };
 function animPacjent(p, dt, idzie) {
-  p.t += dt; klKrok(p, p.t, idzie ? 1 : 0); klOddech(p, p.t);
+  klAnim(p, dt, idzie ? 1 : 0);
   for (const n in p.organy) anTik(p.organy[n].o, p.t);
   if (p.mozgGlowy) anTik(p.mozgGlowy, p.t);
 }
 function step(dt) {
   czas += dt; stT += dt;
   if (state === 'menu') {
-    MENU_P.forEach((p, i) => { animPacjent(p, dt, false); p.g.position.y = Math.abs(Math.sin(czas * 2 + i * 2)) * .12; if (p.rece[0]) p.rece[0].g.rotation.z = -.12 - (1 + Math.sin(czas * 6)) * .6; });
+    MENU_P.forEach(p => { animPacjent(p, dt, false); if (p.a.human) p.a.armOn.rotation.z = 2.6 + Math.sin(czas * 7) * .35; });   // doktor macha
   }
   if (P) {
     const idzie = state === 'wejscie' || state === 'wyjscie';
     animPacjent(P, dt, idzie);
-    if (P.kulawy && (state === 'wejscie' || state === 'objaw')) P.kulawy.rotation.z = (P.kulawy.userData.rz0 || 0) + (P.kind === 'opiekun' ? .5 : .55) + Math.sin(czas * 3) * .05;
+    if (P.kulawy && (state === 'wejscie' || state === 'objaw')) P.kulawy.rotation.z = (P.a.human ? 1.1 : .6) + Math.sin(czas * 3) * .05;   // oszczędza chorą nogę / rękę
     P.trzes = Math.max(0, (P.trzes || 0) - dt); P.g.rotation.z = Math.sin(czas * 40) * .03 * P.trzes;
-    if (P.bek > 0) { P.bek = Math.max(0, P.bek - dt * 1.2); if (P.glowa) P.glowa.rotation.z = (P.glowaRz || 0) + Math.sin(P.bek * 20) * .12 * P.bek; }
+    if (P.bek > 0) { P.bek = Math.max(0, P.bek - dt * 1.2); P.glowa.rotation.z += Math.sin(P.bek * 20) * .12 * P.bek; }
     if (state === 'objaw' && zadania.some(z => z.typ === 'organ')) P.g.rotation.z += Math.sin(czas * 2.2) * .03;
     if (idzie) {
-      const v = P.kind === 'slon' ? 3.2 : 3.8; P.g.position.x += v * dt;
+      const v = P.kind === 'slon' ? 3.2 : 3.8; P.g.position.x += v * dt * (state === 'wyjscie' ? -1 : 1);
       if (Math.floor(P.t * 7 / Math.PI) !== Math.floor((P.t - dt) * 7 / Math.PI)) snd(STOPA[P.kind]);
-      if (P.kind === 'opiekun') P.g.rotation.y += (Math.PI / 2 - P.g.rotation.y) * Math.min(1, dt * 6);
-    } else if (P.kind === 'opiekun') P.g.rotation.y += (0 - P.g.rotation.y) * Math.min(1, dt * 5);
+    }
   }
   switch (state) {
     case 'wejscie':
@@ -453,11 +460,11 @@ function step(dt) {
       break;
     }
     case 'zdrowy':
-      P.g.position.y = stT < 2.6 ? Math.abs(Math.sin(stT * 6)) * .6 * (1 - stT / 2.6) : 0;
-      if (stT > 4.6) { setState('wyjscie'); }
+      if (P.a.human) P.g.position.y = stT < 2.6 ? Math.abs(Math.sin(stT * 6)) * .6 * (1 - stT / 2.6) : 0;
+      if (stT > 4.6) { setState('wyjscie'); P.g.rotation.y = PI; }   // zawraca i wychodzi drzwiami
       break;
     case 'wyjscie':
-      if (P.g.position.x > 13) koniec();
+      if (P.g.position.x < -14) koniec();
       break;
   }
   // znaczniki „!” nad znalezionymi problemami
@@ -477,7 +484,7 @@ function step(dt) {
   camStep(dt);
 }
 function render() {
-  cam.layers.set(0); scene.background = BG; renderer.setRenderTarget(null); renderer.render(scene, cam);
+  cam.layers.set(0); scene.background = BG; renderer.setRenderTarget(null); renderer.shadowMap.needsUpdate = true; renderer.render(scene, cam);
   if (lupa.r > .003) {
     cam.layers.set(1); scene.background = XBG; renderer.setRenderTarget(rt); renderer.render(scene, cam);
     renderer.setRenderTarget(null); renderer.autoClear = false; renderer.render(lupaScene, lupaCam); renderer.autoClear = true; cam.layers.set(0);

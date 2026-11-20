@@ -1,4 +1,4 @@
-// przyroda — wspólne dla: pralnia
+// przyroda — wspólne dla: pralnia, klinika
 // wymaga z gry: mK, mesh, scene
 'use strict';
 function duck(par,x,y,z,s){const g=grp(par,x,y,z);g.scale.setScalar(s);const ye=M(0xffd23f,{roughness:.4});ball(ye,g,0,.24,0,.3,.24,.24);ball(ye,g,.2,.5,0,.17);ball(M(0xff8f1c),g,.37,.48,0,.1,.04,.08);for(const q of [1,-1])ball(mK,g,.28,.55,q*.1,.03);ball(ye,g,-.28,.32,0,.1,.08,.12);return g;}

@@ -51,14 +51,14 @@ flowchart LR
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
 | `models/bron.piraci.js` | 38 | bladeGeo mkWeapon (miecze, szabla, katana, topór, łuk…) mkArrow starGeo mkStar |
-| `models/piraci.piraci.js` | 79 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman mkFighter |
+| `models/piraci.piraci-klinika.js` | 90 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman (też `weterynarz` dla Kliniki: biały fartuch, bez czapki) mkFighter |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
 | `models/pojazdy.ciuchcia.js` | 26 | carFace buildTaxi |
 | `models/pojazdy.taxi.js` | 49 | carFace buildTaxi planeBody buildPlane buildPolice |
 | `models/morze.js` | 354 | MORZE: M (materiał podwodny) fishGeo speciesGeo makeClown makeTurtle makeManta makeShark makePuffer seahorseGeo makeCrab makeOcto jellyGeos makeWhale makeDolphin makeMoray |
-| `models/przyroda.pralnia.js` | 7 | duck tree palm |
+| `models/przyroda.pralnia-klinika.js` | 7 | duck tree palm |
 | `models/przyroda.zniwa.js` | 48 | tuftGeo |
 | `models/rafa.rafa.js` | 118 | branchGeo brainGeo tableGeo tubesGeo platesGeo pillarsGeo anemoneGeo kelpGeo grassGeo nubGeo rockGeo urchinGeo clamGeo starGeo shellGeo makeWreck makeChest |
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
@@ -70,8 +70,8 @@ flowchart LR
 | `models/pojazdy.bryki.js` | 442 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
 | `models/trasy.bryki.js` | 277 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
 | `models/anatomia.klinika.js` | 194 | kości (anKosc anKoscP anKreg anCzaszka anZebraBok anZebraPrzod anPlaska — świecące, z poświatą), organy (anSerce anPluca anZoladek anJelita anMozg anOrgan anTik), anPrzelyk, połknięte rzeczy anRzecz (kaczka, budzik, skarpetka, klucz, rybka, piłka, klocek), anGips, anDuch (cień miejsca) |
-| `models/pacjenci.klinika.js` | 270 | klPacjent (żyrafa, słoń, opiekun zoo — skóra na warstwie 0, rentgen na warstwie 1: zarys, kości, organy) klKrok klOddech klSkora klX klObie klRura klOko |
-| `models/gabinet.klinika.js` | 54 | klGabinet (kafle, drzwi, okno, miarka wzrostu, plakat, kwiatek, miska, siatka tła rentgena) |
+| `models/pacjenci.klinika.js` | 141 | klPacjent (żyrafa i słoń z ZOO, Pan Weterynarz = mkHuman z Piratów; rentgen = bliźniaki siatek na warstwie 1 + kości i organy dopasowane do modelu) klAnim klStroj klX klObie |
+| `models/gabinet.klinika.js` | 107 | klGabinet — budynek weterynarza w przekroju: drzwi dla żyrafy, leki dla zwierząt, maskotki z ZOO, tablica wzroku ze zwierzątkami, szyld, tło rentgena |
 
 ## Narzędzia
 
