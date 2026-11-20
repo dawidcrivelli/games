@@ -82,13 +82,16 @@ const MODELE = [
   { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brMost(32, 1.8, 12.6, 0x3aa0d0, 0, 0xd8342a)' },
 
   // Klinika Zoo: pacjenci (skóra; rentgen to warstwa 1 kamery) i wnętrze — organy, kości, połknięte rzeczy, gips
-  ...[['żyrafa', 'zyrafa'], ['słoń', 'slon'], ['doktor', 'doktor']].map(([typ, k]) => ({ kat: 'pacjenci', typ, gra: 'klinika', js: `klPacjent('${k}').g` })),
+  ...[['żyrafa', 'zyrafa'], ['słoń', 'slon'], ['pingwin', 'pingwin'], ['doktor', 'doktor']].map(([typ, k]) => ({ kat: 'pacjenci', typ, gra: 'klinika', js: `klPacjent('${k}').g` })),
   ...['serce', 'pluca', 'zoladek', 'jelita', 'mozg'].map(n => ({ kat: 'anatomia', typ: 'organy', gra: 'klinika', js: `anOrgan('${n}', 1)` })),
   { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anKosc(1, .08)' },
   { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anKreg(.2)' },
   { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anZebraBok(0, .8, .7, .7, 5)' },
-  ...['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek'].map(k => ({ kat: 'anatomia', typ: 'połknięte', gra: 'klinika', js: `anRzecz('${k}', 1.5)` })),
+  ...['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'].map(k => ({ kat: 'anatomia', typ: 'połknięte', gra: 'klinika', js: `anRzecz('${k}', 1.5)` })),
   { kat: 'anatomia', typ: 'gips', gra: 'klinika', js: 'anGips(.9, .25, 0x3ab0ff)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anLizak(1)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anGuz(.3)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anPlaster(.3, 0xff8fb1)' },
 
   { kat: 'broń', typ: 'strzała', gra: 'piraci', js: 'mkArrow()' },
   { kat: 'broń', typ: 'rozgwiazda', gra: 'piraci', js: 'mkStar()' },

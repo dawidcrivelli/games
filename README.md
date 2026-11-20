@@ -21,6 +21,7 @@ flowchart LR
 - Nazwa pliku = gry, które go używają. Nowe biblioteki: `lib/<funkcja>.<gry>.js` (jak `models/`), np. `lib/klaksony.ciuchcia-taxi.js`; starsze `lib/<gry>.js` to mieszanka helperów z `tools/split.mjs`. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa, piraci), `models/morze.js` → `MORZE` (rafa, arka, piraci; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
+- `klinika/` — weterynarz dla 4–6 lat: pacjent wchodzi do budynku kliniki (3D), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D: zwierzęta z boku, wyprostowani (Pan Doktor, pingwin) od przodu. Połknięta rzecz przez przełyk, organ na miejsce, kręgi szyi żyrafy, złamana kość + gips, plasterki na guzy, lizak. Bez przegranej; lektor = polska synteza mowy przeglądarki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js), niezależna od `lib/` i `models/`: `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka).
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
@@ -44,6 +45,7 @@ flowchart LR
 | `lib/komiks.bryki-klinika.js` | 74 | styl „komiks”: brMat brOutline (kolor konturu) brPart brChaikin brExt brBox brCyl brLimb brGwiazdaPts komiksDymek |
 | `lib/komiks.bryki-klinika.css` | 26 | tabliczki-przyciski `.btn`, okienka `.box`, komiksowe napisy `.bub`, konfetti |
 | `lib/dzwiek.bryki-klinika.js` | 43 | AUD audSetup(klucz) audInit audMute audTone audNoise audMetal (klocki Web Audio) |
+| `lib/ikony.klinika.js` | 27 | ikonaModelu (miniatura PNG z modelu 3D — przyciski bez emoji) SVG_IKONY (dom, głośnik, dalej) |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
 | `models/budynki.ciuchcia.js` | 10 | groundPad ramp nameBoard |
@@ -51,7 +53,7 @@ flowchart LR
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
 | `models/bron.piraci.js` | 38 | bladeGeo mkWeapon (miecze, szabla, katana, topór, łuk…) mkArrow starGeo mkStar |
-| `models/piraci.piraci-klinika.js` | 90 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman (też `weterynarz` dla Kliniki: biały fartuch, bez czapki) mkFighter |
+| `models/piraci.piraci-klinika.js` | 90 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman (też `weterynarz` dla Kliniki: biały fartuch, bez czapki i opaski) mkFighter |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
@@ -69,8 +71,8 @@ flowchart LR
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
 | `models/pojazdy.bryki.js` | 442 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
 | `models/trasy.bryki.js` | 277 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
-| `models/anatomia.klinika.js` | 194 | kości (anKosc anKoscP anKreg anCzaszka anZebraBok anZebraPrzod anPlaska — świecące, z poświatą), organy (anSerce anPluca anZoladek anJelita anMozg anOrgan anTik), anPrzelyk, połknięte rzeczy anRzecz (kaczka, budzik, skarpetka, klucz, rybka, piłka, klocek), anGips, anDuch (cień miejsca) |
-| `models/pacjenci.klinika.js` | 141 | klPacjent (żyrafa i słoń z ZOO, Pan Weterynarz = mkHuman z Piratów; rentgen = bliźniaki siatek na warstwie 1 + kości i organy dopasowane do modelu) klAnim klStroj klX klObie |
+| `models/anatomia.klinika.js` | 234 | kości (anKosc anKoscP anKreg anCzaszka anZebraBok anZebraPrzod anPlaska — świecące, z poświatą), organy (anSerce anPluca anZoladek anJelita anMozg anOrgan anTik), anPrzelyk, połknięte rzeczy anRzecz (kaczka, budzik, skarpetka, klucz, rybka, piłka, klocek, lód), anGips, anDuch (cień miejsca), anGuz anPlaster anLizak anLupa anGwiazda |
+| `models/pacjenci.klinika.js` | 182 | klPacjent (żyrafa, słoń, pingwin z ZOO; Pan Weterynarz = mkHuman z Piratów; rentgen = bliźniaki siatek na warstwie 1 + kości i organy; wyprostowani od przodu: klPrzod) klAnim klStroj klX klObie |
 | `models/gabinet.klinika.js` | 107 | klGabinet — budynek weterynarza w przekroju: drzwi dla żyrafy, leki dla zwierząt, maskotki z ZOO, tablica wzroku ze zwierzątkami, szyld, tło rentgena |
 
 ## Narzędzia

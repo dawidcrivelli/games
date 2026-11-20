@@ -1,24 +1,23 @@
 'use strict';
 // Klinika Zoo — weterynarz dla dzieci 4–6 lat. Pacjent wchodzi (3D, kamera z ukosa), pokazuje, co boli, dziecko włącza rentgen:
-// kamera obraca się na bok (2.5D), lupą szuka problemów („!”), potem lupa rośnie na cały ekran i leczymy palcem:
+// kamera obraca się na bok (2.5D; wyprostowani — doktor, pingwin — stają przodem), lupą szuka problemów („!”), potem lupa rośnie
+// na cały ekran i leczymy palcem:
 //   połknięta rzecz → przeciągnij przełykiem do pyszczka (dotknięcie ścianki = czkawka, nie przegrana) · BEEEK!
 //   organ nie na miejscu → przenieś na świecący cień · krzywa szyja żyrafy → włóż 7 kręgów (liczymy) · złamana kość → złóż + kolorowy gips.
+//   Na koniec w 3D: plasterki na guzy (stuknij), radość pacjenta (poza „cheer” z ZOO / taniec doktora) i lizak dla dzielnego pacjenta.
 // Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/zwierzeta.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomia.klinika.js
 // (models/pacjenci.klinika.js); budynek kliniki w przekroju (models/gabinet.klinika.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
 const T = THREE, $ = id => document.getElementById(id);
-const KINDS = ['zyrafa', 'slon', 'doktor'];
-const IC = { zyrafa: '🦒', slon: '🐘', doktor: '🧑‍⚕️' };
-const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', doktor: 'Pan Doktor' };
-const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek'];
-const RZ_IC = { kaczka: '🦆', budzik: '⏰', skarpetka: '🧦', klucz: '🔑', rybka: '🐟', pilka: '⚽', klocek: '🧱' };
+const KINDS = ['zyrafa', 'slon', 'pingwin', 'doktor'];
+const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
+const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'];
 const RZ_MOWA = { kaczka: 'Gumowa kaczka! Kaczek się nie je!', budzik: 'Budzik! To on dzwonił w brzuchu!', skarpetka: 'Skarpetka! Fuj, to nie do jedzenia!',
-  klucz: 'Klucz! Kluczy się nie połyka!', rybka: 'Rybka! Ale z plastiku, nie do jedzenia!', pilka: 'Piłka! Piłka jest do grania, nie do jedzenia!', klocek: 'Klocek! Klocki są do budowania!' };
-const ORG_IC = { serce: '❤️', pluca: '🫁', zoladek: '🍲', mozg: '🧠' };
+  klucz: 'Klucz! Kluczy się nie połyka!', rybka: 'Rybka! Ale z plastiku, nie do jedzenia!', pilka: 'Piłka! Piłka jest do grania, nie do jedzenia!', klocek: 'Klocek! Klocki są do budowania!', lod: 'Kostka lodu! Brrr, ale zimna!' };
 const ORG_MOWA = { serce: 'Serce! Bije cały czas: bum, bum!', pluca: 'Płuca! Nimi oddychamy.', zoladek: 'Żołądek! Tu wpada jedzenie.', mozg: 'Mózg! Nim myślimy.' };
 const ORG_SND = { serce: 'bum', pluca: 'wdech', zoladek: 'bulg', mozg: 'mysl' };
 const ORG_NAZWA = { serce: 'serce', pluca: 'płuca', zoladek: 'żołądek', mozg: 'mózg' };
-const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.' };
+const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
 const { rnd, pick, M, MT, ball, box, cg, mesh, grp, G, mergeC, mK } = ZOO;     // pomocniki 3D z models/zwierzeta.js (jak w Pralni i Arce)
@@ -55,8 +54,24 @@ lupaScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), lupaMat));
 const lupa = { c: new T.Vector2(.5, .5), cc: new T.Vector2(.5, .5), r: 0, cel: 0 };   // c: środek (uv), cc: cel środka
 
 const GAB = klGabinet(); scene.add(GAB.g); const BG = GAB.niebo;
-const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-7.2, -3.4, -.6][i], 0, [-.6, .3, 1.3][i]); scene.add(p.g); return p; });
+const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-7.6, -4.4, -1.4, .6][i], 0, [-1.2, -.2, 1.6, 2.6][i]); scene.add(p.g); return p; });
 
+// Ikony przycisków = małe rysunki prawdziwych modeli z gry (lib/ikony.klinika.js), bez emoji
+const IKONA = {}, img = (k, cls = '') => `<img class="ik ${cls}" src="${IKONA[k]}" alt="">`;
+function budujIkony() {
+  for (const k of KINDS) { const p = klPacjent(k); IKONA['p_' + k] = ikonaModelu(p.g, { ry: p.przod ? -PI / 2 + .4 : -.5 }); }
+  for (const r of RZECZY) IKONA['r_' + r] = ikonaModelu(anRzecz(r, 1), { ry: -.35, rx: .15 });
+  for (const n of ['serce', 'pluca', 'zoladek', 'mozg']) IKONA['o_' + n] = ikonaModelu(anOrgan(n, 1), { ry: -.3 });
+  const kr = new T.Group(); for (let i = 0; i < 3; i++) kr.add(klPoz(anKreg(.2), 0, i * .4, 0)); IKONA.kregi = ikonaModelu(kr, { rz: -.35 });
+  IKONA.kosc = ikonaModelu(anKosc(1, .12), { rz: -.8 });
+  IKONA.plaster = ikonaModelu(anPlaster(.3, 0xff8fb1), { rz: .5 });
+  IKONA.lizak = ikonaModelu(anLizak(1), { rz: -.3 });
+  IKONA.lupa = ikonaModelu(anLupa());
+  IKONA.gwiazda = ikonaModelu(anGwiazda(), { ry: .3 });
+  $('bRtg').innerHTML = img('lupa'); $('bLizak').innerHTML = img('lizak'); $('bDom').innerHTML = SVG_IKONY.dom;
+  $('bNext').innerHTML = SVG_IKONY.dalej + 'Następny pacjent'; $('bHome').innerHTML = SVG_IKONY.dom + 'Menu';
+}
+budujIkony();
 let lezace = [];                                         // wyciągnięte rzeczy w misce (zostają w gabinecie do końca wizyty)
 let state = 'menu', stT = 0, czas = 0, P = null, zadania = [], zi = -1, problemy = [], zadT = 0, idleT = 0, nastepny = 0;
 function resize() {
@@ -68,7 +83,7 @@ function resize() {
 addEventListener('resize', () => resize());
 
 /* ---------- widoki kamery: 3D z ukosa / prosto z boku (2.5D) ---------- */
-function widokMenu() { return { pos: V(5.5, 6.2, 21), look: V(1.2, 4.0, 0) }; }
+function widokMenu() { return { pos: V(7.5, 6.2, 21), look: V(3.2, 4.0, 0) }; }
 function widok3D() {
   const h = P.box.y1, look = V(0, h * .42, 0), D = Math.max(12, h * 2.9);
   return { pos: look.clone().add(V(.42, .24, .88).normalize().multiplyScalar(D)), look };
@@ -129,7 +144,7 @@ function zPolkniete(kind) {
     return best;
   }
   let item, rura, s = 0, grab = false, out = null, ringT = 1.5, gigT = 1, wob = 0;
-  const Z = { typ: 'polkniete', ic: RZ_IC[kind], done: false, rzecz: kind,
+  const Z = { typ: 'polkniete', ic: 'r_' + kind, done: false, rzecz: kind,
     objaw: kind === 'budzik' ? 'w brzuchu coś dzwoni' : 'brzuch boli', znalezione: 'Coś jest w brzuchu!' };
   Z.prep = () => { buduj(); item = klX(anRzecz(kind, S * .85)); item.position.copy(at(0)).setZ(.6 * S); P.w.add(item); };
   Z.kotwice = () => [() => swiat(item)];
@@ -165,7 +180,7 @@ function zPolkniete(kind) {
 }
 function zOrgan(names) {
   const L = names.map(n => ({ n, d: P.organy[n], duch: null, ok: false, snap: null })); let drag = null, off = V();
-  const Z = { typ: 'organ', ic: ORG_IC[names[0]], done: false, objaw: 'kręci mi się w głowie', znalezione: names.map(n => ORG_NAZWA[n]).join(' i ') + ' nie na miejscu!' };
+  const Z = { typ: 'organ', ic: 'o_' + names[0], done: false, objaw: 'kręci mi się w głowie', znalezione: names.map(n => ORG_NAZWA[n]).join(' i ') + ' nie na miejscu!' };
   Z.prep = () => {
     const used = new Set();
     for (const x of L) { const opt = x.d.zle.filter(z => !used.has(z + '')); const sp = pick(opt); used.add(sp + ''); x.d.o.position.set(sp[0], sp[1], x.d.dom[2] + .3); x.d.o.userData.zywy = false; }
@@ -196,7 +211,7 @@ function zOrgan(names) {
         x.snap.t = Math.min(1, x.snap.t + dt / .35); o.position.lerpVectors(x.snap.a, V(...x.d.dom), ease(x.snap.t)); o.rotation.z *= .8;
         if (x.snap.t >= 1) {
           x.snap = null; x.ok = true; o.rotation.z = 0; o.userData.zywy = true; P.w.remove(x.duch);
-          snd('pyk'); setTimeout(() => snd(ORG_SND[x.n]), 250); mow(ORG_MOWA[x.n]); dymek(ORG_IC[x.n], swiat(o), 'emoji');
+          snd('pyk'); setTimeout(() => snd(ORG_SND[x.n]), 250); mow(ORG_MOWA[x.n]); dymek(img('o_' + x.n, 'dym'), swiat(o), 'emoji');
           if (L.every(y => y.ok)) setTimeout(() => { Z.done = true; }, 1800);
         }
       }
@@ -207,7 +222,7 @@ function zOrgan(names) {
 }
 function zKregi() {
   const K = P.kregi, kaw = [], duchy = []; let n = 0, drag = null, opad = 1;
-  const Z = { typ: 'kregi', ic: '🦴', done: false, objaw: 'szyja mi się chwieje', znalezione: 'W szyi brakuje kości!' };
+  const Z = { typ: 'kregi', ic: 'kregi', done: false, objaw: 'szyja mi się chwieje', znalezione: 'W szyi brakuje kości!' };
   const slotW = i => K.grupa.localToWorld(V(K.sloty[i].x, K.sloty[i].y, 0));
   Z.prep = () => {
     K.ustaw(opad);
@@ -255,11 +270,11 @@ function zKregi() {
 }
 function zKosc() {
   const B = P.kosc, k = B.dol, Lk = k.userData.L; let drag = false, ok = false, snap = null, duch = null, gips = null, off = V();
-  const Z = { typ: 'kosc', ic: '🩹', done: false, objaw: P.kind === 'doktor' ? 'ręka boli' : 'noga boli', znalezione: 'Złamana kość!' };
+  const Z = { typ: 'kosc', ic: 'kosc', done: false, objaw: B.objaw || 'noga boli', znalezione: 'Złamana kość!' };
   const srodek = (x, y, rz) => V(x - Math.sin(rz) * Lk / 2, y + Math.cos(rz) * Lk / 2, 0);   // środek kości w układzie kończyny
   const srW = () => B.grupa.localToWorld(srodek(k.position.x, k.position.y, k.rotation.z));
   const domW = () => B.grupa.localToWorld(srodek(B.dom.x, B.dom.y, B.dom.rz));
-  Z.prep = () => { k.position.set(B.zle.x, B.zle.y, .1); k.rotation.z = B.zle.rz; P.kulawy = B.grupa; };
+  Z.prep = () => { k.position.set(B.zle.x, B.zle.y, .1); k.rotation.z = B.zle.rz; P.kulawy = B.konczyna || B.grupa; };
   Z.kotwice = () => [srW];
   Z.start = () => {
     P.kulawy = null;
@@ -302,12 +317,47 @@ function zKosc() {
   Z.hint = () => ok ? null : [srW(), domW()];
   return Z;
 }
+// Plasterki (w 3D, bez rentgena): 3 guzy na skórze od strony kamery; stuknięcie = kolorowy plaster
+function zPlastry() {
+  const guzy = [], KOL = [0xff8fb1, 0x8fd3ff, 0xffd96a, 0x9be38f, 0xc9a6ff];
+  const Z = { typ: 'plastry', ic: 'plaster', done: false, w3d: true, objaw: 'mam guzy', znalezione: '' };
+  Z.prep = () => {                                         // guzy szukamy promieniami z miejsca kamery 3D na pacjenta stojącego w gabinecie
+    const x0 = P.g.position.x, ry = P.g.rotation.y, B = P.box, rc = new T.Raycaster(), ms = [];
+    P.g.position.x = 0; P.g.rotation.y = P.przod ? -PI / 2 : 0; P.g.updateMatrixWorld(true);
+    P.a.root.traverse(o => { if (o.isMesh && (o.layers.mask & 1) && !o.userData.nd) ms.push(o); });
+    const oko = widok3D().pos;
+    for (let i = 0; i < 120 && guzy.length < 3; i++) {
+      const cel = V(rnd(B.x0, B.x1), rnd(B.y1 * .2, B.y1 * .85), 0);
+      rc.set(oko, cel.sub(oko).normalize()); const h = rc.intersectObjects(ms, false)[0];
+      if (!h || !h.face || guzy.some(q => q.w.distanceTo(h.point) < B.y1 * .16)) continue;
+      const n = h.face.normal.clone().transformDirection(h.object.matrixWorld); if (n.dot(rc.ray.direction) > -.35) continue;
+      const r = B.y1 * .05, b = anGuz(1); b.scale.setScalar(r); b.position.copy(h.point).addScaledVector(n, r * .15); b.quaternion.setFromUnitVectors(V(0, 0, 1), n);
+      scene.add(b); h.object.attach(b); guzy.push({ b, w: h.point.clone(), s: b.scale.x, ok: false });
+    }
+    P.g.position.x = x0; P.g.rotation.y = ry; P.g.updateMatrixWorld(true);
+  };
+  Z.kotwice = () => [];
+  Z.start = () => { lupa.cel = 0; camGo(widok3D(), 1.2); mow('Na koniec plasterki! Stuknij w każdy guz.'); if (!guzy.length) Z.done = true; };
+  Z.tap = (x, y) => {
+    const c = guzy.filter(q => !q.ok).map(q => { const [X, Y] = toScreen(swiat(q.b)); return { q, d: Math.hypot(X - x, Y - y) }; }).sort((a, b) => a.d - b.d)[0];
+    if (!c || c.d > 80) { snd('oj'); return; }
+    const q = c.q, pl = anPlaster(1, pick(KOL)); q.ok = true;
+    pl.scale.setScalar(q.s); pl.position.copy(q.b.position); pl.quaternion.copy(q.b.quaternion); pl.rotateZ(rnd(-.9, .9)); q.b.parent.add(pl); q.b.visible = false;
+    snd('gips'); snd('pyk'); dymek(pick(['PAC!', 'Au… już!', 'Dzięki!']), swiat(pl), 'small'); if (P.a.tickle !== undefined) P.a.tickle = .6;
+    if (guzy.every(q => q.ok)) { setTimeout(() => mow('Wszystkie guzy zaklejone!'), 500); setTimeout(() => { Z.done = true; }, 1600); }
+  };
+  Z.down = Z.move = Z.up = () => {};
+  Z.step = () => { for (const q of guzy) if (!q.ok) q.b.scale.setScalar(q.s * (1 + .12 * Math.sin(czas * 7))); };
+  Z.hint = () => { const q = guzy.find(q => !q.ok); if (!q) return null; const w = swiat(q.b); return [w.clone().add(V(P.box.y1 * .12, P.box.y1 * .18, 0)), w]; };
+  return Z;
+}
 function zabiegi(kind) {
-  const rz = kind === 'slon' && Math.random() < .6 ? 'budzik' : pick(RZECZY);
-  if (kind === 'zyrafa') return [zKregi(), zPolkniete(rz), zOrgan(['serce'])];
-  if (kind === 'slon') return [zPolkniete(rz), zOrgan(['mozg']), zKosc()];
+  const rz = kind === 'slon' && Math.random() < .6 ? 'budzik' : kind === 'pingwin' && Math.random() < .5 ? 'lod' : pick(RZECZY);
+  if (kind === 'zyrafa') return [zKregi(), zPolkniete(rz), zOrgan(['serce']), zPlastry()];
+  if (kind === 'slon') return [zPolkniete(rz), zOrgan(['mozg']), zKosc(), zPlastry()];
+  if (kind === 'pingwin') return [zPolkniete(rz), zOrgan([pick(['serce', 'mozg'])]), zKosc(), zPlastry()];
   const o = ['serce', 'zoladek', 'pluca', 'mozg'].sort(() => Math.random() - .5).slice(0, 2);
-  return [zOrgan(o), zPolkniete(rz), zKosc()];
+  return [zOrgan(o), zPolkniete(rz), zKosc(), zPlastry()];
 }
 
 /* ---------- przebieg wizyty ---------- */
@@ -319,10 +369,10 @@ function showMenu() {
   camGo(widokMenu(), 1); buildMenu();
 }
 function buildMenu() {
-  $('pick').innerHTML = KINDS.map(k => `<button class="btn" data-k="${k}"><span class="ico">${IC[k]}</span>${NAZWY[k]}<span class="gw">${'⭐'.repeat(Math.min(5, SET.wyleczeni[k] || 0))}</span></button>`).join('');
-  $('bSnd').textContent = $('bSnd2').textContent = AUD.on ? '🔊' : '🔇';
+  $('pick').innerHTML = KINDS.map(k => `<button class="btn" data-k="${k}">${img('p_' + k, 'ico')}${NAZWY[k]}<span class="gw">${img('gwiazda').repeat(Math.min(5, SET.wyleczeni[k] || 0))}</span></button>`).join('');
+  $('bSnd').innerHTML = $('bSnd2').innerHTML = SVG_IKONY[AUD.on ? 'glos' : 'cisza'];
 }
-function czysc() { lezace.forEach(o => GAB.g.remove(o)); lezace = []; $('znaki').innerHTML = ''; $('fx').innerHTML = ''; paleta(false); $('bRtg').hidden = true; $('lupa').hidden = true; $('raczka').hidden = true; }
+function czysc() { lezace.forEach(o => GAB.g.remove(o)); lezace = []; $('bLizak').hidden = true; $('znaki').innerHTML = ''; $('fx').innerHTML = ''; paleta(false); $('bRtg').hidden = true; $('lupa').hidden = true; $('raczka').hidden = true; }
 function startWizyta(kind) {
   audInit(); obrotPelny(); snd('klik');
   SET.kind = kind; save();
@@ -333,13 +383,13 @@ function startWizyta(kind) {
   GAB.miska.position.set(P.box.x0 - 1.0, .06, 1.2);
   zadania = zabiegi(kind); zi = -1; zadania.forEach(z => z.prep());
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = ''; czysc();
-  $('zad').innerHTML = zadania.map(z => `<b>${z.ic}</b>`).join('');
+  $('zad').innerHTML = zadania.map(z => `<b>${img(z.ic)}</b>`).join('');
   lupa.r = lupa.cel = 0;
   setState('wejscie'); camGo(widok3D(), 1.2);
 }
 function rentgen() {
   if (state !== 'objaw') return;
-  snd('rtg'); $('bRtg').hidden = true; setState('skan'); camGo(widokBok(), 1.3);
+  snd('rtg'); $('bRtg').hidden = true; setState('skan'); camGo(widokBok(), 1.3); P.g.rotation.y = P.przod ? -PI / 2 : 0;
   problemy = zadania.flatMap((z, i) => z.kotwice().map(f => ({ f, z, t: 0, found: false, el: null })));
   setTimeout(() => {
     const [X, Y] = toScreen(P.g.localToWorld(V((P.box.x0 + P.box.x1) / 2, P.box.y1 * .45, 0)));
@@ -351,19 +401,31 @@ function nastepneZadanie() {
   zi++; idleT = 0;
   [...$('zad').children].forEach((b, i) => { b.classList.toggle('ok', i < zi); b.classList.toggle('teraz', i === zi); });
   if (zi >= zadania.length) { zdrowy(); return; }
-  zadania[zi].start();
+  const z = zadania[zi];
+  if (!z.w3d && lupa.cel < 1) { lupa.cel = 3; camGo(widokBok(), 1); }   // po plasterkach wraca rentgen (gdyby kolejność była inna)
+  z.start();
 }
 function zdrowy() {
-  setState('zdrowy'); lupa.cel = 0; camGo(widok3D(), 1.4); snd('sukces'); if (!P.a.human) P.a.jumpT = 2.4;
+  setState('zdrowy'); lupa.cel = 0; camGo(widok3D(), 1.4); snd('sukces'); P.lizakT = null;
+  if (P.a.human) P.taniec = true; else { P.a.jumpT = 2.4; ZOO.pose(P.a, 'cheer', 6); }
+  setTimeout(() => { if (state === 'zdrowy' && P.lizakT == null) { $('bLizak').hidden = false; mow('Daj lizaka dzielnemu pacjentowi!'); } }, 4200);
   SET.wyleczeni[P.kind] = (SET.wyleczeni[P.kind] || 0) + 1; save();
-  setTimeout(() => { mow('Zdrowy! ' + FAKT[P.kind]); if (P.kind === 'slon') snd('trab'); else if (P.kind === 'zyrafa') snd('mruk'); }, 900);
+  setTimeout(() => { mow('Zdrowy! ' + FAKT[P.kind]); if (GLOS[P.kind]) snd(GLOS[P.kind]); }, 900);
   const cf = $('confetti'); cf.innerHTML = '';
-  for (let i = 0; i < 30; i++) { const d = document.createElement('i'); d.textContent = pick(['⭐', '✨', '🎉', '💖', '🩹']); Object.assign(d.style, { left: rnd(0, 100) + '%', animationDuration: rnd(2, 4) + 's', animationDelay: rnd(0, 1.2) + 's' }); cf.append(d); }
+  for (let i = 0; i < 30; i++) { const d = document.createElement('i'); d.innerHTML = img(pick(['gwiazda', 'gwiazda', 'plaster', 'lizak', 'o_serce'])); Object.assign(d.style, { left: rnd(0, 100) + '%', animationDuration: rnd(2, 4) + 's', animationDelay: rnd(0, 1.2) + 's' }); cf.append(d); }
 }
 function koniec() {
   setState('koniec'); $('hud').hidden = true; $('end').hidden = false;
-  $('endIc').textContent = IC[P.kind]; $('endNakl').textContent = '⭐'.repeat(Math.min(5, SET.wyleczeni[P.kind]));
+  $('endIc').innerHTML = img('p_' + P.kind); $('endNakl').innerHTML = img('gwiazda').repeat(Math.min(5, SET.wyleczeni[P.kind]));
   nastepny = (KINDS.indexOf(P.kind) + 1) % KINDS.length;
+}
+function dajLizaka() {
+  if (state !== 'zdrowy' || P.lizakT != null) return;
+  $('bLizak').hidden = true; P.lizakT = stT;
+  const l = anLizak(P.box.y1 * .2), w = glowaW().add(P.przod ? V(.15 * P.box.y1, -.12 * P.box.y1, .25 * P.box.y1) : V(.2 * P.box.y1, -.1 * P.box.y1, .2 * P.box.y1));
+  l.position.copy(w); l.rotation.z = -.4; scene.add(l); P.glowa.attach(l);
+  snd('mniam'); dymek('MNIAM!', w, 'big'); setTimeout(() => mow('Mniam! Dziękuję!'), 300);
+  if (P.a.human) P.taniec = true; else P.a.jumpT = 2;
 }
 function paleta(on) {
   const el = $('paleta'); el.hidden = !on;
@@ -379,8 +441,12 @@ $('c').addEventListener('pointerdown', e => {
   audInit(); idleT = 0; $('raczka').hidden = true;
   ptr = { id: e.pointerId }; try { $('c').setPointerCapture(e.pointerId); } catch (er) {}
   if (state === 'skan' && lupa.cel > 0) lupaZa(e.clientX, e.clientY);
-  else if (state === 'operacja' && zadania[zi]) zadania[zi].down(lokal(e.clientX, e.clientY));
+  else if (state === 'operacja' && zadania[zi]) { if (zadania[zi].w3d) zadania[zi].tap(e.clientX, e.clientY); else zadania[zi].down(lokal(e.clientX, e.clientY)); }
   else if (state === 'objaw' && P) { dymek(pick(['Au!', 'Ojej!', 'Hi hi!']), glowaW(), 'small'); snd('oj'); }
+  else if (state === 'menu') {                             // poczekalnia: stuknięty pacjent woła i podskakuje
+    const c = MENU_P.map(p => { const [X, Y] = toScreen(swiat(p.glowa)); return { p, d: Math.hypot(X - e.clientX, Y - e.clientY) }; }).sort((a, b) => a.d - b.d)[0];
+    if (c && c.d < 150) { const p = c.p; if (GLOS[p.kind]) snd(GLOS[p.kind]); else mow('Dzień dobry!', false); if (p.a.human) p.g.position.y = .4; else p.a.jumpT = 1; komiksDymek($('fx'), pick(['Hej!', 'Cześć!', 'To ja!']), ...toScreen(swiat(p.glowa)), 'small'); }
+  }
 });
 $('c').addEventListener('pointermove', e => {
   if (!ptr || e.pointerId !== ptr.id) return; idleT = 0;
@@ -395,6 +461,7 @@ $('c').addEventListener('pointerup', koniecPalca); $('c').addEventListener('poin
 $('pick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) startWizyta(b.dataset.k); });
 $('bGo').onclick = () => startWizyta(SET.kind);
 $('bRtg').onclick = () => { audInit(); rentgen(); };
+$('bLizak').onclick = () => { audInit(); dajLizaka(); };
 $('paleta').addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b && zadania[zi] && zadania[zi].kolor) zadania[zi].kolor(b.dataset.c); });
 $('bDom').onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); showMenu(); };
 $('bHome').onclick = showMenu;
@@ -403,7 +470,8 @@ $('bSnd').onclick = $('bSnd2').onclick = () => { audInit(); audMute(!AUD.on); if
 addEventListener('keydown', e => { if (e.code === 'Enter' && state === 'menu') startWizyta(SET.kind); if (e.code === 'Space' && state === 'objaw') rentgen(); });
 
 /* ---------- pętla ---------- */
-const STOPA = { zyrafa: 'krok', slon: 'krok_slon', doktor: 'krok' };
+const STOPA = { zyrafa: 'krok', slon: 'krok_slon', doktor: 'krok', pingwin: 'czlap' };
+const GLOS = { zyrafa: 'mruk', slon: 'trab', pingwin: 'pingwin' };
 function animPacjent(p, dt, idzie) {
   klAnim(p, dt, idzie ? 1 : 0);
   for (const n in p.organy) anTik(p.organy[n].o, p.t);
@@ -412,12 +480,15 @@ function animPacjent(p, dt, idzie) {
 function step(dt) {
   czas += dt; stT += dt;
   if (state === 'menu') {
-    MENU_P.forEach(p => { animPacjent(p, dt, false); if (p.a.human) p.a.armOn.rotation.z = 2.6 + Math.sin(czas * 7) * .35; });   // doktor macha
+    MENU_P.forEach(p => { animPacjent(p, dt, false); if (p.a.human) { p.a.armOn.rotation.z = 2.6 + Math.sin(czas * 7) * .35; p.g.position.y = Math.max(0, p.g.position.y - dt * 1.6); } });   // doktor macha
   }
   if (P) {
     const idzie = state === 'wejscie' || state === 'wyjscie';
     animPacjent(P, dt, idzie);
-    if (P.kulawy && (state === 'wejscie' || state === 'objaw')) P.kulawy.rotation.z = (P.a.human ? 1.1 : .6) + Math.sin(czas * 3) * .05;   // oszczędza chorą nogę / rękę
+    if (P.kulawy && (state === 'wejscie' || state === 'objaw')) { if (P.kosc.unies) P.kosc.unies(P.kulawy, czas); else P.kulawy.rotation.z = (P.a.human ? 1.1 : .6) + Math.sin(czas * 3) * .05; }   // oszczędza chorą nogę / rękę / skrzydło
+    // obrót: wchodzi w prawo, wyprostowani stają przodem do dziecka, wychodzi w lewo (drzwiami)
+    const ry = state === 'wejscie' ? 0 : state === 'wyjscie' ? (P.przod ? -PI : PI) : P.przod ? -PI / 2 : 0;
+    P.g.rotation.y += (ry - P.g.rotation.y) * Math.min(1, dt * 5);
     P.trzes = Math.max(0, (P.trzes || 0) - dt); P.g.rotation.z = Math.sin(czas * 40) * .03 * P.trzes;
     if (P.bek > 0) { P.bek = Math.max(0, P.bek - dt * 1.2); P.glowa.rotation.z += Math.sin(P.bek * 20) * .12 * P.bek; }
     if (state === 'objaw' && zadania.some(z => z.typ === 'organ')) P.g.rotation.z += Math.sin(czas * 2.2) * .03;
@@ -430,13 +501,13 @@ function step(dt) {
     case 'wejscie':
       if (P.g.position.x >= 0) {
         P.g.position.x = 0; setState('objaw');
-        if (P.kind === 'slon') snd('trab'); else if (P.kind === 'zyrafa') snd('mruk');
+        if (GLOS[P.kind]) snd(GLOS[P.kind]);
         const sl = zadania.map(z => z.objaw), zd = sl.slice(0, -1).join(', ') + ' i ' + sl[sl.length - 1]; mow('Ojej! ' + zd[0].toUpperCase() + zd.slice(1) + '!');
         setTimeout(() => { if (state === 'objaw') $('bRtg').hidden = false; }, 1500);
       }
       break;
     case 'objaw':
-      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: '🤢', organ: '😵', kregi: '🥴', kosc: '🤕' }[z.typ], glowaW(), 'emoji'); }
+      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: 'BRZUCH!', organ: 'OJ, OJ!', kregi: 'SZYJA!', kosc: 'AUĆ!', plastry: 'GUZ!' }[z.typ], glowaW(), 'small'); }
       break;
     case 'skan': {
       if (lupa.cel <= 0) break;
@@ -461,7 +532,9 @@ function step(dt) {
     }
     case 'zdrowy':
       if (P.a.human) P.g.position.y = stT < 2.6 ? Math.abs(Math.sin(stT * 6)) * .6 * (1 - stT / 2.6) : 0;
-      if (stT > 4.6) { setState('wyjscie'); P.g.rotation.y = PI; }   // zawraca i wychodzi drzwiami
+      if (P.lizakT != null ? stT > P.lizakT + 3.2 : stT > 11) {     // po lizaku (albo bez niego) zawraca i wychodzi drzwiami
+        setState('wyjscie'); $('bLizak').hidden = true; P.taniec = false; if (!P.a.human) ZOO.pose(P.a, null);
+      }
       break;
     case 'wyjscie':
       if (P.g.position.x < -14) koniec();
@@ -497,6 +570,6 @@ function frame(now) {
 }
 // do testów (tools/): stan gry i podpowiedź w pikselach ekranu
 window.KL = { stan: () => state, zad: () => zadania[zi] && zadania[zi].typ, hint: () => { const z = zadania[zi], h = z && z.hint(); return h && [toScreen(h[0]), toScreen(h[1])]; },
-  problemy: () => problemy.map(q => ({ xy: toScreen(q.f()), found: q.found })), paleta: () => !$('paleta').hidden, rentgen };
+  problemy: () => problemy.map(q => ({ xy: toScreen(q.f()), found: q.found })), paleta: () => !$('paleta').hidden, lizak: () => !$('bLizak').hidden, rentgen };
 showMenu();
 requestAnimationFrame(frame);

@@ -2,9 +2,9 @@
 // a w nich wnętrze z models/anatomia.klinika.js. Dwie warstwy kamery: 0 = model jak w innych grach, 1 = rentgen (świecący zarys
 // tych samych siatek, kości, organy). Wszyscy z boku, przód = +x. P.g = grupa w świecie (bez skali), P.w = korzeń modelu (układ pracy,
 // jednostki modelu, skala P.k) — tu leżą organy, przełyk, kawałki kości.
-// klPacjent('zyrafa'|'slon'|'doktor') → P = { g, w, k, a, kind, glowa, organy, przelyk(), kregi, kosc, rzeczS, box (w świecie) }
-//   organy[n] = { o, dom: [x,y,z], zle: [[x,y], …] } · kregi = { grupa, sloty, ustaw(k 0..1 opadnięcia) } · kosc = { grupa, dol, dom, zle, gips }
-// klAnim(P, dt, idzie) — chód i oddech (ZOO.anim dla zwierząt, prosty chód dla ludzika)
+// klPacjent('zyrafa'|'slon'|'doktor'|'pingwin') — P.przod: wyprostowani (doktor, pingwin) w rentgenie od przodu, P.w wtedy obrócone (klPrzod) → P = { g, w, k, a, kind, glowa, organy, przelyk(), kregi, kosc, rzeczS, box (w świecie) }
+//   organy[n] = { o, dom: [x,y,z], zle: [[x,y], …] } · kregi = { grupa, sloty, ustaw(k 0..1 opadnięcia) } · kosc = { grupa, dol, dom, zle, gips, konczyna }
+// klAnim(P, dt, idzie) — chód i oddech (ZOO.anim dla zwierząt, prosty chód dla ludzika; P.taniec = taniec radości)
 // wymaga: models/zwierzeta.js (ZOO), models/piraci.piraci-klinika.js (mkHuman), models/anatomia.klinika.js, THREE
 
 /* --- warstwy i materiał rentgena --- */
@@ -76,7 +76,7 @@ function klSlon(P) {
   const hd = []; for (let i = 0; i < 16; i++) { const t = i / 16 * Math.PI * 2; hd.push([.15 + Math.cos(t) * .72, Math.sin(t) * .62]); }
   a.head.add(klX(klPoz(anCzaszka(hd, [.5, .2, .13], .55), 0, 0, 0)));
   const przod = a.legs.find(L => L.front && L.s > 0);
-  P.kosc = klZlamana(przod.p, przod.kosci[1], .5, .08, .75, { y0: -1.62, L: .95, r: .5 });
+  P.kosc = klZlamana(przod.p, przod.kosci[1], .5, .08, .75, { y0: -1.62, L: .95, r: .5 }); P.kosc.objaw = 'noga boli';
   klOrgan(P, 'pluca', .4, 2.6, 0, 1.15, []);
   klOrgan(P, 'serce', .78, 1.95, .35, .9, []);
   klOrgan(P, 'zoladek', -.4, 2.2, .1, 1.2, []);
@@ -90,43 +90,82 @@ function klSlon(P) {
 function klStroj(a) {
   const { M, mesh, cg } = ZOO, srebro = M(0xcfd8dc, { metalness: .7, roughness: .25 }), guma = M(0x2b3a67);
   const opaska = mesh(new THREE.TorusGeometry(.255, .018, 6, 24), M(0xeeeeee), a.head, 0, .1, 0); opaska.rotation.x = Math.PI / 2;
-  mesh(cg(.1, .1, .02, 18), srebro, a.head, .24, .16, 0).rotation.z = Math.PI / 2;                 // lusterko na czole
+  mesh(cg(.085, .085, .02, 18), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbfe6ff, emissiveIntensity: .6, metalness: .3, roughness: .1 }), a.head, .245, .22, 0).rotation.z = Math.PI / 2;   // lusterko na czole
   for (const s of [1, -1]) mesh(new THREE.TubeGeometry(klKrz([[.02, 1.13, s * .14], [.2, 1.02, s * .2], [.29, .9, s * .08], [.3, .84, 0]]), 12, .016, 5), guma, a.body);
   mesh(cg(.06, .06, .03, 14), srebro, a.body, .31, .82, 0).rotation.z = Math.PI / 2;              // słuchawka stetoskopu
   mesh(new THREE.BoxGeometry(.02, .07, .12), M(0x3ab0ff), a.body, .27, 1.0, -.13);                 // plakietka
 }
+// Układ „od przodu” w grupie par: oś x = w bok (na ekranie), y = w górę, z = do kamery, gdy pacjent stoi przodem (P.g obrócone o −90°)
+function klPrzod(par) { const g = new THREE.Group(); g.rotation.y = Math.PI / 2; par.add(g); return g; }
+// Czaszka od przodu: owal z dwoma oczodołami
+function klCzaszkaPrzod(rx, ry, oko, depth) {
+  const pts = []; for (let i = 0; i < 18; i++) { const t = i / 18 * Math.PI * 2; pts.push([Math.cos(t) * rx * (Math.sin(t) < 0 ? .85 : 1), Math.sin(t) * ry]); }
+  const g = anCzaszka(pts, null, depth);
+  for (const s of [-1, 1]) brPart(g, new THREE.CylinderGeometry(oko[2], oko[2], depth + .04, 14).rotateX(Math.PI / 2), brMat(0x16304f, 'glow'), s * oko[0], oko[1], 0, { ol: 0 });
+  return g;
+}
 function klDoktor(P) {
-  const a = P.a;
-  a.legs.forEach(l => { klX(anKoscP(l, [0, -.03], [0, -.27], .032)); klX(anKoscP(l, [0, -.3], [0, -.52], .028)); });
-  const reka = [a.armOn, a.armOff].map(r => [klX(anKoscP(r, [.01, -.03], [.02, -.2], .024)), klX(anKoscP(r, [.02, -.23], [.04, -.37], .021))]);
-  const sp = []; for (let i = 0; i < 7; i++) sp.push([anKreg(.035), -.1, .66 + i * .075, -.08]);
+  const a = P.a, k = c => klX(c);
+  // nogi: kości wzdłuż osi (z każdej strony wyglądają tak samo)
+  a.legs.forEach(l => { k(anKoscP(l, [0, -.03], [0, -.27], .032)); k(anKoscP(l, [0, -.3], [0, -.52], .028)); });
+  // ręce: kości w układzie od przodu (złamana kość przesuwa się w płaszczyźnie ekranu)
+  const reka = [a.armOn, a.armOff].map(r => { const f = klPrzod(r); return { f, k: [k(anKoscP(f, [0, -.03], [0, -.2], .026)), k(anKoscP(f, [0, -.23], [0, -.37], .023))] }; });
+  for (const r of reka) for (let i = 0; i < 3; i++) k(anKoscP(r.f, [(i - 1) * .025, -.4], [(i - 1) * .035, -.47], .009));
+  const sp = []; for (let i = 0; i < 7; i++) sp.push([anKreg(.03), 0, .64 + i * .072, -.12]);
   klKosci(P.w, sp);
-  klKosci(P.w, [[anZebraBok(-.12, .1, 1.02, .28, 5, .016), 0, 0, -.12], [anPlaska([[-.15, .06], [.12, .08], [.15, -.06], [-.12, -.08]]), 0, .6, -.1]]);
-  const cz = []; for (let i = 0; i < 16; i++) { const t = i / 16 * Math.PI * 2; cz.push([Math.cos(t) * .23, Math.sin(t) * .22 - (Math.sin(t) < 0 ? .03 : 0)]); }
-  a.head.add(klX(klPoz(anCzaszka(cz, [.15, .04, .045], .3), 0, 0, 0)));
-  P.kosc = klZlamana(a.armOn, reka[0][1], .1, .03, -.9, { y0: -.4, L: .22, r: .1 });
-  klOrgan(P, 'pluca', .02, .97, 0, .34, [[.08, .12], [.05, 1.8]]);
-  klOrgan(P, 'serce', .1, .9, .15, .26, [[.08, .12], [0, .38], [.05, 1.8]]);
-  klOrgan(P, 'zoladek', .06, .76, .12, .28, [[.08, .12], [0, .38], [.05, 1.8]]);
-  klOrgan(P, 'jelita', 0, .66, .05, .22, []);
-  klOrgan(P, 'mozg', -.02, 1.43, .12, .34, [[.08, .12], [0, .38]]);
-  P.przelyk = () => [[.05, .8], [.02, .98], [.04, 1.14], klPkt(P, a.head, .12, -.1), klPkt(P, a.head, .23, -.12)];
+  klKosci(P.w, [[anZebraPrzod(.2, 1.06, .065, 5, .013), 0, 0, -.06], [anPlaska([[-.03, .14], [.03, .14], [.025, -.12], [-.025, -.12]]), 0, .95, -.03],
+    [anPlaska([[0, .02], [.1, .07], [.2, .03], [.18, -.07], [.06, -.09], [0, -.05], [-.06, -.09], [-.18, -.07], [-.2, .03], [-.1, .07]]), 0, .58, -.08]]);
+  for (const s of [-1, 1]) P.w.add(k(klPoz(anKosc(.2, .014), s * .02, 1.1, -.04, -s * 1.35)));
+  const hp = klPrzod(a.head); hp.add(k(klPoz(klCzaszkaPrzod(.22, .23, [.09, .03, .05], .3), 0, 0, -.02)));
+  P.kosc = klZlamana(reka[0].f, reka[0].k[1], .09, .02, -.9, { y0: -.4, L: .21, r: .1 });
+  Object.assign(P.kosc, { konczyna: a.armOn, ic: '💪', objaw: 'ręka boli' });
+  // organy od przodu: serce po LEWEJ stronie pacjenta = po prawej na ekranie
+  klOrgan(P, 'pluca', 0, .98, .02, .36, [[-.14, .12], [.14, .12]]);
+  klOrgan(P, 'serce', .07, .9, .16, .26, [[-.14, .12], [.14, .12], [-.42, .62], [.42, .62]]);
+  klOrgan(P, 'zoladek', .07, .77, .12, .28, [[-.14, .12], [.14, .12], [-.42, .62], [.42, .62]]);
+  klOrgan(P, 'jelita', 0, .64, .06, .24, []);
+  klOrgan(P, 'mozg', 0, 1.42, .14, .34, [[-.14, .12], [.14, .12], [-.42, .62], [.42, .62]]);
+  P.przelyk = () => [[.07, .78], [-.03, .88], [.02, .98], [-.01, 1.08], [0, 1.18], [0, 1.27]];
   P.rzeczS = .5;
+}
+
+/* --- PINGWIN (ZOO.MK.penguin): przodem, trochę większy (skala 1.15); złamane skrzydło --- */
+function klPingwin(P) {
+  const a = P.a, k = c => klX(c);
+  for (const L of a.legs) { const f = klPrzod(L.p); k(anKoscP(f, [0, 0], [0, -.2], .045)); for (const dx of [-.1, 0, .1]) k(anKoscP(f, [0, -.22], [dx, -.32], .02)); }
+  const skr = a.ears.map(e => { const f = klPrzod(e.p); return { e, f, k: [k(anKoscP(f, [0, -.05], [0, -.48], .045)), k(anKoscP(f, [0, -.53], [0, -.92], .038))] }; });
+  const sp = []; for (let i = 0; i < 12; i++) sp.push([anKreg(.07), 0, .4 + i * .12, -.3]);
+  klKosci(P.w, sp);
+  klKosci(P.w, [[anZebraPrzod(.42, 1.5, .12, 5, .026), 0, 0, -.2], [anPlaska([[-.06, .3], [.06, .3], [.05, -.25], [-.05, -.25]]), 0, 1.3, -.12],
+    [anPlaska([[0, .05], [.2, .15], [.4, .06], [.36, -.14], [.12, -.18], [0, -.1], [-.12, -.18], [-.36, -.14], [-.4, .06], [-.2, .15]]), 0, .45, -.15]]);
+  const hp = klPrzod(a.head); hp.add(k(klPoz(klCzaszkaPrzod(.36, .36, [.17, .28, .08], .45), 0, .2, -.05)));
+  const sk = skr.find(x => x.e.s > 0) || skr[0];
+  P.kosc = klZlamana(sk.f, sk.k[1], .22, .06, .8, { y0: -.98, L: .5, r: .12 });
+  Object.assign(P.kosc, { konczyna: sk.e.p, ic: '🐧', objaw: 'skrzydło boli', unies: (g, t) => { g.rotation.x = sk.e.s * (1.2 + Math.sin(t * 3) * .1); } });
+  klOrgan(P, 'pluca', 0, 1.3, .05, .72, []);
+  klOrgan(P, 'serce', .15, 1.08, .3, .5, [[-.28, .1], [.28, .1], [-.64, .72], [.64, .72]]);
+  klOrgan(P, 'zoladek', .14, .82, .22, .6, []);
+  klOrgan(P, 'jelita', 0, .55, .1, .55, []);
+  klOrgan(P, 'mozg', 0, 2.12, .22, .45, [[-.28, .1], [.28, .1], [-.64, .72], [.64, .72]]);
+  P.przelyk = () => [[.12, .86], [-.04, 1.1], [.04, 1.35], [0, 1.6], [0, 1.85], [0, 2.07]];
+  P.rzeczS = 1.0;
 }
 
 function klPacjent(kind) {
   const g = new THREE.Group(), P = { g, kind, organy: {}, t: Math.random() * 9 };
   let a;
   if (kind === 'doktor') { a = mkHuman('weterynarz', { side: 1 }); a.root.scale.setScalar(1.6); klStroj(a); }
-  else a = ZOO.MK[kind === 'zyrafa' ? 'giraffe' : 'elephant']();
-  P.a = a; P.w = a.root; P.k = a.root.scale.x; P.glowa = a.head; g.add(a.root);
+  else { a = ZOO.MK[{ zyrafa: 'giraffe', slon: 'elephant', pingwin: 'penguin' }[kind]](); if (kind === 'pingwin') a.root.scale.setScalar(1.15); }
+  P.przod = kind === 'doktor' || kind === 'pingwin';                // wyprostowani: rentgen od przodu, zwierzęta czworonożne z boku
+  P.a = a; P.w = P.przod ? klPrzod(a.root) : a.root; P.k = a.root.scale.x; P.glowa = a.head; g.add(a.root);
   a.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
   klRentgenSkory(a.root);
+  if (P.przod) g.rotation.y = -Math.PI / 2;                          // wymiary liczymy w pozycji do zabiegu
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   P.box = { x0: b.min.x, x1: b.max.x, y0: 0, y1: b.max.y };
-  ({ zyrafa: klZyrafa, slon: klSlon, doktor: klDoktor })[kind](P);
-  g.userData.pacjent = kind;
+  ({ zyrafa: klZyrafa, slon: klSlon, doktor: klDoktor, pingwin: klPingwin })[kind](P);
+  g.rotation.y = 0; g.userData.pacjent = kind;
   return P;
 }
 // Chód i oddech; idzie = 0..1
@@ -136,6 +175,8 @@ function klAnim(P, dt, idzie) {
   a.t += dt; const ph = P.t * 8, k = idzie;
   a.legs[0].rotation.z = Math.sin(ph) * .55 * k; a.legs[1].rotation.z = -Math.sin(ph) * .55 * k;
   a.armOn.rotation.z = -Math.sin(ph) * .5 * k; a.armOff.rotation.z = Math.sin(ph) * .5 * k;
+  if (P.taniec) { const t = P.t * 9; a.armOn.rotation.z = 2.7 + Math.sin(t) * .4; a.armOff.rotation.z = 2.7 - Math.sin(t) * .4; a.root.rotation.x = Math.sin(t / 2) * .12; }   // taniec radości
+  else a.root.rotation.x = 0;
   a.body.position.y = k ? Math.abs(Math.sin(ph)) * .04 : Math.sin(P.t * 2.2) * .008;
   a.head.rotation.z = (P.glowaRz || 0) + Math.sin(P.t * 1.3) * .05;
 }

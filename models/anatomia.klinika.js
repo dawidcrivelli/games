@@ -3,7 +3,8 @@
 // Wszystko w płaszczyźnie x-y (widok z boku), grubość wzdłuż z, środek części w (0, 0) — gra ustawia pozycję.
 // Kości: anKosc(L, r) · anKoscP(rodzic, [x0,y0], [x1,y1], r) · anKreg(r) · anCzaszka(obrys, oko) · anZebraBok · anZebraPrzod · anPlaska(obrys, gł.)
 // Organy: anSerce(s) · anPluca(s) · anZoladek(s) · anJelita(s) · anMozg(s) · anOrgan(nazwa, s) · anPrzelyk(punkty, r)
-// Rzeczy: anRzecz('kaczka'|'budzik'|'skarpetka'|'klucz'|'rybka'|'pilka'|'klocek', s) · anGips(L, r, kolor) · anDuch(obiekt)
+// Rzeczy: anRzecz('kaczka'|'budzik'|'skarpetka'|'klucz'|'rybka'|'pilka'|'klocek'|'lod', s) · anGips(L, r, kolor) · anDuch(obiekt)
+// anGuz(r) · anPlaster(r, kolor) — guzy do zaklejania na skórze · anLizak(s) — nagroda · anLupa() · anGwiazda() — ikony
 // anTik(obiekt, t) — bicie serca, oddech płuc, bulgot żołądka (gdy organ jest na swoim miejscu: userData.zywy)
 // wymaga: lib/komiks.bryki-klinika.js (brPart, brExt, brCyl, brMat), THREE
 
@@ -158,6 +159,10 @@ function anRzecz(kind, s = 1) {
       brPart(g, new THREE.TorusGeometry(.222, .035, 6, 24), brMat(0xffffff), 0, 0, 0, { ol: 0, r: [0, .5, 0] });
       brPart(g, new THREE.TorusGeometry(.222, .035, 6, 24), brMat(0x3ad1ff), 0, 0, 0, { ol: 0, r: [Math.PI / 2, 0, 0] });
       break;
+    case 'lod':                                                          // kostka lodu (dla pingwina!)
+      P(new THREE.BoxGeometry(.34, .34, .34), new THREE.MeshStandardMaterial({ color: 0xbff0ff, roughness: .1, transparent: true, opacity: .8 }), 0, 0, 0, { r: [.3, .4, .2] });
+      brPart(g, new THREE.BoxGeometry(.06, .2, .02), brMat(0xffffff, 'glow'), -.06, .04, .18, { ol: 0, r: [.3, .4, .2] });
+      break;
     case 'klocek':
       P(brBox(.44, .2, .22), 0x37c45a, 0, 0, 0);
       for (const x of [-.11, .11]) for (const z of [-.055, .055]) P(brCyl(.045, .045, .06, 10), 0x37c45a, x, .13, z, { ol: .015 });
@@ -174,6 +179,41 @@ function anGips(L, r, col) {
   for (let i = 0; i < 9; i++) { const a = i * 2.4, y = .15 + (i / 8) * (L - .3); brPart(g, dot, dc, Math.cos(a) * r, y, Math.sin(a) * r, { ol: 0, s: [1, 1, .4] }); }
   return g;
 }
+// Guz (do zaklejenia plastrem): różowo-fioletowy bąbel z gwiazdkami „au!”; leży na powierzchni, oś +z = na zewnątrz
+function anGuz(r) {
+  const g = new THREE.Group();
+  brPart(g, new THREE.SphereGeometry(r, 14, 10), 0xd977c7, 0, 0, 0, { s: [1, 1, .55], ol: .015 });
+  brPart(g, new THREE.SphereGeometry(r * .35, 8, 6), brMat(0xffffff, 'glow'), -r * .35, r * .35, r * .4, { ol: 0 });
+  return g;
+}
+// Plaster: zaokrąglony beżowy pasek z kropkami w kolorze col, płasko na powierzchni (oś +z = na zewnątrz)
+function anPlaster(r, col) {
+  const g = new THREE.Group(), w = r * 3.4, h = r * 1.3;
+  brPart(g, brExt([[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], r * .25, r * .1, 2), col, 0, 0, 0, { ol: .01 });
+  brPart(g, brBox(w * .32, h * .78, r * .3), 0xfff3e0, 0, 0, 0, { ol: 0 });
+  const k = new THREE.SphereGeometry(r * .07, 6, 4);
+  for (const x of [-1, 1]) for (const y of [-1, 1]) brPart(g, k, brMat(0xffffff, 'glow'), x * w * .32, y * h * .2, r * .14, { ol: 0 });
+  return g;
+}
+// Lizak dla dzielnego pacjenta: patyczek + kolorowy krążek w spiralę (płasko w x-y), wysokość ~ s
+function anLizak(s) {
+  const g = new THREE.Group();
+  brPart(g, brCyl(.04, .04, 1.1, 8), 0xffffff, 0, -.55, 0, { ol: .02 });
+  brPart(g, brCyl(.45, .45, .16, 24, 'z'), 0xff5c8a, 0, .3, 0, { ol: .03 });
+  for (const [r, c] of [[.34, 0xffffff], [.22, 0xffd23f], [.1, 0x3ab0ff]]) brPart(g, new THREE.TorusGeometry(r, .045, 6, 24), brMat(c), 0, .3, .085, { ol: 0 });
+  g.scale.setScalar(s); return g;
+}
+// Lupa rentgena (ikona przycisku): złota obręcz, niebieskie szkło z kośćmi, rączka
+function anLupa() {
+  const g = new THREE.Group();
+  brPart(g, new THREE.TorusGeometry(.5, .09, 10, 32), 0xffc93c, 0, 0, 0, { ol: .03 });
+  brPart(g, brCyl(.46, .46, .05, 28, 'z'), new THREE.MeshStandardMaterial({ color: 0x5ad1ff, emissive: 0x1a6aa0, emissiveIntensity: .6, roughness: .1 }), 0, 0, 0, { ol: 0 });
+  const k = anKosc(.5, .05); k.position.set(-.08, -.25, .06); k.rotation.z = -.6; g.add(k);
+  brPart(g, brCyl(.09, .11, .75, 10), 0xc46a2a, .62, -.62, 0, { r: [0, 0, Math.PI / 4], ol: .03 });
+  return g;
+}
+// Złota gwiazdka-naklejka
+function anGwiazda() { const g = new THREE.Group(); brPart(g, brExt(brGwiazdaPts(.5, .23), .16, .05, 0), 0xffc93c, 0, 0, 0, { ol: .03 }); return g; }
 // Cień miejsca: ten sam kształt jako biała, półprzezroczysta poświata (bez konturów)
 function anDuch(obj) {
   const m = anDuch.m || (anDuch.m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .28, depthWrite: false }));
