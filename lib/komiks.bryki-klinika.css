@@ -1,0 +1,26 @@
+/* Styl „komiks”: tabliczki-przyciski, okienka, komiksowe napisy w gwieździe, konfetti — Dzikie Bryki, Klinika Zoo.
+   Zmienne --ink, --edge i czcionki (Baloo 2, Bangers) ustawia gra. */
+@keyframes pulse{to{transform:scale(1.1);box-shadow:0 0 18px 4px #fff36a,0 5px 0 var(--edge)}}
+.bub{position:absolute;transform:translate(-50%,-50%);animation:bub 1s cubic-bezier(.2,1.6,.4,1) forwards;pointer-events:none;--c:#ffd23f}
+.bub i{position:absolute;inset:-26px -34px;background:#111;clip-path:polygon(104% 50%,83% 59%,92% 74%,72% 73%,72% 94%,55% 80%,43% 95%,36% 78%,15% 87%,21% 67%,2% 63%,16% 50%,-2% 36%,21% 33%,17% 16%,36% 22%,42% 2%,55% 20%,71% 9%,72% 27%,95% 24%,83% 41%)}
+.bub i::after{content:"";position:absolute;inset:6px;background:var(--c);clip-path:inherit}
+.bub b{position:relative;display:block;font:400 38px/1 Bangers,"Baloo 2",Impact,sans-serif;letter-spacing:2px;color:#fff;-webkit-text-stroke:3px #111;paint-order:stroke fill;white-space:nowrap;text-shadow:3px 3px 0 #111}
+.bub.big b{font-size:48px}.bub.small b{font-size:26px}.bub.small i{inset:-14px -20px}
+.bub.emoji i{display:none}.bub.emoji b{font-size:44px;-webkit-text-stroke:0;text-shadow:none}
+@keyframes bub{0%{transform:translate(-50%,-30%) scale(.2) rotate(var(--r,-10deg));opacity:0}18%{transform:translate(-50%,-60%) scale(1.15) rotate(var(--r,-10deg));opacity:1}75%{transform:translate(-50%,-75%) scale(1) rotate(var(--r,-10deg));opacity:1}100%{transform:translate(-50%,-110%) scale(.9) rotate(var(--r,-10deg));opacity:0}}
+/* --- menu, pauza, wyniki: tabliczki jak w Żniwach --- */
+:root{--plate:#fff4d6;--plate-edge:#c9a35a;--red:#d9432a;--red-edge:#9c2a18;--wheat:#f2b632;--shade:rgba(60,35,10,.28);--card:rgba(255,246,222,.95)}
+.btn{font:800 1.05rem/1 "Baloo 2","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;color:var(--ink);background:var(--plate);border-radius:18px;
+  display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 5px 0 var(--plate-edge),0 9px 14px var(--shade);transition:transform .06s,box-shadow .06s;overflow:visible}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--plate-edge),0 3px 6px var(--shade)}
+.btn .ico{font-size:1.65rem;line-height:1}
+.btn.on{background:var(--wheat);color:#3b2a17;box-shadow:0 5px 0 #b07a12,0 9px 14px var(--shade)}
+.btn .med{position:absolute;right:-6px;top:-8px;font-size:1.15rem}
+.box{position:fixed;inset:0;display:grid;place-items:center;background:rgba(30,18,10,.45);pointer-events:auto}
+.box .in{display:flex;flex-direction:column;align-items:center;gap:16px}
+.row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.box .btn{height:62px;padding:0 20px;font-size:1.25rem}
+.box .btn.go{background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-edge),0 10px 16px var(--shade)}
+#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#confetti i{position:absolute;top:-40px;font-style:normal;font-size:28px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(720deg)}}

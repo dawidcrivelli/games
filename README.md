@@ -2,7 +2,7 @@
 
 Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [klinika](https://dawidcrivelli.github.io/games/klinika/).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Zakładka „dźwięki”: klaksony i silniki z `lib/` do odsłuchania. Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -40,6 +40,10 @@ flowchart LR
 | `lib/silnik.taxi.js` | 35 | engineProfile engineCreate engineBang engineStep engineMute |
 | `lib/diesel.taxi-zniwa.js` | 29 | dieselProfile dieselCreate dieselSet |
 | `lib/przechylanie.taxi-zniwa-rafa.js` | 28 | enableTilt tiltFromEvent tiltCurve |
+| `lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js` | 28 | obrotInit obrotPelny (plansza „Obróć telefon poziomo”, pełny ekran) |
+| `lib/komiks.bryki-klinika.js` | 74 | styl „komiks”: brMat brOutline (kolor konturu) brPart brChaikin brExt brBox brCyl brLimb brGwiazdaPts komiksDymek |
+| `lib/komiks.bryki-klinika.css` | 26 | tabliczki-przyciski `.btn`, okienka `.box`, komiksowe napisy `.bub`, konfetti |
+| `lib/dzwiek.bryki-klinika.js` | 43 | AUD audSetup(klucz) audInit audMute audTone audNoise audMetal (klocki Web Audio) |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
 | `models/budynki.ciuchcia.js` | 10 | groundPad ramp nameBoard |
@@ -63,8 +67,11 @@ flowchart LR
 | `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 231 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast}; ZOO.pose(a, 'rear'…) — pozy (dęba, skok, przysiad, łapa, byk, wierzgnięcie, oberwanie, zamroczenie, radość, siad) |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
-| `models/pojazdy.bryki.js` | 430 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
-| `models/trasy.bryki.js` | 190 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
+| `models/pojazdy.bryki.js` | 442 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
+| `models/trasy.bryki.js` | 277 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
+| `models/anatomia.klinika.js` | 194 | kości (anKosc anKoscP anKreg anCzaszka anZebraBok anZebraPrzod anPlaska — świecące, z poświatą), organy (anSerce anPluca anZoladek anJelita anMozg anOrgan anTik), anPrzelyk, połknięte rzeczy anRzecz (kaczka, budzik, skarpetka, klucz, rybka, piłka, klocek), anGips, anDuch (cień miejsca) |
+| `models/pacjenci.klinika.js` | 270 | klPacjent (żyrafa, słoń, opiekun zoo — skóra na warstwie 0, rentgen na warstwie 1: zarys, kości, organy) klKrok klOddech klSkora klX klObie klRura klOko |
+| `models/gabinet.klinika.js` | 54 | klGabinet (kafle, drzwi, okno, miarka wzrostu, plakat, kwiatek, miska, siatka tła rentgena) |
 
 ## Narzędzia
 

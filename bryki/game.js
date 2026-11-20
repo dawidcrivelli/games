@@ -1,6 +1,6 @@
 'use strict';
 // Dzikie Bryki — wyścig 4 groźnych pojazdów na 4 pasach, widok z boku (2.5D). Gracz kontra 3 auta komputera.
-// Modele: models/pojazdy.bryki.js (auta, pozy), models/trasy.bryki.js (motywy, przeszkody); dźwięki: dzwieki.js.
+// Modele: models/pojazdy.bryki.js (auta, pozy), models/trasy.bryki.js (motywy, przeszkody); styl i dymki: lib/komiks.bryki-klinika.js; dźwięki: dzwieki.js.
 // Świat w „s” = metry wzdłuż trasy; na ekranie x = s − camS (kamera jedzie za graczem). Wysokość drogi: H(s) (górki).
 const T = THREE, $ = id => document.getElementById(id);
 const PAS = 3.5, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
@@ -13,7 +13,6 @@ const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szcz
 const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna' };
 const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: 'Krab', nietoperz: 'Nietoperz', zaba: 'Żaba',
   pustynia: 'Pustynia', zlomowisko: 'Złomowisko', wulkan: 'Wulkan', lodowiec: 'Lodowiec' };
-const BUB_COL = ['#ffd23f', '#ff4d3a', '#3ad1ff', '#ff7ae0', '#7dff6a'];
 const LEN = 1150, CRUISE = 15, PX = -6, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
 const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 1.4, TURBO_CD = 5, MOC_FILL = 9, HIT_T = 1.2, BLINK_T = 2.2, SPIN_T = .7;
 const MOC_T = { rekin: 3, ptak: 3.2, osmiornica: 1.1, krab: 4, nietoperz: 1.4, zaba: 3 };
@@ -325,10 +324,8 @@ function stepParts(dt) {
 /* ---------- komiksowe napisy (gwiazda w tle jak w starych komiksach), kleks na ekranie ---------- */
 function bubbleAt(txt, s, y, z, cls = '') {
   if (state === 'menu' || Math.abs(s - camS) > 16) return;
-  const [X, Y] = toScreen(s - camS, H(s) + y, z), d = document.createElement('div');
-  d.className = 'bub ' + cls; d.innerHTML = `<i></i><b>${txt}</b>`;
-  d.style.cssText = `left:${X}px;top:${Y}px;--c:${pick(BUB_COL)};--r:${rnd(-14, 14).toFixed(0)}deg`;
-  $('fx').append(d); setTimeout(() => d.remove(), 1050);
+  const [X, Y] = toScreen(s - camS, H(s) + y, z);
+  komiksDymek($('fx'), txt, X, Y, cls);
 }
 const bubble = (txt, c, cls) => bubbleAt(txt, c.s, 2.6 + c.y, c.z, cls);
 function splat(how) {
