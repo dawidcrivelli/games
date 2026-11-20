@@ -190,7 +190,8 @@ function genTrack(th) {
       case 'dwie': add(R(th.twarde), s, L[0]); add(R(th.twarde), s + r() * 3, L[1]); break;
       case 'skrzynie': add(R(th.miekkie), s, L[0]); add(R(th.miekkie), s + 2, L[1]); if (r() < .5) add(R(th.miekkie), s + 4, L[2]); break;
       case 'gwiazdy': for (let i = 0; i < 4; i++) add('gwiazda', s + i * 2.5, L[0]); break;
-      case 'rampa': add('rampa', s, L[0]); for (let i = 0; i < 3; i++) add('gwiazda', s + 5 + i * 2.6, L[0], 1.3 + Math.sin((i + 1) / 4 * Math.PI) * .7); add(R(th.twarde), s + 8, L[0]); break;
+      // skok z rampy: ok. 18 m, szczyt 2,5 m nad drogą; przeszkoda w połowie lotu, gwiazdki wzdłuż łuku
+      case 'rampa': add('rampa', s, L[0]); [[4.5, 2], [8, 2.6], [12, 1.8]].forEach(([d, y]) => add('gwiazda', s + d, L[0], y)); add(R(th.twarde), s + 8.5, L[0]); s += 8; break;
       case 'turbo': add('turbo', s, L[0]); add('turbo', s + 9, L[1]); break;
       case 'slisko': add(th.slisko, s, L[0]); if (r() < .5) add(th.slisko, s + 4, L[1]); break;
       case 'slalom': for (let i = 0; i < 3; i++) add(R(th.twarde), s + i * 8, L[i]); s += 14; break;
@@ -520,6 +521,7 @@ function stepEggs(dt) {
 }
 // Najazd na przedmiot na pasie
 function touch(c, it) {
+  if (it.rodzaj === 'rampa' && c.s < it.s - .3) return;     // wybicie dopiero, gdy auto wjedzie na rampę
   if (it.hitBy.has(c)) return; it.hitBy.add(c);
   const shield = spiky(c);
   switch (it.rodzaj) {
@@ -529,7 +531,7 @@ function touch(c, it) {
     case 'miekka': destroy(it, null); if (!shield) c.v *= .9; break;
     case 'slisko': if (!shield && !immune(c) && c.y < .1) { c.slipT = 1; c.spinT = c.spinD = 1; if (near(c)) { snd('poslizg'); bubble('ŚLIIIZG!', c, 'small'); } } break;
     case 'lawa': if (!shield) hit(c, null, 'lawa'); break;
-    case 'rampa': if (c.y < .1) { c.vy = Hd(c.s) * c.v + 9.5; if (c.player) { snd('skok'); bubble('HOP!', c, 'small'); } } break;
+    case 'rampa': if (c.y < .1) { c.vy = Hd(c.s) * c.v + 11; c.v = Math.max(c.v, CRUISE * 1.3); if (c.player) { snd('skok'); bubble('HOP!', c, 'small'); } } break;   // rampa sama dodaje prędkość
     case 'turbo': c.turboT = Math.max(c.turboT, 1.3); if (c.player) { snd('turbo'); bubble('WRUUM!', c, 'small'); } break;
     case 'tusz': case 'jajo': if (!shield) hit(c, it.owner, it.rodzaj); break;
   }
