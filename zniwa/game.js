@@ -1,6 +1,5 @@
 'use strict';
 if (!window.THREE) { $('err').style.display = 'flex'; $('menu').hidden = true; throw new Error('brak three.js'); }
-const T = THREE;
 
 /* =====================================================================
    USTAWIENIA I STAN
@@ -18,7 +17,7 @@ const WORLD = { x:46, zMin:-23, zMax:32 };
 const BARN_X = 14, BARN_DOOR = new T.Vector3(BARN_X, 2.2, -30.2);
 const CELLS_PER_BALE = 40, TRAILER_CAP = 16;
 
-let seed = 12345;
+seed = 12345;
 
 /* =====================================================================
    RENDERER, SCENA, ŚWIATŁO
@@ -30,6 +29,7 @@ renderer.shadowMap.type = T.PCFSoftShadowMap;
 const scene = new T.Scene();
 scene.fog = new T.Fog(0xcfe8f3, 110, 420);
 const camera = new T.PerspectiveCamera(55, 1, 0.12, 900);
+const resize = fitView(renderer, camera);          // lib/3d/view.js
 scene.add(camera);
 
 const hemi = new T.HemisphereLight(0xdff1ff, 0x7d7040, 0.56); scene.add(hemi);
@@ -111,27 +111,7 @@ const WEATHERS = [
   { id:'storm', p:.11, top:0x23283a, hor:0x535b68, fog:0x464d59, fn:90,  ff:360, sun:0xc8d2e6, si:.12, sd:[20, 50, 10],  hs:0x7c869c, hg:0x2e2e2c, hi:.36,  cloud:0x353b46, co:.98, sunVis:0, wind:2.7, lamp:1.2, storm:1 },
   { id:'night', p:.15, top:0x0a1430, hor:0x25355a, fog:0x1b2843, fn:60,  ff:300, sun:0x9db8ff, si:.34, sd:[-20, 45, -25], hs:0x5b70aa, hg:0x1c2230, hi:.44, cloud:0x36435f, co:.7,  sunVis:0, moon:1, wind:.6, lamp:2 },
 ];
-let WX = WEATHERS[0];
-const uWind = { value:1 };
-const skyGeo = new T.SphereGeometry(700, 24, 14), skyMat = new T.MeshBasicMaterial({ vertexColors:true, side:T.BackSide, fog:false, depthWrite:false });
-skyGeo.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(skyGeo.attributes.position.count*3), 3));
-scene.add(new T.Mesh(skyGeo, skyMat));
-
-const sunGeo = new T.SphereGeometry(22, 16, 12);
-const sunBall = new T.Mesh(sunGeo, new T.MeshBasicMaterial({ color:0xfff6c4, fog:false })); scene.add(sunBall);
-const moon = new T.Mesh(new T.SphereGeometry(15, 16, 12), new T.MeshBasicMaterial({ color:0xf4f1dc, fog:false })); moon.position.set(-190, 380, -420); scene.add(moon);
-const stars = (() => { const n = 380, a = new Float32Array(n*3); for (let i = 0; i < n; i++) { const th = rnd()*6.283, ph = Math.acos(rr(.06, 1)); a[i*3] = Math.sin(ph)*Math.cos(th)*660; a[i*3+1] = Math.cos(ph)*660; a[i*3+2] = Math.sin(ph)*Math.sin(th)*660; }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(a, 3)); const s = new T.Points(g, new T.PointsMaterial({ color:0xffffff, size:2.2, sizeAttenuation:false, fog:false })); scene.add(s); return s; })();
-const RAIN_N = 700, rainOff = new Float32Array(RAIN_N*3);
-const rain = (() => { for (let i = 0; i < RAIN_N; i++) { rainOff[i*3] = rr(-24, 24); rainOff[i*3+1] = rr(0, 26); rainOff[i*3+2] = rr(-24, 24); }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(RAIN_N*6), 3));
-  const l = new T.LineSegments(g, new T.LineBasicMaterial({ color:0xdbe8f0, transparent:true, opacity:.55 })); l.frustumCulled = false; l.visible = false; scene.add(l); return l; })();
-
-const headLamp = new T.SpotLight(0xfff0cc, 0, 60, .6, .65, 1.1); scene.add(headLamp); scene.add(headLamp.target);     // reflektory po zmroku, w deszczu i we mgle
-let pmrem = null, envRT = null; const envScene = new T.Scene();
-const envGround = new T.Mesh(new T.CircleGeometry(690, 20), new T.MeshBasicMaterial({ color:0x7a9a50 })); envGround.rotation.x = -Math.PI/2; envGround.position.y = -3;
-const envSun = new T.Mesh(sunGeo, new T.MeshBasicMaterial({ color:0xffffff })); envSun.scale.setScalar(2.2);
-envScene.add(new T.Mesh(skyGeo, skyMat)); envScene.add(envGround); envScene.add(envSun);
+skyInit(scene, WEATHERS[0]);          // niebo, słońce, księżyc, gwiazdy, deszcz, reflektor, envScene: lib/3d/sky.js
 function applyWeather(w) {
   WX = w; setSky(w.top, w.hor); scene.fog.color.setHex(w.fog); scene.fog.near = w.fn; scene.fog.far = w.ff;
   sun.color.setHex(w.sun); sun.intensity = w.si; SUN_DIR.set(w.sd[0], w.sd[1], w.sd[2]); sun.position.copy(sun.target.position).add(SUN_DIR);
@@ -456,14 +436,7 @@ function buildField(kind, regrow) {
 /* =====================================================================
    CZĄSTKI (plewy, dym, konfetti)
    ===================================================================== */
-const PN = 900, pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3), pVel = new Float32Array(PN*3), pLife = new Float32Array(PN), pGrav = new Float32Array(PN);
-let pNext = 0;
-for (let i = 0; i < PN; i++) pPos[i*3 + 1] = -99;
-const pGeo = new T.BufferGeometry();
-pGeo.setAttribute('position', new T.BufferAttribute(pPos, 3)); pGeo.setAttribute('color', new T.BufferAttribute(pCol, 3));
-const dotTex = tex(32, 32, (g) => { const r = g.createRadialGradient(16, 16, 2, 16, 16, 15); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.6, 'rgba(255,255,255,.85)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); });
-const points = new T.Points(pGeo, new T.PointsMaterial({ size:.42, map:dotTex, vertexColors:true, transparent:true, opacity:.9, depthWrite:false }));
-points.frustumCulled = false; scene.add(points);
+particlesInit(scene, 900);          // cząsteczki: lib/3d/particles.js
 
 /* =====================================================================
    KOMBAJN
@@ -683,7 +656,7 @@ function updateGrain(dt) {
 /* =====================================================================
    DŹWIĘK (Web Audio, wszystko syntetyczne)
    ===================================================================== */
-const AU = { ctx:null, thrLevel:0 };
+AU.thrLevel = 0;                                  // stan dźwięku AU: lib/audio/synth.js
 function initAudio() {
   if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
   const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
@@ -741,8 +714,6 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
-const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 17); }      // lib/input/tilt.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 $('bCal').addEventListener('click', () => { tilt.cal = true; toast('Środek ustawiony'); });
@@ -965,6 +936,7 @@ const ICO_COMBINE = '<svg viewBox="0 0 48 32" width="46" height="30" aria-hidden
 const CAM_NAMES = ['z góry', 'z tyłu', 'kabina'];
 const ICO_BIG = ICO_TRACTOR.replace(/#d9432a/g, '#1f5fb8').replace(/#eee2c4/g, '#ffffff');
 const VEH_UI = { combine:[ICO_COMBINE, 'Kombajn'], tractor:[ICO_TRACTOR, 'Ursus'], big:[ICO_BIG, 'Duży traktor'], giraffe:['<span class="em">🦒</span>', 'Żyrafa'], elephant:['<span class="em">🐘</span>', 'Słoń'] };
+function nextCam() { S.cam = (S.cam + 1) % 3; lookA.yaw = lookA.pitch = 0; camSnap = S.cam === 2; hud(); }
 function hud() {
   const car = carrier() || CAR.tractor; $('trailerN').textContent = car.bales.length; $('trailerCap').textContent = '/' + car.cap; $('barnN').textContent = stored;
   $('swapIco').innerHTML = VEH_UI[S.active][0]; $('swapLbl').textContent = 'zmień';
@@ -1008,7 +980,7 @@ function showMenu(kind) {
 }
 async function startGame(fresh) {
   initAudio();
-  if (S.ctrl === 'tilt') { const ok = await enableTilt(); tilt.on = ok;
+  if (S.ctrl === 'tilt') { const ok = await enableTilt(17); tilt.on = ok;
     if (!ok) { S.ctrl = 'arrows'; syncPicks(); setTimeout(() => toast('Przechylanie tu nie działa. Włączam strzałki.'), 300); } }
   else tilt.on = false;
   document.body.classList.toggle('tilt', tilt.on);
@@ -1031,11 +1003,11 @@ let last = performance.now(), lastRaw = last, qAcc = 0, qN = 0, qLevel = 0;   //
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last)/1000); last = now;
-  uTime.value += dt; updateBirds(uTime.value);
+  uTime.value += dt; updateBirds(uTime.value, birds);
   if (S.running && now - lastRaw < 400) { qAcc += now - lastRaw; if (++qN >= 90) { const avg = qAcc/qN; qAcc = 0; qN = 0;
     if (avg > 38 && qLevel < 2) { qLevel++; if (qLevel === 1) { renderer.setPixelRatio(1); resize(); } else sun.castShadow = false; } } }
   lastRaw = now;
-  updateRain(dt); updateStorm(dt);
+  updateRain(dt, camera); updateStorm(dt);
   turbines.forEach(t => { t.rotation.z += dt*.9; });
   clouds.forEach(c => { c.position.x += dt*1.6; if (c.position.x > 400) c.position.x = -400; });
   if (S.running) update(dt);

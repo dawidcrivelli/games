@@ -1,10 +1,7 @@
 'use strict';
 // Piraci! Bitwa morska — statki i armaty, potem abordaż i pojedynek na szable.
 // Zwierzęta: models/animals.js (ZOO), morskie: models/sea.js (MORZE), audio: lib/audio/music.js, clamp/lerp: lib/common/math.js
-const T=THREE,$=id=>document.getElementById(id);
-const {rnd,pick,canvasTex,M,cg,G,mesh,ball,box,grp,mergeC,MK}=ZOO;
 ZOO.cfg.cast=false;
-const PI=Math.PI,TAU=PI*2;
 const angd=(a,b)=>{let d=(a-b)%TAU;if(d>PI)d-=TAU;if(d<-PI)d+=TAU;return d;};
 let W=innerWidth,H=innerHeight;
 
@@ -91,7 +88,7 @@ function burst(kind,x,y,z,n,sp,s,life,g,grow){for(let i=0;i<n;i++)P_[kind].add(x
 function splash(x,z,k){k=k||1;burst('water',x,seaH(x,z),z,Math.round(12*k),4*k,.45*k,.9,-16);for(let i=0;i<4;i++)P_.foam.add(x+rnd(-1,1),seaH(x,z)+.1,z+rnd(-1,1),rnd(-1,1),0,rnd(-1,1),1.2*k,1.6,0,2,.12);}
 
 /* ---------- audio ---------- */
-let AC=null,master=null,sfx=null,mus=null,nbuf=null,muted=false;const loops={};
+let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
 function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
   master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
   sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.12;mus.connect(master);
@@ -133,8 +130,7 @@ function startMusic(){let nt=AC.currentTime+.1,i=0;const R=99;   // własna szan
       i++;nt+=step;}},120);}
 
 /* ---------- modele: models/ships.js, models/pirates.js, models/weapons.js ---------- */
-const MVC=new T.MeshLambertMaterial({vertexColors:true});
-const SH={L:13,W:4.4,D:1.3,H:1.5,QD:.95,FC:.45};       // kadłub: długość, szerokość, zanurzenie, pokład, podwyższenie rufy i dziobu
+
 // wd: czas zamachu, chip: część obrażeń przechodząca przez blok, bow: strzela (bez doskoku)
 const WEAPONS=[
   {id:'wood',e:'🪵',n:'Drewniany miecz',dmg:8,cost:0},

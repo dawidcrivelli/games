@@ -1,4 +1,15 @@
+// Pociągi: parowóz z tendrem, wagony osobowe i towarowe, EU07, Pendolino; koła szynowe, sprzęgi, zderzaki.
+// Stałe toru i kół (RAIL_TOP, GAUGE, R_DRV…) są tu; trainsInit() raz po palecie M (koła WH, tablice PKP / EU07), potem build*().
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/people.js (makeFarmer); od gry: scene, paleta M (klucze: npm run deps)
 'use strict';
+const RAIL_TOP = .38, GAUGE = 1.5;                  // tor: wierzch szyny, rozstaw
+const CRANK = .3, R_DRV = .78, AXLE_Y = RAIL_TOP + R_DRV, ROD_L = 2.2;
+let WH = null, signMatPKP = null, plateEU = null;
+function trainsInit() {
+  WH = { drv:makeRailWheel(R_DRV, 6, true), sm:makeRailWheel(.45, 4), md:makeRailWheel(.5, 4) };
+  signMatPKP = signMat('PKP', '#17191c', '#f2d277');
+  plateEU = signMat('EU07', '#1d6f4a', '#f2d277');
+}
 function makeRailWheel(r, n, driver) {
   const g = new T.Group();
   cylX(r, .15, M.steelL, 0, 0, 0, g, 26); cylX(r + .06, .035, M.steelL, -.075, 0, 0, g, 26);       // obręcz i obrzeże od środka toru
@@ -152,8 +163,4 @@ function buildPend(kind) {                         // 1 czoło, 0 środek, -1 ko
   inner.add(bake(p)); addWheels(car, WH.sm, .45, [-3.4, -2.2, 2.2, 3.4]);
   car.driver = new T.Group(); car.eye = new T.Vector3(0, 3.05, 2.5); car.look = new T.Vector3(0, 2.86, 12); car.chase = [16, 6.6]; car.chaseYaw = .5; car.lookY = 2.2; car.lamp = new T.Vector3(0, 2, 4.4);
   return car;
-}
-function setConsist(key) {
-  cars.forEach(c => { c.g.visible = false; }); TRkey = key; TR = TRAINS[key]; cars = TR.cars; lead = cars[0]; VMAX = TR.vmax;
-  let c = 0; cars.forEach(k => { k.off = c + k.fo; c += k.len + .35; k.g.visible = true; }); TRAIN_L = c;
 }

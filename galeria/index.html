@@ -43,23 +43,14 @@ h3{margin:14px 0 6px;font-size:19px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="modele.js"></script>
 <!-- dźwięki: te same biblioteki co w grach -->
-<script>const AU = {}, S = { muted: false }; let seed = 7;</script>
 <script src="../lib/common/math.js"></script>
-<script src="../lib/common/dom.js"></script>
 <script src="../lib/common/random.js"></script>
-<script src="../lib/common/angle.js"></script>
-<script src="../lib/3d/shapes.js"></script>
-<script src="../lib/3d/sky.js"></script>
-<script src="../lib/3d/particles.js"></script>
 <script src="../lib/audio/synth.js"></script>
-<script src="../lib/3d/view.js"></script>
-<script src="../lib/3d/weather.js"></script>
-<script src="../lib/3d/smoke.js"></script>
 <script src="../lib/audio/ambience.js"></script>
-<script src="../lib/ui/controls.js"></script>
 <script src="../lib/audio/horns.js"></script>
 <script src="../lib/audio/engine.js"></script>
 <script src="../lib/audio/diesel.js"></script>
+<script>seed = 7;</script>
 <script>
 'use strict';
 const FOV = 35, VIEW_DIR = new THREE.Vector3(1, .55, 1.25).normalize(), SPIN = .5, FRAME_MS = 6000;

@@ -1,10 +1,7 @@
 'use strict';
-const T=THREE,$=id=>document.getElementById(id);
 // zwierzęta i helpery 3D: models/animals.js (arka: mniejsze, cienie tylko brył ciała)
-const {rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,MK}=ZOO;
 ZOO.cfg.scale=.78;ZOO.cfg.cast=false;
 
-const PI=Math.PI;
 let W=innerWidth,H=innerHeight;
 
 /* ---------- renderer ---------- */
@@ -50,7 +47,7 @@ const P={
 function burst(kind,x,y,z,n,sp,s,life,g){for(let i=0;i<n;i++)P[kind].add(x+rnd(-.2,.2),y+rnd(0,.3),z+rnd(-.2,.2),rnd(-sp,sp),rnd(sp*.2,sp*1.2),rnd(-sp,sp),rnd(s*.6,s*1.3),rnd(life*.6,life),g);}
 
 /* ---------- audio ---------- */
-let AC=null,master=null,sfx=null,mus=null,nbuf=null,muted=false;const loops={};
+let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
 function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
   master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
   sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.13;mus.connect(master);
@@ -120,7 +117,7 @@ const ALLC=[];for(let f=0;f<NF;f++)for(let c=0;c<NC;c++)ALLC.push([f,c]);
 
 
 // zwierzęta morskie z Rafy (models/sea.js, tryb nad wodą)
-const {makeDolphin,makeWhale,makeShark,makeTurtle,makeManta}=MORZE,TAU=PI*2;
+const {makeDolphin,makeWhale,makeShark,makeTurtle,makeManta}=MORZE;
 const sea=[];
 function seaAdd(obj,o){scene.add(obj.g);if(o.s)obj.g.scale.setScalar(o.s);let th=o.th==null?rnd(TAU):o.th,ph=rnd(9),py=WATER+o.y;const d=o.dir||1;
   sea.push(dt=>{th+=d*o.sp/o.R*dt;ph+=dt*o.sp*(o.phK||1.2);const x=Math.cos(th)*o.R,z=(o.cz||0)+Math.sin(th)*o.Rz;

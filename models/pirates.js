@@ -1,5 +1,7 @@
-// piraci (ludziki, czapki, opaski, wojownicy) — piraci; klinika bierze mkHuman (Ania)
+// Piraci: ludziki (mkHuman), czapki, opaski, wojownicy (mkFighter: zwierzak z ZOO lub ludzik + broń).
+// wymaga: lib/3d/three.js, lib/3d/zoo-kit.js (cg, mergeC, grp, G, M, MK, rnd), models/weapons.js (mkWeapon, mkStar)
 'use strict';
+const MVC = new T.MeshLambertMaterial({ vertexColors:true });     // ludziki: kolory w wierzchołkach (też statki z models/ships.js)
 function lo8() { return lo8.g || (lo8.g = new T.SphereGeometry(1, 9, 7)); }
 // czapka piracka: 0 trójgraniasta, 1 kapitańska (dwurożna z czaszką), 2 marynarska pończocha z pomponem. Rondo ~1 szer., spód w y=0, przód +x
 function mkHat(style, col) { const p = [], bk = col || 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6, S = lo8();

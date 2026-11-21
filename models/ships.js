@@ -1,4 +1,7 @@
+// Okręty: kadłub (hullGeo, wymiary SH), deski, działa (mkCannon), żagle, flagi, buildShip(opcje) — maszty, wanty, załoga.
+// wymaga: lib/3d/three.js, lib/3d/zoo-kit.js, models/pirates.js (mkHuman, fitPirate, MVC), lerp/clamp (lib/common/math.js)
 'use strict';
+const SH={L:13,W:4.4,D:1.3,H:1.5,QD:.95,FC:.45};       // kadłub: długość, szerokość, zanurzenie, pokład, podwyższenie rufy i dziobu
 // --- kształt kadłuba: t = -1 (rufa) … 1 (dziób)
 function sstep01(a, b, x) { const k = clamp((x - a)/(b - a), 0, 1); return k*k*(3 - 2*k); }
 function hullW(t) { return t > 0 ? 1 - Math.pow(t, 2.6) : 1 - .2*t*t; }

@@ -39,7 +39,7 @@ const MODELE = [
   { kat: 'rolnicze', typ: 'traktor', gra: 'zniwa', js: 'buildTractor()' },
   { kat: 'rolnicze', typ: 'duży traktor', gra: 'zniwa', js: 'buildBigTractor()' },
   { kat: 'rolnicze', typ: 'kombajn', gra: 'zniwa', js: 'buildCombine()' },
-  { kat: 'rolnicze', typ: 'kombajn', gra: 'taxi', plik: 'models/combine-simple.js', js: 'buildKombajn()' },
+  { kat: 'rolnicze', typ: 'kombajn', gra: 'taxi', plik: 'taxi/combine.js', js: 'buildKombajn()' },
   { kat: 'rolnicze', typ: 'pług', gra: 'zniwa', js: 'buildPlough()' },
   { kat: 'rolnicze', typ: 'siewnik', gra: 'zniwa', js: 'buildSeeder()' },
   { kat: 'rolnicze', typ: 'prasa', gra: 'zniwa', js: 'buildBaler({})' },

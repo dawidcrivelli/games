@@ -1,6 +1,5 @@
 'use strict';
 if (!window.THREE) { $('err').style.display = 'flex'; $('menu').hidden = true; throw new Error('brak three.js'); }
-const T = THREE;
 
 /* =====================================================================
    USTAWIENIA I STAN
@@ -9,7 +8,7 @@ const S = { ctrl:'arrows', cam:0, veh:'car', muted:false, running:false, arcade:
 let best = 0; const GAR = { bank:0, own:['p0', 'h0'], paint:'p0', horn:'h0', jump:0 };
 try { const sv = JSON.parse(localStorage.getItem('taxiciuchciowo') || 'null'); if (sv) { S.muted = !!sv.muted; if (['arrows', 'joy', 'tilt'].includes(sv.ctrl)) S.ctrl = sv.ctrl; best = sv.best | 0; if (sv.gar && Array.isArray(sv.gar.own)) Object.assign(GAR, sv.gar); } } catch (e) {}
 const save = () => { try { localStorage.setItem('taxiciuchciowo', JSON.stringify({ muted:S.muted, ctrl:S.ctrl, best, gar:GAR })); } catch (e) {} };
-let seed = (/^#s(\d+)$/.test(location.hash) ? +location.hash.slice(2) : Math.random()*2147483647) | 0;
+seed = (/^#s(\d+)$/.test(location.hash) ? +location.hash.slice(2) : Math.random()*2147483647) | 0;
 
 let time = 0;
 const tmpV = new T.Vector3();
@@ -24,6 +23,7 @@ renderer.shadowMap.type = T.PCFSoftShadowMap;
 const scene = new T.Scene();
 scene.fog = new T.Fog(0xcfe8f3, 110, 420);
 const camera = new T.PerspectiveCamera(55, 1, 0.12, 1500);
+const resize = fitView(renderer, camera);          // lib/3d/view.js
 scene.add(camera);
 
 const hemi = new T.HemisphereLight(0xdff1ff, 0x7d7040, 0.56); scene.add(hemi);
@@ -96,27 +96,7 @@ const WEATHERS = [
   { id:'fog',   p:.1,  ico:'🌫️', top:0xbfd0da, hor:0xe6ecef, fog:0xe1e8eb, fn:12,  ff:92,  sun:0xfff4dc, si:.4,  sd:[40, 30, 20],  hs:0xf0f4f6, hg:0x8a8670, hi:.7,  cloud:0xffffff, co:.4,  sunVis:0, wind:.4,  lamp:.8 },
   { id:'night', p:.15, ico:'🌙', top:0x0a1430, hor:0x25355a, fog:0x1b2843, fn:60,  ff:300, sun:0x9db8ff, si:.34, sd:[-20, 45, -25], hs:0x5b70aa, hg:0x1c2230, hi:.44, cloud:0x36435f, co:.7,  sunVis:0, moon:1, wind:.6, lamp:2 },
 ];
-let WX = WEATHERS[0];
-const uWind = { value:1 };
-const skyGeo = new T.SphereGeometry(700, 24, 14), skyMat = new T.MeshBasicMaterial({ vertexColors:true, side:T.BackSide, fog:false, depthWrite:false });
-skyGeo.setAttribute('color', new T.Float32BufferAttribute(new Float32Array(skyGeo.attributes.position.count*3), 3));
-scene.add(new T.Mesh(skyGeo, skyMat));
-
-const sunGeo = new T.SphereGeometry(22, 16, 12);
-const sunBall = new T.Mesh(sunGeo, new T.MeshBasicMaterial({ color:0xfff6c4, fog:false })); scene.add(sunBall);
-const moon = new T.Mesh(new T.SphereGeometry(15, 16, 12), new T.MeshBasicMaterial({ color:0xf4f1dc, fog:false })); moon.position.set(-190, 380, -420); scene.add(moon);
-const stars = (() => { const n = 380, a = new Float32Array(n*3); for (let i = 0; i < n; i++) { const th = rnd()*6.283, ph = Math.acos(rr(.06, 1)); a[i*3] = Math.sin(ph)*Math.cos(th)*660; a[i*3+1] = Math.cos(ph)*660; a[i*3+2] = Math.sin(ph)*Math.sin(th)*660; }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(a, 3)); const s = new T.Points(g, new T.PointsMaterial({ color:0xffffff, size:2.2, sizeAttenuation:false, fog:false })); scene.add(s); return s; })();
-const RAIN_N = 700, rainOff = new Float32Array(RAIN_N*3);
-const rain = (() => { for (let i = 0; i < RAIN_N; i++) { rainOff[i*3] = rr(-24, 24); rainOff[i*3+1] = rr(0, 26); rainOff[i*3+2] = rr(-24, 24); }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(new Float32Array(RAIN_N*6), 3));
-  const l = new T.LineSegments(g, new T.LineBasicMaterial({ color:0xdbe8f0, transparent:true, opacity:.55 })); l.frustumCulled = false; l.visible = false; scene.add(l); return l; })();
-
-const headLamp = new T.SpotLight(0xfff0cc, 0, 60, .6, .65, 1.1); scene.add(headLamp); scene.add(headLamp.target);     // reflektory po zmroku, w deszczu i we mgle
-let pmrem = null, envRT = null; const envScene = new T.Scene();
-const envGround = new T.Mesh(new T.CircleGeometry(690, 20), new T.MeshBasicMaterial({ color:0x7a9a50 })); envGround.rotation.x = -Math.PI/2; envGround.position.y = -3;
-const envSun = new T.Mesh(sunGeo, new T.MeshBasicMaterial({ color:0xffffff })); envSun.scale.setScalar(2.2);
-envScene.add(new T.Mesh(skyGeo, skyMat)); envScene.add(envGround); envScene.add(envSun);
+skyInit(scene, WEATHERS[0]);          // niebo, słońce, księżyc, gwiazdy, deszcz, reflektor, envScene: lib/3d/sky.js
 
 { // łąka z plamami koloru
   const g = new T.PlaneGeometry(1900, 1900, 90, 90); g.rotateX(-Math.PI/2);
@@ -158,21 +138,12 @@ let makeCow = null;
     [-1, 1].forEach(s => { ell(.06, .1, .14, bk, s*.3, .15, .15, hd); cone(.035, .01, .2, hn, s*.16, .33, .2, hd, 6); ell(.035, .035, .035, bk, s*.14, .07, .53, hd); ell(.03, .03, .02, bk, s*.08, -.14, .72, hd); });
     hd.position.set(0, 1.45, .8); hd.rotation.x = down ? .95 : .1; g.add(hd); return bake(g); };
 }
-const RAIL_TOP = .38, GAUGE = 1.5;
-const PN = 320, pPos = new Float32Array(PN*3), pCol = new Float32Array(PN*3), pVel = new Float32Array(PN*3), pLife = new Float32Array(PN), pGrav = new Float32Array(PN);
-let pNext = 0;
-for (let i = 0; i < PN; i++) pPos[i*3 + 1] = -99;
-const pGeo = new T.BufferGeometry();
-pGeo.setAttribute('position', new T.BufferAttribute(pPos, 3)); pGeo.setAttribute('color', new T.BufferAttribute(pCol, 3));
-const dotTex = tex(32, 32, (g) => { const r = g.createRadialGradient(16, 16, 2, 16, 16, 15); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.6, 'rgba(255,255,255,.85)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); });
-const points = new T.Points(pGeo, new T.PointsMaterial({ size:.42, map:dotTex, vertexColors:true, transparent:true, opacity:.9, depthWrite:false }));
-points.frustumCulled = false; scene.add(points);
+particlesInit(scene, 320);          // cząsteczki: lib/3d/particles.js
 
-const puffs = [];
-for (let i = 0; i < 48; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map:dotTex, color:0xffffff, transparent:true, opacity:0, depthWrite:false })); s.visible = false; scene.add(s); puffs.push({ s, life:0, max:1, vx:0, vy:0, vz:0, size:1 }); }
-let puffNext = 0;
+smokeInit(scene, dotTex);           // dym: lib/3d/smoke.js
 
-const AU = { ctx:null };
+const WEATHER_WORLD = { scene, renderer, sun, hemi, sunDir:SUN_DIR, cloud:M.cloud, win:M.win };   // dla applyWeather: lib/3d/weather.js
+AU.muted = () => S.muted;                         // stan dźwięku AU: lib/audio/synth.js
 
 const sfx = {
   chuff:(strong, vol) => { burst(strong ? 560 : 430, .17, vol*(strong ? 1 : .75), 0, .8, 'lowpass'); burst(1700, .09, vol*.22, 0, .8); },
@@ -196,14 +167,7 @@ Object.assign(M, {
     g.fillStyle = '#eee2c4'; g.font = 'bold 32px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('C-330', w/2, h/2 + 2); }) }),
 });
 
-const AUTO_CAM = { car:true, chaseYaw:0, followK:5, povK:.16, tilt:0 };
-
-// ---------- nadwozia: boczny zarys auta wyciągnięty na szerokość, z wycięciami na koła
-
-const GLD = new T.MeshStandardMaterial({ color:0x16222e, roughness:.06, metalness:.6, envMapIntensity:1.8, side:T.DoubleSide }), GLT = new T.MeshStandardMaterial({ color:0xbfe6f5, transparent:true, opacity:.26, roughness:.04, metalness:.2, envMapIntensity:1.7, depthWrite:false, side:T.DoubleSide });
-const PLA = lam(0x1b1c1f), LAMPO = new T.MeshBasicMaterial({ color:0xffa41c });
-
-const TPL_W = { car:null, bus:null };
+// auta: kamera (AUTO_CAM), szyby, plastik, kierunkowskazy — models/cars.js
 
 const ursus = buildTractor(); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
 const AUTOS = {
@@ -213,12 +177,7 @@ const AUTOS = {
   ursus:{ car:ursus, vmax:10.5, acc:5, off:.95, turn:1.25, R:2.1, jobs:0, eng:[38, 5], hornF:[392, 494], ico:'🚜', name:'Ursus C-330', sub:'wszędzie 🌾' },
 };
 
-const CRANK = .3, R_DRV = .78, AXLE_Y = RAIL_TOP + R_DRV, ROD_L = 2.2;
-const WH = { drv:makeRailWheel(R_DRV, 6, true), sm:makeRailWheel(.45, 4), md:makeRailWheel(.5, 4) };
-
-const signMatPKP = signMat('PKP', '#17191c', '#f2d277');
-
-const plateEU = signMat('EU07', '#1d6f4a', '#f2d277');
+trainsInit();                                      // koła i tablice pociągów: models/trains.js
 
 const steam = buildLoco(), tender = buildTender(), coaches = [buildCoach(), buildCoach(), buildCoach()], wagons = [buildWagon(), buildWagon(), buildWagon()], eu = buildEU07(), pend = [buildPend(1), buildPend(0), buildPend(-1)];
 const LEADS = [steam, eu, pend[0]];
@@ -230,6 +189,10 @@ const TRAINS = {
   pend:{ cars:pend, kind:'pend', pass:true, vmax:28, acc:4.6, ico:'🚄', name:'Pendolino', sub:'osobowy 🧍' },
 };
 let TR = null, TRkey = '', cars = [], lead = steam, TRAIN_L = 27, VMAX = 13;
+function setConsist(key) {
+  cars.forEach(c => { c.g.visible = false; }); TRkey = key; TR = TRAINS[key]; cars = TR.cars; lead = cars[0]; VMAX = TR.vmax;
+  let c = 0; cars.forEach(k => { k.off = c + k.fo; c += k.len + .35; k.g.visible = true; }); TRAIN_L = c;
+}
 const VREV = 6;
 
 const starGeo = (() => { const s = new T.Shape(); for (let k = 0; k < 10; k++) { const a = k/10*6.283 + Math.PI/2, r = k % 2 ? .5 : 1.15; if (k) s.lineTo(Math.cos(a)*r, Math.sin(a)*r); else s.moveTo(Math.cos(a)*r, Math.sin(a)*r); }
@@ -684,7 +647,7 @@ function crossingsStep(dt) {
    ===================================================================== */
 const keys = { fwd:0, back:0, left:0, right:0 };
 
-holdBtn('cGo', 'fwd'); holdBtn('cBk', 'back'); holdBtn('cL', 'left'); holdBtn('cR', 'right');
+holdBtn('cGo', 'fwd', keys); holdBtn('cBk', 'back', keys); holdBtn('cL', 'left', keys); holdBtn('cR', 'right', keys);
 const JOY = { on:false, id:-1, x:0, st:0, idle:0 };          // joystick tylko w bok: skręca (i trochę dodaje gazu); gaz i hamulec są przyciskami po prawej
 { const j = $('joy'), k = $('joyK'), ar = { l:j.querySelector('.l'), r:j.querySelector('.r') };
   const set = e => { const b = j.getBoundingClientRect(), R = b.width/2, x = clamp((e.clientX - b.left - R)/(R*.62), -1, 1);
@@ -701,8 +664,6 @@ const STEER_GAS = .5, IN = { st:0, fwd:0, back:false, gas:0 };
 /* przechylanie telefonu (lib/input/tilt.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu.
    Krzywa: drobne drgania rąk nic nie robią, średni przechył to już pełny skręt (tilt.x = 1 przy 17°). */
 const TILT_DEAD = .25, TILT_FULL = .8;
-const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 17); }
 addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput(dt) {
   let tx = 0, ty = 0; if (tilt.on) { tx = tiltCurve(tilt.x, TILT_DEAD, TILT_FULL); ty = tiltCurve(tilt.y, TILT_DEAD + .05, TILT_FULL); }      // ~4° nic, ~14° pełny skręt
@@ -1257,7 +1218,7 @@ function selectVeh(key) {
 { const b = $('bHorn'); b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} hornOn(); }); ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, hornOff)); } press($('cTurbo'), turbo); tap('bCam', nextCam); tap('bSwap', togglePick);
 $('c').addEventListener('pointerdown', () => { $('pick').hidden = true; if (bigMap) toggleMap(); });
 
-tap('bSnd', () => { S.muted = !S.muted; initAudio(); if (AU.master) AU.master.gain.value = S.muted ? 0 : .7; syncSnd(); save(); });
+tap('bSnd', () => { S.muted = !S.muted; initAudio(); if (AU.master) AU.master.gain.value = S.muted ? 0 : .7; syncSnd(S.muted); save(); });
 function showMenu(kind) {
   S.running = false; arrow2.visible = false; $('menu').hidden = false; $('hud').hidden = !S.started; keys.fwd = keys.back = keys.left = keys.right = 0;
   $('bBack').hidden = !(S.started && !S.over); $('bGarN').textContent = GAR.bank; $('bestTxt').textContent = best ? 'rekord: ' + best + ' ⭐' : 'zdąż przed zegarem';
@@ -1270,7 +1231,7 @@ document.querySelectorAll('[data-ctrl]').forEach(b => b.addEventListener('click'
 tap('bCal', () => { tilt.cal = true; toast('🎯 Środek ustawiony'); });
 syncTilt();
 async function useTilt() {                        // przed jazdą: włącz albo wyłącz żyroskop (iPhone pyta o zgodę przy dotknięciu)
-  if (S.ctrl === 'tilt') { const ok = await enableTilt(); tilt.on = ok; if (!ok) { S.ctrl = 'arrows'; syncTilt(); save(); setTimeout(() => toast('Przechylanie tu nie działa. Włączam strzałki.'), 300); } else setTimeout(() => toast('📱 Przechylaj telefon: w bok skręca, od siebie gaz. 🎯 ustawia środek.'), 2800); }
+  if (S.ctrl === 'tilt') { const ok = await enableTilt(17); tilt.on = ok; if (!ok) { S.ctrl = 'arrows'; syncTilt(); save(); setTimeout(() => toast('Przechylanie tu nie działa. Włączam strzałki.'), 300); } else setTimeout(() => toast('📱 Przechylaj telefon: w bok skręca, od siebie gaz. 🎯 ustawia środek.'), 2800); }
   else tilt.on = false;
 }
 function startGame(arcade) {
@@ -1280,13 +1241,13 @@ function startGame(arcade) {
 }
 tap('bGo', () => startGame(false)); tap('bArc', () => startGame(true)); tap('bBack', () => { initAudio(); initEngine(); useTilt(); S.running = true; $('menu').hidden = true; }); tap('bMenu', () => showMenu('pause'));
 tap('bNew', () => { try { location.reload(); } catch (e) { toast('Odśwież stronę, żeby wylosować nowe miasto'); } });
-syncSnd();
+syncSnd(S.muted);
 
 /* =====================================================================
    START I PĘTLA
    ===================================================================== */
 { const pool = WEATHERS.filter(w => w.id !== 'fog'), tot = pool.reduce((a, w) => a + w.p, 0); let r = Math.random()*tot, w = pool[0]; for (const q of pool) { r -= q.p; if (r <= 0) { w = q; break; } }
-  applyWeather(w); FAC.forEach(m => { m.emissive.setHex(w.lamp >= .5 ? 0xffffff : 0); m.emissiveIntensity = Math.min(1, w.lamp)*.85; }); }
+  applyWeather(w, WEATHER_WORLD); FAC.forEach(m => { m.emissive.setHex(w.lamp >= .5 ? 0xffffff : 0); m.emissiveIntensity = Math.min(1, w.lamp)*.85; }); }
 placePlayer(); pc.g.visible = true; syncAuto(); placeTrain();
 let plantT = 0;
 function update(dt) {
@@ -1307,11 +1268,11 @@ let last = performance.now(), lastRaw = last, qAcc = 0, qN = 0, qLevel = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last)/1000); last = now;
-  updateBirds(now/1000);
+  updateBirds(now/1000, birds);
   if (S.running && now - lastRaw < 400) { qAcc += now - lastRaw; if (++qN >= 90) { const avg = qAcc/qN; qAcc = 0; qN = 0;
     if (avg > 38 && qLevel < 2) { qLevel++; if (qLevel === 1) { renderer.setPixelRatio(1); resize(); } else sun.castShadow = false; } } }
   lastRaw = now;
-  updateRain(dt); turbines.forEach(t => { t.rotation.z += dt*.9; });
+  updateRain(dt, camera); turbines.forEach(t => { t.rotation.z += dt*.9; });
   spinners.forEach(s => { s.m.rotation[s.ax] += dt*s.sp; }); for (let k = 0; k < anims.length; k++) anims[k](now/1000);
   clouds.forEach(c => { c.position.x += dt*1.6; if (c.position.x > 400) c.position.x = -400; });
   planeStep(dt);

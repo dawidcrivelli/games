@@ -8,7 +8,6 @@
 // Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/animals.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomy.js
 // (klinika/patients.js); budynek kliniki w przekroju (klinika/office.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
-const T = THREE, $ = id => document.getElementById(id);
 const KINDS = ['zyrafa', 'slon', 'pingwin', 'doktor'];
 const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
 const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'];
@@ -22,9 +21,8 @@ const ORG_BIERNIK = { ...ORG_NAZWA, watroba: 'wątrobę' };
 const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
-const { rnd, pick, M, MT, ball, box, cg, mesh, grp, G, mergeC, mK } = ZOO;     // pomocniki 3D z models/animals.js (jak w Pralni i Arce)
-const PI = Math.PI, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), MVC = new T.MeshLambertMaterial({ vertexColors: true });   // MVC: ludziki z Piratów
-const ease = t => t * t * (3 - 2 * t), V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t * t * (3 - 2 * t);
 const SET = Object.assign({ wyleczeni: {}, kind: 'zyrafa' }, JSON.parse(localStorage.getItem('klinika') || '{}'));
 const save = () => localStorage.setItem('klinika', JSON.stringify(SET));
 

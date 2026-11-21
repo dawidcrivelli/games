@@ -1,4 +1,15 @@
+// Auta: mkAuto (podwozie, koła, kierownica, kamera), nadwozie z bocznego zarysu (profGeo), szyby, autobus, wyścigówka, auta AI.
+// Wspólne materiały aut: GLD (ciemna szyba), GLT (przezroczysta), PLA (plastik), LAMPO (kierunkowskaz); AUTO_CAM — domyślna kamera auta.
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/vehicle-parts.js, models/people.js; od gry: scene, paleta M, carFace (models/cab*.js)
 'use strict';
+const AUTO_CAM = { car:true, chaseYaw:0, followK:5, povK:.16, tilt:0 };
+
+// nadwozia: boczny zarys auta wyciągnięty na szerokość, z wycięciami na koła
+
+const GLD = new T.MeshStandardMaterial({ color:0x16222e, roughness:.06, metalness:.6, envMapIntensity:1.8, side:T.DoubleSide }), GLT = new T.MeshStandardMaterial({ color:0xbfe6f5, transparent:true, opacity:.26, roughness:.04, metalness:.2, envMapIntensity:1.7, depthWrite:false, side:T.DoubleSide });
+const PLA = lam(0x1b1c1f), LAMPO = new T.MeshBasicMaterial({ color:0xffa41c });
+
+const TPL_W = { car:null, bus:null };
 function mkAuto(o) { const g = new T.Group(), inner = new T.Group(); g.add(inner); g.visible = false; scene.add(g);
   return Object.assign({ g, inner, wheels:[], steerNodes:[], x:0, z:0, h:0, v:0, steer:0 }, AUTO_CAM, o); }
 function autoWheels(car, tpl, r, track, zs) { zs.forEach((z, n) => [-1, 1].forEach(s => { const pv = new T.Group(), w = cloneTpl(tpl, true); pv.position.set(s*track/2, r, z); pv.add(w); car.inner.add(pv);

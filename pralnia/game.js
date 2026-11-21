@@ -1,9 +1,6 @@
 'use strict';
-const T=THREE,$=id=>document.getElementById(id);
 // zwierzęta i helpery 3D: models/animals.js
-const {rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,MK}=ZOO;
 
-const PI=Math.PI;
 let W=innerWidth,H=innerHeight;
 
 /* ---------- renderer ---------- */
@@ -51,7 +48,7 @@ const P={
 function burst(kind,p,n,sp,s,life,g){for(let i=0;i<n;i++)P[kind].add(p.x+rnd(-.1,.1),p.y+rnd(-.1,.1),p.z+rnd(0,.2),rnd(-sp,sp),rnd(-sp*.3,sp),rnd(-sp*.3,sp),rnd(s*.6,s*1.2),rnd(life*.6,life),g);}
 
 /* ---------- audio ---------- */
-let AC=null,master=null,sfx=null,mus=null,nbuf=null,muted=false;const loops={};
+let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
 function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
   master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
   sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.15;mus.connect(master);

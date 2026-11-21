@@ -1,6 +1,6 @@
 'use strict';
 if (!window.THREE) { $('err').style.display = 'flex'; $('load').hidden = true; throw new Error('brak three.js'); }
-const T = THREE, V3 = T.Vector3, TAU = Math.PI*2;
+const V3 = T.Vector3;
 // zwierzęta morskie, materiał podwodny i helpery geometrii: models/sea.js
 const { U, GL_WATER, SUN, C, mix3, mul3, M, fl, merge, sweep, flat, ball, setCol, tf, sstep, hexCell, setAT, K, SP, fishMat, fishGeoC, fishGeo, speciesGeo, speciesMat, makeClown, makeTurtle, makeManta, makeShark, makePuffer, seahorseGeo, makeCrab, makeOcto, jellyGeos, makeWhale, makeDolphin, makeMoray } = MORZE;
 
@@ -17,7 +17,7 @@ const save = () => { try { localStorage.setItem('rafa', JSON.stringify({who:S.wh
 const SURF = 18, EDGE = 66, START = { x:0, y:5.5, z:27 };
 const N_PEARL_TOPS = 9, N_CLAMS = 7, N_SHELLS = 10;
 
-let seed = 1;
+seed = 1;
 
 const pick = a => a[Math.floor(rnd()*a.length) % a.length];
 
@@ -568,8 +568,6 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
-const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 18); }      // lib/input/tilt.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput() {
@@ -698,7 +696,7 @@ function showMenu(kind) {
 let firstGo = true;
 async function go() {
   audioInit();
-  if (S.ctrl === 'tilt') { $('bGo').textContent = 'Chwileczkę…'; const ok = await enableTilt(); tilt.on = ok;
+  if (S.ctrl === 'tilt') { $('bGo').textContent = 'Chwileczkę…'; const ok = await enableTilt(18); tilt.on = ok;
     if (!ok) { S.ctrl = 'arrows'; syncPicks(); toast('Przechylanie nie działa na tym urządzeniu. Włączam strzałki.', 5000); } } else tilt.on = false;
   document.body.classList.toggle('tilt', tilt.on);
   if (P.who !== S.who) setPlayer(S.who);

@@ -2,7 +2,6 @@
 // Dzikie Bryki — wyścig 4 groźnych pojazdów na 4 pasach, widok z boku (2.5D). Gracz kontra 3 auta komputera.
 // Modele: models/wild-cars.js (auta, pozy), bryki/tracks.js (motywy, przeszkody); styl i dymki: lib/3d/comic.js, lib/ui/comic.js; dźwięki: dzwieki.js.
 // Świat w „s” = metry wzdłuż trasy; na ekranie x = s − camS (kamera jedzie za graczem). Wysokość drogi: H(s) (górki).
-const T = THREE, $ = id => document.getElementById(id);
 const PAS = 3.5, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
 const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba'];
 const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸' };
