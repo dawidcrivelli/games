@@ -1,3 +1,6 @@
+// Maszyny rolnicze (Żniwa): makeScrew (ślimak), buildCombine (kombajn z hederem zbożowym / do kukurydzy), buildPlough, buildSeeder,
+// buildBaler (prasa), buildSlurryTank (beczkowóz), buildBigTractor, buildTrailer. Mały traktor: models/tractor.js.
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/vehicle-parts.js, models/people.js; od gry: scene, paleta M
 'use strict';
 function makeScrew(len, r0, r1, mat) {            // stożkowy ślimak: oś Y, grubszy koniec na dole
   const g = new T.Group(); mesh(new T.CylinderGeometry(r1, r0, len, 8), M.steel, 0, 0, 0, g);

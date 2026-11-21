@@ -1,6 +1,6 @@
 // Pociągi: parowóz z tendrem, wagony osobowe i towarowe, EU07, Pendolino; koła szynowe, sprzęgi, zderzaki.
 // Stałe toru i kół (RAIL_TOP, GAUGE, R_DRV…) są tu; trainsInit() raz po palecie M (koła WH, tablice PKP / EU07), potem build*().
-// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/people.js (makeFarmer); od gry: scene, paleta M (klucze: npm run deps)
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/people.js (makeFarmer); od gry: scene, paleta M (klucze: node tools/deps.mjs)
 'use strict';
 const RAIL_TOP = .38, GAUGE = 1.5;                  // tor: wierzch szyny, rozstaw
 const CRANK = .3, R_DRV = .78, AXLE_Y = RAIL_TOP + R_DRV, ROD_L = 2.2;

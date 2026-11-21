@@ -1,3 +1,5 @@
+// Kępki trawy i zboża: tuftGeo(rodzaj) → geometria do InstancedMesh (pszenica, kukurydza, trawa…).
+// wymaga: lib/3d/three.js, lib/common/random.js
 'use strict';
 function tuftGeo(kind) {
   const P = [], N = [], C = [], col = new T.Color(), m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), one = new T.Vector3(1, 1, 1);

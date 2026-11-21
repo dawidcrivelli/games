@@ -1,3 +1,5 @@
+// Ludzie: makeFarmer(ręka w górze) — rolnik/kierowca w kapeluszu; pedGroup, pedMats — piesi na chodniku.
+// wymaga: lib/3d/three.js, lib/3d/shapes.js; od gry: paleta M
 'use strict';
 function makeFarmer(armUp) {
   const g = new T.Group(), u = armUp || .6;

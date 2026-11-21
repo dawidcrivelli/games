@@ -1,3 +1,5 @@
+// Części pojazdów: makeWheel (koło z felgą i bieżnikiem), makeSteeringWheel (kierownica), gaugeNeedle (wskazówka zegara).
+// wymaga: lib/3d/three.js, lib/3d/shapes.js; od gry: paleta M
 'use strict';
 function makeWheel(r, w, rimMat, nLug, rib) {
   const g = new T.Group();

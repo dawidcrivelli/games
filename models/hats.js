@@ -1,3 +1,5 @@
+// Czapki dla zwierzaków (Pralnia): mkHat(rodzaj) → Group. Wariant mkHat w models/pirates.js — nie ładować obu.
+// wymaga: lib/3d/three.js, lib/3d/zoo-kit.js
 'use strict';
 function mkHat(k){const g=new T.Group();
   if(k===0){const bk=M(0x23232e);mesh(cg(.55,.55,.06,20),bk,g,0,.03,0);mesh(cg(.32,.34,.6,20),bk,g,0,.36,0);mesh(cg(.345,.35,.13,20),M(0xe23b4e),g,0,.14,0);}

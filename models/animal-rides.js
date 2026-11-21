@@ -1,4 +1,5 @@
-// zwierzeta — pojazdy w żniwach: modele z Pralni (ZOO) + siedzisko i kierowca
+// Zwierzęta jako pojazdy (Żniwa): saddle (siodło), rideAnimal (zwierzak z ZOO + siedzisko i kierowca), buildGiraffe, buildElephant.
+// wymaga: lib/3d/three.js, models/animals.js (ZOO), lib/3d/shapes.js, models/people.js; od gry: scene, paleta M
 'use strict';
 // Grupa w układzie pojazdu, przyczepiona do tułowia (kołysze się z nim); top = grzbiet {y, z}
 function saddle(v, a) {

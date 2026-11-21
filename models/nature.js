@@ -1,3 +1,5 @@
+// Przyroda w stylu „słodziaków”: duck (kaczka), tree (drzewo), palm (palma) — (rodzic, x, y, z, skala).
+// wymaga: lib/3d/zoo-kit.js; od gry: scene
 'use strict';
 function duck(par,x,y,z,s){const g=grp(par,x,y,z);g.scale.setScalar(s);const ye=M(0xffd23f,{roughness:.4});ball(ye,g,0,.24,0,.3,.24,.24);ball(ye,g,.2,.5,0,.17);ball(M(0xff8f1c),g,.37,.48,0,.1,.04,.08);for(const q of [1,-1])ball(mK,g,.28,.55,q*.1,.03);ball(ye,g,-.28,.32,0,.1,.08,.12);return g;}
 function tree(x,z,s){const g=grp(scene,x,0,z);g.scale.setScalar(s);mesh(cg(.25,.36,2.2,8),M(0x8d5a3b),g,0,1.1,0);ball(M(0x4caf50),g,0,3,0,1.5,1.4,1.5);ball(M(0x66bb6a),g,.8,2.5,.3,1.0);ball(M(0x43a047),g,-.8,2.6,-.2,1.1);ball(M(0x7ccf5a),g,.1,3.7,.4,.8);}

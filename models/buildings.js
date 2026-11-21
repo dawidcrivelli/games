@@ -1,3 +1,5 @@
+// Budynki: gableHouse (dom z dwuspadowym dachem), groundPad (płyta), ramp (peron/rampa), nameBoard (tablica z nazwą na słupkach).
+// wymaga: lib/3d/three.js, lib/3d/shapes.js; od gry: paleta M
 'use strict';
 function gableHouse(b, w, h, d, wallMat, roofMat, pitch, gMat) {
   box(w, h, d, wallMat, 0, h/2, 0, b);

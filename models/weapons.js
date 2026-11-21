@@ -1,4 +1,6 @@
-// broń biała i pociski — tylko: piraci
+// Broń biała i pociski (Piraci): bladeGeo, mkWeapon(rodzaj) — szabla, miecz, rapier, katana, topór, łuk, kotwica, trójząb…,
+// mkArrow (strzała), starGeo/mkStar (rozgwiazda do rzucania). starGeo jest też w rafa/reef.js (inna).
+// wymaga: lib/3d/three.js, lib/3d/zoo-kit.js
 'use strict';
 // płaskie ostrze z obrysu [[x,y]...] (grubość w z)
 function bladeGeo(pts, th) { const s = new T.Shape(); pts.forEach((q, i) => s[i ? 'lineTo' : 'moveTo'](q[0], q[1])); s.closePath();

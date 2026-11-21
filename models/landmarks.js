@@ -2,7 +2,7 @@
 // buildLandmarks(PLACES, anims, tileX, tileZ) stawia je w scenie: PLACES[klucz] = [x, z, strona rampy]; anims — tablica gry
 // na ruchy zwierząt (f(t) co klatkę); tileX/tileZ — kratka → metry (domyślnie bez zmiany). Zwraca spinners (śmigła, koła do obracania co klatkę). ROT[strona] — obrót budynku do rampy.
 // Zużywa rnd()/rr() (ten sam świat z ziarna). wymaga: lib/3d/three.js, lib/3d/shapes.js, models/buildings.js,
-// models/people.js, lib/common/random.js; od gry: scene, paleta M
+// lib/common/random.js; od gry: scene, paleta M
 'use strict';
 const ROT = [Math.PI, Math.PI/2, 0, -Math.PI/2];      // obrót budynku według strony z rampą
 function buildLandmarks(PLACES, anims, tileX = v => v, tileZ = v => v) {

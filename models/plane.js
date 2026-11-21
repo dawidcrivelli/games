@@ -1,3 +1,5 @@
+// Samolot (Taxi): planeBody(kolor) — kadłub ze skrzydłami i śmigłem, buildPlane — samolot jako pojazd (mkAuto).
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/cars.js; od gry: paleta M
 'use strict';
 function planeBody(col) {
   const out = new T.Group(), g = new T.Group(), W = pho(0xf4f4f0), R = pho(col), D = pho(0x1b2f55, { roughness:.1 });
