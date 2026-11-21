@@ -666,8 +666,6 @@ addEventListener('resize', resize);
    HUD, MENU, ALBUM
    ===================================================================== */
 const CAM_NAMES = ['z góry', 'z tyłu', 'oczami'];
-let toastT = 0;
-function toast(msg, ms = 3200) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
 function hud(bump) {
   $('nPearl').textContent = got.pearl; $('tPearl').textContent = '/' + total.pearl; $('nShell').textContent = got.shell; $('tShell').textContent = '/' + total.shell; $('nAlbum').textContent = nFound; $('tAlbum').textContent = '/' + ANIMALS.length;
   $('camLbl').textContent = CAM_NAMES[S.cam]; $('stopIco').textContent = P.auto ? '✋' : '🏊'; $('stopLbl').textContent = P.auto ? 'stój' : 'płyń';

@@ -88,11 +88,8 @@ function burst(kind,x,y,z,n,sp,s,life,g,grow){for(let i=0;i<n;i++)P_[kind].add(x
 function splash(x,z,k){k=k||1;burst('water',x,seaH(x,z),z,Math.round(12*k),4*k,.45*k,.9,-16);for(let i=0;i<4;i++)P_.foam.add(x+rnd(-1,1),seaH(x,z)+.1,z+rnd(-1,1),rnd(-1,1),0,rnd(-1,1),1.2*k,1.6,0,2,.12);}
 
 /* ---------- audio ---------- */
-let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
-function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
-  master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
-  sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.12;mus.connect(master);
-  nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+let muted=false;   // AC, master, sfx, mus, nbuf, loops: lib/audio/music.js
+function initAudio(){if(!musicInit(muted,.12))return;   // kontekst, głośność, szum: lib/audio/music.js
   loops.sea=nloop('lowpass',520,.4);loops.sea.g.gain.value=.11;
   const l=AC.createOscillator(),lg=AC.createGain();l.frequency.value=.17;lg.gain.value=230;l.connect(lg);lg.connect(loops.sea.f.frequency);l.start();
   startMusic();}

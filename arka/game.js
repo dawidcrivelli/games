@@ -22,7 +22,6 @@ const MVC=new T.MeshStandardMaterial({vertexColors:true,roughness:.8});
 
 /* ---------- textures ---------- */
 const plankTex=(base,line,rep)=>canvasTex(256,256,(g,w,h)=>{g.fillStyle=base;g.fillRect(0,0,w,h);for(let i=0;i<8;i++){g.fillStyle='rgba(60,30,5,'+rnd(.02,.14)+')';g.fillRect(0,i*32,w,32);g.fillStyle=line;g.fillRect(0,i*32,w,3);const x=rnd(w);g.fillRect(x,i*32,3,32);g.fillRect((x+130)%w,i*32,3,32);}for(let i=0;i<60;i++){g.fillStyle='rgba(50,25,5,.12)';g.fillRect(rnd(w),rnd(h),rnd(20,60),1.5);}},{repeat:rep});
-const emojiTex=(em,bg)=>canvasTex(128,128,(g)=>{g.fillStyle=bg;g.beginPath();g.arc(64,64,62,0,7);g.fill();g.lineWidth=7;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.textBaseline='middle';g.font='74px serif';g.fillText(em,64,70);});
 
 /* ---------- lights ---------- */
 const hemi=new T.HemisphereLight(0xffffff,0xb08a5a,.7);scene.add(hemi);
@@ -47,16 +46,12 @@ const P={
 function burst(kind,x,y,z,n,sp,s,life,g){for(let i=0;i<n;i++)P[kind].add(x+rnd(-.2,.2),y+rnd(0,.3),z+rnd(-.2,.2),rnd(-sp,sp),rnd(sp*.2,sp*1.2),rnd(-sp,sp),rnd(s*.6,s*1.3),rnd(life*.6,life),g);}
 
 /* ---------- audio ---------- */
-let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
-function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
-  master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
-  sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.13;mus.connect(master);
-  nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+let muted=false;   // AC, master, sfx, mus, nbuf, loops: lib/audio/music.js
+function initAudio(){if(!musicInit(muted,.13,.3))return;   // kontekst, głośność, szum: lib/audio/music.js
   loops.sea=nloop('lowpass',500,.4);loops.rain=nloop('highpass',5000,.3);loops.sea.g.gain.value=.1;
   const l=AC.createOscillator(),lg=AC.createGain();l.frequency.value=.16;lg.gain.value=220;l.connect(lg);lg.connect(loops.sea.f.frequency);l.start();
   startMusic();}
 
-function setLoop(n,v){const l=loops[n];if(l&&AC)l.g.gain.setTargetAtTime(v,AC.currentTime,.3);}
 
 const snd={
   squeak(){tone(rnd(1900,2600),.08,'square',.035,rnd(2700,3300));},

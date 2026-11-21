@@ -169,7 +169,7 @@ Object.assign(M, {
 
 // auta: kamera (AUTO_CAM), szyby, plastik, kierunkowskazy — models/cars.js
 
-const ursus = buildTractor(M.uPlate); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
+const ursus = buildTractor(); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
 const AUTOS = {
   taxi:{ car:buildTaxi(), vmax:24, acc:8, off:.5, turn:1, R:2, jobs:2, eng:[60, 5.5], hornF:[420, 524], ico:'🚕', name:'Taksówka', sub:'pasażerowie 🧍' },
   bus:{ car:buildBus(), vmax:17, acc:5, off:.45, turn:.72, R:3, jobs:5, eng:[45, 4.5], hornF:[220, 277], ico:'🚌', name:'Autobus', sub:'grupy 🧍🧍' },
@@ -573,7 +573,7 @@ const cows = cowHomes.map((h, k) => { const g = cloneTpl(cowTpl[k % 2], true); g
 const traffic = [];
 { const cols = [0xd8452f, 0x2f7fd8, 0xf4f4f0, 0x3f9a4a, 0x8e4fc2, 0x20b2aa, 0xff8a3d, 0x9aa3ad, 0x2f7fd8, 0xf4f4f0, 0xd8452f, 0x25262b, 0xf5c41f];
   cols.forEach((c, n) => traffic.push({ g:vc(aiModel(c, n % 3)), R:1.8, vmax:rr(8, 12) })); traffic.push({ g:vc(aiModel(0xd8452f, 3)), R:3, vmax:8 }); traffic.push({ g:buildKombajn(), R:3.3, vmax:4.5, wide:1 });
-  const tr = buildTractor(M.uPlate), trm = vc(tr.g); scene.remove(tr.g); traffic.push({ g:trm, R:2.1, vmax:6 });
+  const tr = buildTractor(), trm = vc(tr.g); scene.remove(tr.g); traffic.push({ g:trm, R:2.1, vmax:6 });
   traffic.forEach(c => { scene.add(c.g); Object.assign(c, { v:0, x:0, z:0, h:0, hx:0, hz:1, lane:5.25, mode:0, a:null, b:null, fx:0, fz:1, turn:null, spin:0, honk:0 }); trafStart(c); }); }
 function trafStart(c) {
   for (;;) { const i = (Math.random()*(NX + 1)) | 0, j = (Math.random()*(NZ + 1)) | 0, nb = nbrs(i, j); if (!nb.length) continue; c.a = [i, j]; c.b = nb[(Math.random()*nb.length) | 0]; break; }
@@ -696,8 +696,7 @@ let AK = 'taxi', AV = AUTOS.taxi, pc = AV.car, offK = 0, bumpT = -9, turboT = 0,
 let score = 0, chaos = 0, chaosStar = 0;
 function addScore(n) { score += n; $('score').textContent = score; if (n) { GAR.bank += n; save(); } }
 function chaosAdd(n) { chaos += n; $('chaos').textContent = chaos; if (chaos - chaosStar >= 12) { chaosStar = chaos; addScore(1); toast(['Demolka! +1 ⭐', 'Łubudu! +1 ⭐', 'Ale bałagan! +1 ⭐', 'Totalna rozróba! +1 ⭐'][(Math.random()*4) | 0]); sfx.star(); } }
-let toastT = 0, bigT = 0;
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+let bigT = 0;
 function bigText(msg) { const b = $('big'); b.textContent = msg; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 sfx.crash = v => { burst(900, .22, .3*v, 0, .6); burst(240, .3, .4*v, 0, .8, 'lowpass'); tone(110, .22, 'sine', .35*v, 50); };
 sfx.cluck = () => { [0, .09, .2].forEach((d, i) => tone(820 + i*140 + Math.random()*80, .07, 'square', .07, 500, d)); };

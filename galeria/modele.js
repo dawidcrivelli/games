@@ -27,7 +27,6 @@ const MODELE = [
 
   { kat: 'ludzie', typ: 'rolnik', gra: 'ciuchcia', js: 'makeFarmer()' },
 
-  { kat: 'pojazdy', typ: 'taxi', gra: 'ciuchcia', plik: 'models/cab-simple.js', js: 'buildTaxi()' },
   { kat: 'pojazdy', typ: 'taxi', gra: 'taxi', plik: 'models/cab.js', js: 'buildTaxi()' },
   { kat: 'pojazdy', typ: 'autobus', gra: 'ciuchcia', js: 'buildBus()' },
   { kat: 'pojazdy', typ: 'wyścigówka', gra: 'ciuchcia', js: 'buildRacer()' },
@@ -35,8 +34,8 @@ const MODELE = [
   { kat: 'pojazdy', typ: 'policja', gra: 'taxi', plik: 'models/cab.js', js: 'buildPolice()' },
   { kat: 'pojazdy', typ: 'samolot', gra: 'taxi', plik: 'models/plane.js', js: 'buildPlane()' },
 
-  { kat: 'rolnicze', typ: 'traktor', gra: 'ciuchcia', plik: 'models/tractor.js', js: 'buildTractor(M.uPlate)' },
-  { kat: 'rolnicze', typ: 'traktor', gra: 'zniwa', plik: 'models/tractor.js', js: 'buildTractor(M.plate)' },
+  { kat: 'rolnicze', typ: 'traktor', gra: 'ciuchcia', plik: 'models/tractor.js', js: 'buildTractor()' },
+  { kat: 'rolnicze', typ: 'traktor', gra: 'zniwa', plik: 'models/tractor.js', js: 'buildTractor()' },
   { kat: 'rolnicze', typ: 'duży traktor', gra: 'zniwa', js: 'buildBigTractor()' },
   { kat: 'rolnicze', typ: 'kombajn', gra: 'zniwa', js: 'buildCombine()' },
   { kat: 'rolnicze', typ: 'kombajn', gra: 'taxi', plik: 'taxi/combine.js', js: 'buildKombajn()' },

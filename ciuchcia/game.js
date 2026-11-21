@@ -858,7 +858,7 @@ Object.assign(M, {
 
 // auta: kamera (AUTO_CAM), szyby, plastik, kierunkowskazy — models/cars.js
 
-const ursus = buildTractor(M.uPlate); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
+const ursus = buildTractor(); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
 const AUTOS = {
   taxi:{ car:buildTaxi(), vmax:24, acc:8, off:.5, turn:1, R:2, jobs:2, eng:[60, 5.5], hornF:[420, 524], ico:'🚕', name:'Taksówka', sub:'pasażerowie 🧍' },
   bus:{ car:buildBus(), vmax:17, acc:5, off:.45, turn:.72, R:3, jobs:5, eng:[45, 4.5], hornF:[220, 277], ico:'🚌', name:'Autobus', sub:'grupy 🧍🧍' },
@@ -1141,8 +1141,6 @@ function hud() {
   document.querySelectorAll('#pick [data-t]').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === (S.veh === 'car' ? AK : TRkey)));
   document.body.classList.toggle('build', S.mode === 'build');
 }
-let toastT = 0;
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3600); }
 let hornV = null;                                   // klakson i gwizdek z biblioteki lib/audio/horns.js: gra, dopóki trzymasz
 function hornUp() { hornStop(hornV, S.veh !== 'car' && TR.kind === 'steam' ? .5 : .3); hornV = null; }
 function horn() { hornDown(); setTimeout(hornUp, 350); }

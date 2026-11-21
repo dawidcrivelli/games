@@ -98,7 +98,7 @@ function buildCombine() {
   hose([[-1.02, 2.62, 1.42], [-1.24, 3.0, 1.44], [-1.24, 3.6, 1.44], [-1.02, 3.95, 1.42]], .02, M.white, st);
   box(.02, 1.45, .035, M.dark, -.96, 3.4, 1.5, st); box(.02, 1.45, .035, M.dark, -.96, 3.4, 2.72, st); box(.02, .035, 1.25, M.dark, -.96, 2.68, 2.1, st);
   [1.72, -1.72].forEach(x => { const fl = rbox(.66, .5, .04, M.dark, x, 1.1, .2, st, .015); });                                         // chlapacze
-  { const pl = mesh(new T.PlaneGeometry(.5, .16), M.plate, 0, 1.75, -4.02, st); pl.rotation.y = Math.PI; }
+  { const pl = mesh(new T.PlaneGeometry(.5, .16), M.uPlate, 0, 1.75, -4.02, st); pl.rotation.y = Math.PI; }
   v.add(bake(st));
   P.spreaders = [-.6, .6].map((x, i) => { const g = new T.Group(); cylY(.44, .04, M.steel, 0, 0, 0, g, 16);
     for (let k = 0; k < 4; k++) { const f = box(.84, .1, .03, M.cRed, 0, -.07, 0, g); f.rotation.y = k*Math.PI/4; }
@@ -274,7 +274,7 @@ function buildTrailer() {
   [.8, -.8].forEach(x => { box(.08, .05, 1.1, M.uGrayD, x, .68, -.3, st); box(.08, .04, .8, M.uGrayD, x, .63, -.3, st); box(.08, .04, .5, M.uGrayD, x, .585, -.3, st); });
   // tył: lampy, pasy, tablica
   [.95, -.95].forEach(x => { box(.22, .12, .05, M.red, x, 1.0, -2.33, st); const h = mesh(new T.PlaneGeometry(.38, .38), M.hazard, x*.92, 1.37, -2.35, st); h.rotation.y = Math.PI; });
-  { const pl = mesh(new T.PlaneGeometry(.46, .15), M.plate, 0, 1.0, -2.34, st); pl.rotation.y = Math.PI; }
+  { const pl = mesh(new T.PlaneGeometry(.46, .15), M.uPlate, 0, 1.0, -2.34, st); pl.rotation.y = Math.PI; }
   [.62, -.62].forEach(x => { const sh = new T.Shape(); sh.moveTo(-.13, -.11); sh.lineTo(.13, -.11); sh.lineTo(0, .12); sh.lineTo(-.13, -.11);
     const t = mesh(new T.ShapeGeometry(sh), M.red, x, 1.0, -2.34, st); t.rotation.y = Math.PI; });
   [1.25, -1.25].forEach(x => { [-1.9, 1.9].forEach(z => box(.02, .06, .14, M.amber, x, 1.2, z, st)); rbox(.34, .06, 1.2, M.dark, x*.92, 1.06, -.3, st, .02); });

@@ -82,7 +82,7 @@ const M = {
   red:new T.MeshBasicMaterial({ color:0xd81f1f }), amber:new T.MeshBasicMaterial({ color:0xff9a1a }),
   hazardY:lam(0xffffff, { map:tex(64, 64, (g, w, h) => { g.fillStyle = '#f2c21f'; g.fillRect(0, 0, w, h); g.fillStyle = '#1c1c1c'; for (let i = -2; i < 4; i++) { g.beginPath(); g.moveTo(i*32, 0); g.lineTo(i*32 + 16, 0); g.lineTo(i*32 + 80, 64); g.lineTo(i*32 + 64, 64); g.fill(); } }) }),
   hazard:lam(0xffffff, { map:tex(64, 64, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.fillStyle = '#d6201f'; for (let i = -2; i < 4; i++) { g.beginPath(); g.moveTo(i*32, 0); g.lineTo(i*32 + 16, 0); g.lineTo(i*32 + 80, 64); g.lineTo(i*32 + 64, 64); g.fill(); } }) }),
-  plate:lam(0xffffff, { map:tex(192, 64, (g, w, h) => { g.fillStyle = '#f7f7f2'; g.fillRect(0, 0, w, h); g.fillStyle = '#1d3f9c'; g.fillRect(0, 0, 22, h); g.strokeStyle = '#111'; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, h - 4);
+  uPlate:lam(0xffffff, { map:tex(192, 64, (g, w, h) => { g.fillStyle = '#f7f7f2'; g.fillRect(0, 0, w, h); g.fillStyle = '#1d3f9c'; g.fillRect(0, 0, 22, h); g.strokeStyle = '#111'; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, h - 4);
     g.fillStyle = '#111'; g.font = 'bold 40px Arial, sans-serif'; g.textBaseline = 'middle'; g.fillText('ZNI 330C', 30, h/2 + 2); }) }),
   badge:lam(0xffffff, { map:tex(160, 48, (g, w, h) => { g.fillStyle = '#eee2c4'; g.fillRect(0, 0, w, h); g.fillStyle = '#b0351f'; g.fillRect(4, 4, w - 8, h - 8);
     g.fillStyle = '#eee2c4'; g.font = 'bold 32px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('C-330', w/2, h/2 + 2); }) }),
@@ -112,18 +112,9 @@ const WEATHERS = [
   { id:'night', p:.15, top:0x0a1430, hor:0x25355a, fog:0x1b2843, fn:60,  ff:300, sun:0x9db8ff, si:.34, sd:[-20, 45, -25], hs:0x5b70aa, hg:0x1c2230, hi:.44, cloud:0x36435f, co:.7,  sunVis:0, moon:1, wind:.6, lamp:2 },
 ];
 skyInit(scene, WEATHERS[0]);          // niebo, słońce, księżyc, gwiazdy, deszcz, reflektor, envScene: lib/3d/sky.js
-function applyWeather(w) {
-  WX = w; setSky(w.top, w.hor); scene.fog.color.setHex(w.fog); scene.fog.near = w.fn; scene.fog.far = w.ff;
-  sun.color.setHex(w.sun); sun.intensity = w.si; SUN_DIR.set(w.sd[0], w.sd[1], w.sd[2]); sun.position.copy(sun.target.position).add(SUN_DIR);
-  hemi.color.setHex(w.hs); hemi.groundColor.setHex(w.hg); hemi.intensity = w.hi;
-  M.cloud.color.setHex(w.cloud); M.cloud.opacity = w.co;
-  sunBall.visible = !!w.sunVis; sunBall.position.copy(SUN_DIR).normalize().multiplyScalar(600); sunBall.material.color.setHex(w.sunCol || 0xfff6c4);
-  moon.visible = stars.visible = !!w.moon; rain.visible = !!w.rain; uWind.value = w.wind; headLamp.intensity = w.lamp*1.25;
-  M.win.emissive.setHex(w.lamp >= .5 ? 0xffc45a : 0x000000); M.win.emissiveIntensity = Math.min(1, w.lamp);
+function setWeather(w) {                           // pogoda z lib/3d/weather.js + gleba w deszczu i burza (tylko Żniwa)
+  applyWeather(w, { scene, renderer, sun, hemi, sunDir:SUN_DIR, cloud:M.cloud, win:M.win });
   M.soil.color.setHex(w.rain ? 0xb9b3aa : 0xffffff);
-  try { if (!pmrem) pmrem = new T.PMREMGenerator(renderer);
-    envGround.material.color.setHex(w.moon ? 0x10151c : w.rain || w.storm ? 0x5a6455 : 0x7a9a50); envSun.visible = !!w.sunVis; envSun.position.copy(sunBall.position);
-    const rt = pmrem.fromScene(envScene, 0, .1, 1500); scene.environment = rt.texture; if (envRT) envRT.dispose(); envRT = rt; } catch (e) {}
   storm.t = rr(2, 5); storm.f = 0; bolt.visible = false; skyMat.color.setScalar(1);
 }
 // ---------- burza bez deszczu: błyski, piorun w oddali, grzmot z opóźnieniem
@@ -372,7 +363,7 @@ const FLOWER_N = 170, fieldFlowers = new T.InstancedMesh(new T.SphereGeometry(.0
 fieldFlowers.frustumCulled = false; scene.add(fieldFlowers);
 function rollField(wheat) {
   const fr = fieldRng(); let acc = 0; const wr = fr(), w = WEATHERS.find(q => (acc += q.p) > wr) || WEATHERS[0], variant = (fr()*6) | 0, tone = TONES[(fr()*TONES.length) | 0];
-  makeMask(variant); updateCover(); applyWeather(w);
+  makeMask(variant); updateCover(); setWeather(w);
   fieldTree.visible = variant === 4; obstacles = variant === 4 ? [{ x:fieldTree.position.x, z:fieldTree.position.z, r:1.2 }] : [];
   totalCells = 0; for (let i = 0; i < CELLS; i++) totalCells += inField[i];
   flowerAt.clear(); let n = 0; const want = wheat ? 60 + ((fr()*110) | 0) : 0;
@@ -582,7 +573,7 @@ function splatScreen() {
 
 const HITCH_L = 4.1;
 
-const veh = { combine:buildCombine(), tractor:buildTractor(M.plate), giraffe:buildGiraffe(), big:buildBigTractor(), elephant:buildElephant() };
+const veh = { combine:buildCombine(), tractor:buildTractor(), giraffe:buildGiraffe(), big:buildBigTractor(), elephant:buildElephant() };
 const ORDER = ['combine', 'tractor', 'big', 'giraffe', 'elephant'];
 const trailer = buildTrailer();
 vehReady = true; applyHeader(); updateLugs(veh.combine.P, 0);
@@ -771,7 +762,7 @@ function updateGrow(dt) {
     tmpC.setRGB(.42 + (ripeC[i*3] - .42)*q, .8 + (ripeC[i*3+1] - .8)*q, .3 + (ripeC[i*3+2] - .3)*q); crop.setColorAt(i, tmpC); }
   cropDirty = true;
   if (done) { clearFert(); stG.clearRect(0, 0, stCv.width, stCv.height); stDirty = true; }
-  if (done) { cutCount = 0; sinceBale = 0; won = false; year++; let acc = 0; const r = Math.random(); applyWeather(WEATHERS.find(w => (acc += w.p) > r) || WEATHERS[0]); applyHeader();
+  if (done) { cutCount = 0; sinceBale = 0; won = false; year++; let acc = 0; const r = Math.random(); setWeather(WEATHERS.find(w => (acc += w.p) > r) || WEATHERS[0]); applyHeader();
     toast('Rok ' + year + ': łan dojrzał, można kosić!' + (wasFert ? ' Tam, gdzie była gnojówka, jest wyższy 💪' : '')); hud(); }
 }
 const tmpV = new T.Vector3();
@@ -944,8 +935,6 @@ function hud() {
   const big = S.active === 'big'; $('bTool').hidden = !big; if (big) { const t = TOOL_LBL[veh.big.tool]; $('toolIco').textContent = t[0]; $('toolLbl').textContent = t[1]; }
   document.querySelectorAll('#pick [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === S.active));
 }
-let toastT = 0;
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
 function horn() { if (S.active === 'giraffe') sfx.giraffe(); else if (S.active === 'elephant') sfx.trumpet(); else sfx.horn(S.active === 'tractor'); }
 
 function selectVehicle(n) { $('pick').hidden = true; if (n === S.active) return; veh[S.active].v = 0; veh[S.active].rpm = 0; S.active = n;

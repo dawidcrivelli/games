@@ -22,7 +22,6 @@ scene.background=canvasTex(8,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0
 const texCroc=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#63b04d';g.fillRect(0,0,w,h);g.strokeStyle='#4a9340';g.lineWidth=2;for(let y=0;y<9;y++)for(let x=0;x<9;x++){g.beginPath();g.arc(x*16+(y%2?8:0),y*16,7,0,PI);g.stroke();}},{repeat:[4,2]});
 const tileTex=(rx,ry)=>canvasTex(64,64,(g)=>{g.fillStyle='#ffffff';g.fillRect(0,0,64,64);g.fillStyle='#eef4f7';g.fillRect(3,3,58,58);g.strokeStyle='#c4d3dc';g.lineWidth=3;g.strokeRect(0,0,64,64);},{repeat:[rx,ry]});
 const stripeTex=(n)=>canvasTex(64,64,(g)=>{g.fillStyle='#fff';g.fillRect(0,0,64,64);g.fillStyle='#b8b8b8';g.fillRect(0,0,32,64);},{repeat:[n,1]});
-const emojiTex=(em,bg,em2)=>canvasTex(128,128,(g)=>{g.fillStyle=bg;g.beginPath();g.arc(64,64,62,0,7);g.fill();g.lineWidth=7;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.textBaseline='middle';g.font='70px serif';g.fillText(em,64,em2?58:70);if(em2){g.font='38px serif';g.fillText(em2,98,100);}});
 
 /* ---------- lights ---------- */
 scene.add(new T.HemisphereLight(0xffffff,0xb9d8a0,.62));
@@ -48,16 +47,12 @@ const P={
 function burst(kind,p,n,sp,s,life,g){for(let i=0;i<n;i++)P[kind].add(p.x+rnd(-.1,.1),p.y+rnd(-.1,.1),p.z+rnd(0,.2),rnd(-sp,sp),rnd(-sp*.3,sp),rnd(-sp*.3,sp),rnd(s*.6,s*1.2),rnd(life*.6,life),g);}
 
 /* ---------- audio ---------- */
-let master=null,muted=false;const loops={};   // AC, nbuf, sfx, mus: lib/audio/music.js
-function initAudio(){if(AC)return;try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AC=new C();}catch(e){AC=null;return;}
-  master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
-  sfx=AC.createGain();sfx.gain.value=.9;sfx.connect(master);mus=AC.createGain();mus.gain.value=.15;mus.connect(master);
-  nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+let muted=false;   // AC, master, sfx, mus, nbuf, loops: lib/audio/music.js
+function initAudio(){if(!musicInit(muted,.15,.07))return;   // kontekst, głośność, szum: lib/audio/music.js
   loops.scrub=nloop('bandpass',2600,1.4);loops.dry=nloop('lowpass',1200,.5);loops.mach=nloop('lowpass',450,.7);
   const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=58;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=240;o.connect(f);f.connect(loops.mach.g);o.start();
   startMusic();}
 
-function setLoop(n,v){const l=loops[n];if(l&&AC)l.g.gain.setTargetAtTime(v,AC.currentTime,.07);}
 
 const snd={
   pop(){tone(rnd(500,900),.09,'sine',.16,1500);},

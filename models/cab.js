@@ -1,6 +1,5 @@
-// Taksówka i radiowóz (Taxi): carFace (światła, zderzaki, atrapa, tablice), buildTaxi, buildPolice.
-// Wariant models/cab-simple.js (Ciuchcia) — te same nazwy funkcji, nie ładować obu.
-// wymaga: models/cars.js, lib/3d/shapes.js, models/people.js; od gry: paleta M (też uPlate)
+// Taksówka i radiowóz: carFace (światła, zderzaki, atrapa, tablice), buildTaxi, buildPolice.
+// wymaga: models/cars.js, lib/3d/shapes.js, models/people.js; od gry: paleta M
 'use strict';
 function carFace(g, w, zf, zr, y) {                // światła, zderzaki, atrapa, tablice
   [-1, 1].forEach(s => { rbox(.36, .16, .08, M.chrome, s*(w/2 - .3), y, zf, g, .04); box(.28, .1, .04, M.lamp, s*(w/2 - .3), y, zf + .045, g); box(.1, .1, .04, LAMPO, s*(w/2 - .08), y, zf + .02, g);
