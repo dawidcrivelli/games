@@ -1,5 +1,8 @@
+// Ursus C-330: kabina, maska, koła z bieżnikiem, światła, kierowca; plateMat — materiał tablicy rejestracyjnej.
+// buildTractor(plateMat) → { g, …części do animacji }.
+// wymaga: lib/3d/three.js, lib/3d/shapes.js, models/vehicle-parts.js, models/people.js; od gry: scene, paleta M
 'use strict';
-function buildTractor() {
+function buildTractor(plateMat) {
   const v = new T.Group(), inner = new T.Group(), st = new T.Group(), P = {};
   inner.scale.setScalar(1.35); v.add(inner);
   // ---------- silnik i napęd (szary odlew)
@@ -49,7 +52,7 @@ function buildTractor() {
     box(.035, .56, 1.25, M.uRed, x*.74, 1.1, -.55, st);
     box(.1, .08, .03, M.red, x, 1.08, -1.28, st); box(.1, .05, .03, M.amber, x, 1.16, -1.275, st);
     box(.06, .1, .05, M.lamp, x*1.2, 1.3, .12, st); });
-  { const pl = mesh(new T.PlaneGeometry(.36, .12), M.uPlate, 0, .98, -.96, st); pl.rotation.y = Math.PI; box(.4, .16, .02, M.dark, 0, .98, -.945, st); }
+  { const pl = mesh(new T.PlaneGeometry(.36, .12), plateMat, 0, .98, -.96, st); pl.rotation.y = Math.PI; box(.4, .16, .02, M.dark, 0, .98, -.945, st); }
   // przednia oś z drążkiem, TUZ, zaczep
   box(1.14, .07, .09, M.uGray, 0, .36, 1.35, st); box(.14, .5, .14, M.uGray, 0, .55, 1.35, st); cylX(.016, 1.05, M.dark, 0, .3, 1.2, st, 5);
   [.28, -.28].forEach(x => { const a = box(.045, .045, .7, M.dark, x, .46, -1.05, st); a.rotation.x = .12; const l = box(.03, .5, .03, M.steel, x, .72, -1.05, st); l.rotation.x = -.35;

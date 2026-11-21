@@ -1,6 +1,6 @@
 // Złe Owoce — silnik „ręcznej kreski” (canvas 2D): P C R L ST LB shaded dot
 "use strict";
-const INK='#2b1b14', $=id=>document.getElementById(id);
+const INK='#2b1b14';   // $: lib/common/dom.js
 const cv=$('c'), c=cv.getContext('2d'); c.scale(2,2);
 const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
 

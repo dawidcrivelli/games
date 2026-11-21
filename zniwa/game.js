@@ -582,7 +582,7 @@ function splatScreen() {
 
 const HITCH_L = 4.1;
 
-const veh = { combine:buildCombine(), tractor:buildTractor(), giraffe:buildGiraffe(), big:buildBigTractor(), elephant:buildElephant() };
+const veh = { combine:buildCombine(), tractor:buildTractor(M.plate), giraffe:buildGiraffe(), big:buildBigTractor(), elephant:buildElephant() };
 const ORDER = ['combine', 'tractor', 'big', 'giraffe', 'elephant'];
 const trailer = buildTrailer();
 vehReady = true; applyHeader(); updateLugs(veh.combine.P, 0);

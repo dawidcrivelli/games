@@ -169,7 +169,7 @@ Object.assign(M, {
 
 // auta: kamera (AUTO_CAM), szyby, plastik, kierunkowskazy — models/cars.js
 
-const ursus = buildTractor(); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
+const ursus = buildTractor(M.uPlate); Object.assign(ursus, AUTO_CAM, { chase:[9.4, 4.8], lookY:1.6, lamp:new T.Vector3(0, 1.1, 1.9) }); ursus.g.visible = false; ursus.sw = ursus.P.sw;
 const AUTOS = {
   taxi:{ car:buildTaxi(), vmax:24, acc:8, off:.5, turn:1, R:2, jobs:2, eng:[60, 5.5], hornF:[420, 524], ico:'🚕', name:'Taksówka', sub:'pasażerowie 🧍' },
   bus:{ car:buildBus(), vmax:17, acc:5, off:.45, turn:.72, R:3, jobs:5, eng:[45, 4.5], hornF:[220, 277], ico:'🚌', name:'Autobus', sub:'grupy 🧍🧍' },
@@ -480,7 +480,7 @@ slowZones.push({ x:LAKE.x, z:LAKE.z, r:LAKE.rz - 1, lake:1 });
 flatMesh(roadP, roadMat, .03); flatMesh(walkP, walkMat, .04); flatMesh(lineP, lineMat, .055); flatMesh(curbP, lam(0xf0ebdd, PO(2)), .05); flatMesh(manP, lam(0x2f3236, PO(3)), .056); Object.keys(innerP).forEach(k => flatMesh(innerP[k], INNER[k], k === 'sand' ? .045 : k === 'top' ? .085 : .065));
 { // łan zboża: niska złota bryła nad polem
   const g = new T.Group(), P = innerP.wheat; for (let k = 0; k < P.length; k += 18) box(P[k + 6] - P[k], .55, P[k + 5] - P[k + 2], INNER.wheat, (P[k] + P[k + 6])/2, .3, (P[k + 2] + P[k + 5])/2, g); const b = bake(g); b.children.forEach(m => { m.castShadow = false; }); scene.add(b); }
-const spinners = buildLandmarks(PLOTS);
+const spinners = buildLandmarks(PLOTS, anims);
 cityG.forEach(g => scene.add(bake(g))); scene.add(bake(outG));
 
 { // kwiaty na trawnikach
@@ -573,7 +573,7 @@ const cows = cowHomes.map((h, k) => { const g = cloneTpl(cowTpl[k % 2], true); g
 const traffic = [];
 { const cols = [0xd8452f, 0x2f7fd8, 0xf4f4f0, 0x3f9a4a, 0x8e4fc2, 0x20b2aa, 0xff8a3d, 0x9aa3ad, 0x2f7fd8, 0xf4f4f0, 0xd8452f, 0x25262b, 0xf5c41f];
   cols.forEach((c, n) => traffic.push({ g:vc(aiModel(c, n % 3)), R:1.8, vmax:rr(8, 12) })); traffic.push({ g:vc(aiModel(0xd8452f, 3)), R:3, vmax:8 }); traffic.push({ g:buildKombajn(), R:3.3, vmax:4.5, wide:1 });
-  const tr = buildTractor(), trm = vc(tr.g); scene.remove(tr.g); traffic.push({ g:trm, R:2.1, vmax:6 });
+  const tr = buildTractor(M.uPlate), trm = vc(tr.g); scene.remove(tr.g); traffic.push({ g:trm, R:2.1, vmax:6 });
   traffic.forEach(c => { scene.add(c.g); Object.assign(c, { v:0, x:0, z:0, h:0, hx:0, hz:1, lane:5.25, mode:0, a:null, b:null, fx:0, fz:1, turn:null, spin:0, honk:0 }); trafStart(c); }); }
 function trafStart(c) {
   for (;;) { const i = (Math.random()*(NX + 1)) | 0, j = (Math.random()*(NZ + 1)) | 0, nb = nbrs(i, j); if (!nb.length) continue; c.a = [i, j]; c.b = nb[(Math.random()*nb.length) | 0]; break; }
