@@ -8,8 +8,8 @@
 // Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/animals.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomy.js
 // (klinika/patients.js); budynek kliniki w przekroju (klinika/office.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
-const KINDS = ['zyrafa', 'slon', 'pingwin', 'doktor'];
-const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
+const KINDS = ['zyrafa', 'slon', 'tygrys', 'pingwin', 'doktor'];
+const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', tygrys: 'Tygrys', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
 const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'];
 const RZ_MOWA = { kaczka: 'Gumowa kaczka! Kaczek się nie je!', budzik: 'Budzik! To on dzwonił w brzuchu!', skarpetka: 'Skarpetka! Fuj, to nie do jedzenia!',
   klucz: 'Klucz! Kluczy się nie połyka!', rybka: 'Rybka! Ale z plastiku, nie do jedzenia!', pilka: 'Piłka! Piłka jest do grania, nie do jedzenia!', klocek: 'Klocek! Klocki są do budowania!', lod: 'Kostka lodu! Brrr, ale zimna!' };
@@ -18,7 +18,8 @@ const ORG_MOWA = { serce: 'Serce! Bije cały czas: bum, bum!', pluca: 'Płuca! N
 const ORG_SND = { serce: 'bum', pluca: 'wdech', zoladek: 'bulg', mozg: 'mysl', watroba: 'bulg', nerki: 'chlup', pecherz: 'chlup' };
 const ORG_NAZWA = { serce: 'serce', pluca: 'płuca', zoladek: 'żołądek', mozg: 'mózg', watroba: 'wątroba', nerki: 'nerki', pecherz: 'pęcherz' };
 const ORG_BIERNIK = { ...ORG_NAZWA, watroba: 'wątrobę' };
-const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!' };
+const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!',
+  tygrys: 'Każdy tygrys ma inne paski. Tak jak ty masz swoje odciski palców!' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -54,7 +55,7 @@ lupaScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), lupaMat));
 const lupa = { c: new T.Vector2(.5, .5), cc: new T.Vector2(.5, .5), r: 0, cel: 0 };   // c: środek (uv), cc: cel środka
 
 const GAB = klGabinet(); scene.add(GAB.g); const BG = GAB.niebo;
-const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-5.6, -2.6, -.2, 1.7][i], 0, [-1.6, -.4, 1.4, 2.4][i]); scene.add(p.g); return p; });
+const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-5.6, -2.6, -4.4, -.2, 1.7][i], 0, [-1.6, -.4, 2.6, 1.4, 2.4][i]); scene.add(p.g); return p; });
 
 // Ikony przycisków = małe rysunki prawdziwych modeli z gry (lib/3d/icons.js), bez emoji
 const IKONA = {}, img = (k, cls = '') => `<img class="ik ${cls}" src="${IKONA[k]}" alt="">`;
@@ -71,6 +72,9 @@ function budujIkony() {
   IKONA.lizak = ikonaModelu(anLizak(1), { rz: -.3 });
   IKONA.lupa = ikonaModelu(anLupa());
   IKONA.gwiazda = ikonaModelu(anGwiazda(), { ry: .3 });
+  IKONA.drzazga = ikonaModelu(anDrzazga(1), { rx: .4, ry: -1.1 }); IKONA.pchla = ikonaModelu(anPchla(1), { rx: -.5 }); IKONA.bandaz = ikonaModelu(anBandaz(.3, .7), { rx: .3 });
+  IKONA.stetoskop = ikonaModelu(anStetoskop()); IKONA.termometr = ikonaModelu(anTermometr(), { rz: -.5 });
+  [0xff7eb6, 0x5cc6ff, 0x7ed957].forEach((c, i) => { IKONA['syrop' + i] = ikonaModelu(anSyrop(c), { rx: .2 }); });
   $('bRtg').innerHTML = img('lupa'); $('bLizak').innerHTML = img('lizak'); $('bDom').innerHTML = SVG_IKONY.dom;
   $('bNext').innerHTML = SVG_IKONY.dalej + 'Następny pacjent'; $('bHome').innerHTML = SVG_IKONY.dom + 'Menu';
 }
@@ -111,8 +115,9 @@ const pion = () => innerHeight > innerWidth;
 function widokMenu() { return dopasuj(-8, 8, -.4, 10.4, V(.3, .28, 1), pion() ? { b: .4, t: .03 } : { r: .5, t: .04 }); }
 const rozmiar = () => Math.max(P.box.x1 - P.box.x0, P.box.y1);
 // 3D z ukosa: pacjent blisko, wyśrodkowany; at = gdzie stoi (kamera idzie za nim, gdy wchodzi i wychodzi)
+const KIER3D = V(.42, .24, .88), UI3D = () => pion() ? { t: .1, b: .12 } : { t: .14, b: .04, r: .1 };
 function widok3D(at) {
-  const b = P.box, v = dopasujPkt(naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), V(.42, .24, .88), pion() ? { t: .1, b: .12 } : { t: .14, b: .04, r: .1 }, .1);
+  const b = P.box, v = dopasujPkt(naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), KIER3D, UI3D(), .1);
   if (at) { const d = V(at.x, 0, at.z); v.pos.add(d); v.look.add(d); }
   return v;
 }
@@ -137,7 +142,7 @@ function widokZad(z) {
 }
 function widok() {
   if (!P || state === 'menu') return widokMenu();
-  if (state === 'operacja' && zadania[zi] && !zadania[zi].w3d) return widokZad(zadania[zi]);
+  if (state === 'operacja' && zadania[zi]) { const z = zadania[zi]; return z.w3d ? (z.widok ? z.widok() : widok3D()) : widokZad(z); }
   if (state === 'wejscie' || state === 'wyjscie') return widok3D(P.g.position);
   return ['skan', 'otwieranie', 'operacja'].includes(state) ? widokBok() : widok3D();
 }
@@ -514,8 +519,9 @@ function zPlastry() {
     });
   };
   Z.kotwice = () => [];
+  Z.widok = () => widok3D();
   Z.start = () => { lupa.cel = 0; camGo(widok3D(), 1.2); mow('Na koniec plasterki! Stuknij w każde zadrapanie.'); if (!rany.length) Z.done = true; };
-  Z.tap = (x, y) => {
+  Z.down = (x, y) => {
     const c = rany.filter(q => !q.ok).map(q => { const [X, Y] = toScreen(swiat(q.b)); return { q, d: Math.hypot(X - x, Y - y) }; }).sort((a, b) => a.d - b.d)[0];
     if (!c || c.d > 80) { snd('oj'); return; }
     const q = c.q, pl = anPlaster(1, pick(KOL)); q.ok = true;
@@ -523,14 +529,14 @@ function zPlastry() {
     snd('gips'); snd('pyk'); dymek(pick(['PAC!', 'Au… już!', 'Dzięki!']), swiat(pl), 'small'); if (P.a.tickle !== undefined) P.a.tickle = .6;
     if (rany.every(q => q.ok)) { setTimeout(() => mow('Wszystkie zadrapania zaklejone!'), 500); setTimeout(() => { Z.done = true; }, 1600); }
   };
-  Z.down = Z.move = Z.up = () => {};
+  Z.move = Z.up = () => {};
   Z.step = () => { for (const q of rany) if (!q.ok) q.b.scale.setScalar(q.s * (1 + .12 * Math.sin(czas * 7))); };
   Z.hint = () => { const q = rany.find(q => !q.ok); if (!q) return null; const w = swiat(q.b); return [w.clone().add(V(P.box.y1 * .12, P.box.y1 * .18, 0)), w]; };
   return Z;
 }
-const ORGANY_DO_ZGUBIENIA = { zyrafa: ['serce', 'watroba', 'nerki'], slon: ['mozg', 'watroba', 'pecherz'], pingwin: ['serce', 'mozg', 'watroba', 'nerki', 'pecherz'],
+const ORGANY_DO_ZGUBIENIA = { zyrafa: ['serce', 'watroba', 'nerki'], slon: ['mozg', 'watroba', 'pecherz'], tygrys: ['serce', 'watroba', 'nerki', 'mozg', 'pecherz'], pingwin: ['serce', 'mozg', 'watroba', 'nerki', 'pecherz'],
   doktor: ['serce', 'zoladek', 'pluca', 'mozg', 'watroba', 'nerki', 'pecherz'] };
-// Wizyta: 3 losowe zabiegi z puli pacjenta (układanka kości, połknięta rzecz, organ, złamana kość) + plasterki na koniec
+// Wizyta: 3 losowe zabiegi z rentgenem (układanka kości, połknięta rzecz, organ, złamana kość) + 1 losowy bez rentgena + plasterki na koniec
 function zabiegi(kind) {
   const rz = kind === 'slon' && Math.random() < .6 ? 'budzik' : kind === 'pingwin' && Math.random() < .5 ? 'lod' : pick(RZECZY), tryb = Math.random() < .5 ? 'pupa' : 'buzia';
   const organy = ORGANY_DO_ZGUBIENIA[kind].filter(o => P.organy[o] && P.organy[o].zle.length).sort(() => Math.random() - .5).slice(0, kind === 'doktor' ? 2 : 1);
@@ -539,7 +545,8 @@ function zabiegi(kind) {
   pula.push({ t: 'polkniete', f: () => zPolkniete(rz, tryb) }, { t: 'organ', f: () => zOrgan(organy) });
   if (P.kosc) pula.push({ t: 'kosc', f: () => zKosc() });
   const wybor = test ? pula.filter(p => test.split(',').includes(p.t)) : pula.map((p, i) => ({ ...p, i, r: Math.random() })).sort((a, b) => a.r - b.r).slice(0, 3).sort((a, b) => a.i - b.i);
-  return [...wybor.map(w => w.f()), zPlastry()];
+  const nowy = test ? NOWE_ZABIEGI.filter(n => test.split(',').includes(n.t)) : [pick(NOWE_ZABIEGI)];   // jeden zabieg bez rentgena (zabiegi3d.js)
+  return [...wybor.map(w => w.f()), ...nowy.map(n => n.f()), zPlastry()];
 }
 
 /* ---------- przebieg wizyty ---------- */
@@ -554,7 +561,7 @@ function buildMenu() {
   $('pick').innerHTML = KINDS.map(k => `<button class="btn" data-k="${k}">${img('p_' + k, 'ico')}${NAZWY[k]}<span class="gw">${img('gwiazda').repeat(Math.min(5, SET.wyleczeni[k] || 0))}</span></button>`).join('');
   $('bSnd').innerHTML = $('bSnd2').innerHTML = SVG_IKONY[AUD.on ? 'glos' : 'cisza'];
 }
-function czysc() { WIERZCH.length = 0; OBLOKI.forEach(o => scene.remove(o.m)); OBLOKI.length = 0; lezace.forEach(o => GAB.g.remove(o)); lezace = []; $('bLizak').hidden = true; $('znaki').innerHTML = ''; $('fx').innerHTML = ''; paleta(false); $('bRtg').hidden = true; $('lupa').hidden = true; $('raczka').hidden = true; }
+function czysc() { zadania.forEach(z => z.koniec && z.koniec()); $('syropy').hidden = $('krag').hidden = $('narz').hidden = $('bicie').hidden = true; WIERZCH.length = 0; OBLOKI.forEach(o => scene.remove(o.m)); OBLOKI.length = 0; lezace.forEach(o => GAB.g.remove(o)); lezace = []; $('bLizak').hidden = true; $('znaki').innerHTML = ''; $('fx').innerHTML = ''; paleta(false); $('bRtg').hidden = true; $('lupa').hidden = true; $('raczka').hidden = true; }
 function startWizyta(kind) {
   audInit(); obrotPelny(); snd('klik');
   SET.kind = kind; save();
@@ -625,7 +632,7 @@ $('c').addEventListener('pointerdown', e => {
   audInit(); idleT = 0; $('raczka').hidden = true;
   ptr = { id: e.pointerId }; try { $('c').setPointerCapture(e.pointerId); } catch (er) {}
   if (state === 'skan' && lupa.cel > 0) lupaZa(e.clientX, e.clientY);
-  else if (state === 'operacja' && zadania[zi]) { if (zadania[zi].w3d) zadania[zi].tap(e.clientX, e.clientY); else zadania[zi].down(lokal(e.clientX, e.clientY)); }
+  else if (state === 'operacja' && zadania[zi]) { const z = zadania[zi]; z.down(...(z.w3d ? [e.clientX, e.clientY] : [lokal(e.clientX, e.clientY)])); }
   else if (state === 'objaw' && P) { dymek(pick(['Au!', 'Ojej!', 'Hi hi!']), glowaW(), 'small'); snd('oj'); }
   else if (state === 'menu') {                             // poczekalnia: stuknięty pacjent woła i podskakuje
     const c = MENU_P.map(p => { const [X, Y] = toScreen(swiat(p.glowa)); return { p, d: Math.hypot(X - e.clientX, Y - e.clientY) }; }).sort((a, b) => a.d - b.d)[0];
@@ -635,11 +642,11 @@ $('c').addEventListener('pointerdown', e => {
 $('c').addEventListener('pointermove', e => {
   if (!ptr || e.pointerId !== ptr.id) return; idleT = 0;
   if (state === 'skan' && lupa.cel > 0) lupaZa(e.clientX, e.clientY);
-  else if (state === 'operacja' && zadania[zi]) zadania[zi].move(lokal(e.clientX, e.clientY));
+  else if (state === 'operacja' && zadania[zi]) { const z = zadania[zi]; z.move(...(z.w3d ? [e.clientX, e.clientY] : [lokal(e.clientX, e.clientY)])); }
 });
 function koniecPalca(e) {
   if (!ptr || e.pointerId !== ptr.id) return; ptr = null;
-  if (state === 'operacja' && zadania[zi]) zadania[zi].up(lokal(e.clientX, e.clientY));
+  if (state === 'operacja' && zadania[zi]) { const z = zadania[zi]; z.up(...(z.w3d ? [e.clientX, e.clientY] : [lokal(e.clientX, e.clientY)])); }
 }
 $('c').addEventListener('pointerup', koniecPalca); $('c').addEventListener('pointercancel', koniecPalca);
 $('pick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) startWizyta(b.dataset.k); });
@@ -662,8 +669,8 @@ function idzDroga(v) {
   if (d <= v) { P.g.position.x = cel[0]; P.g.position.z = cel[1]; P.droga.shift(); return !P.droga.length; }
   P.g.position.x += dx / d * v; P.g.position.z += dz / d * v; return false;
 }
-const STOPA = { zyrafa: 'krok', slon: 'krok_slon', doktor: 'krok', pingwin: 'czlap' };
-const GLOS = { zyrafa: 'mruk', slon: 'trab', pingwin: 'pingwin' };
+const STOPA = { zyrafa: 'krok', slon: 'krok_slon', tygrys: 'krok', doktor: 'krok', pingwin: 'czlap' };
+const GLOS = { zyrafa: 'mruk', slon: 'trab', tygrys: 'ryk', pingwin: 'pingwin' };
 function animPacjent(p, dt, idzie) {
   klAnim(p, dt, idzie ? 1 : 0);
   for (const n in p.organy) anTik(p.organy[n].o, p.t);
@@ -699,7 +706,7 @@ function step(dt) {
       }
       break;
     case 'objaw':
-      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: 'BRZUCH!', organ: 'OJ, OJ!', kregi: 'SZYJA!', kosc: 'AUĆ!', plastry: 'AUĆ!' }[z.typ], glowaW(), 'small'); }
+      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: 'BRZUCH!', organ: 'OJ, OJ!', ukladanka: 'OJ!', kosc: 'AUĆ!', plastry: 'AUĆ!', drzazga: 'KŁUJE!', stetoskop: 'BUM BUM!', termometr: 'GORĄCO!', pchly: 'SWĘDZI!', bandaz: 'AŁA!' }[z.typ], glowaW(), 'small'); }
       break;
     case 'skan': {
       if (lupa.cel <= 0) break;
@@ -719,7 +726,7 @@ function step(dt) {
     case 'operacja': {
       const z = zadania[zi]; if (!z) break;
       z.step(dt); if (!ptr) idleT += dt;
-      if (z.done) { snd('gwiazda'); nastepneZadanie(); }
+      if (z.done) { if (z.koniec) z.koniec(); snd('gwiazda'); nastepneZadanie(); }
       break;
     }
     case 'zdrowy':
@@ -750,7 +757,7 @@ function step(dt) {
   if (state === 'operacja' && zadania[zi] && idleT > 4) h = zadania[zi].hint();
   else if (state === 'skan' && lupa.r > .1 && stT > 6 && !ptr) { const q = problemy.find(q => !q.found); if (q) h = [P.g.localToWorld(V((P.box.x0 + P.box.x1) / 2, P.box.y1 * .45, 0)), q.f()]; }
   const ra = $('raczka'); ra.hidden = !h;
-  if (h) { const a = toScreen(h[0]), b = toScreen(h[1]), u = ease(Math.min(1, (czas % 1.8) / 1.3)); ra.style.left = (a[0] + (b[0] - a[0]) * u) + 'px'; ra.style.top = (a[1] + (b[1] - a[1]) * u) + 'px'; }
+  if (h) { const a = h.ekran ? h.a : toScreen(h[0]), b = h.ekran ? h.b : toScreen(h[1]), u = ease(Math.min(1, (czas % 1.8) / 1.3)); ra.style.left = (a[0] + (b[0] - a[0]) * u) + 'px'; ra.style.top = (a[1] + (b[1] - a[1]) * u) + 'px'; }
   camStep(dt);
 }
 function render() {
@@ -766,7 +773,7 @@ function frame(now) {
   step(dt); render(); requestAnimationFrame(frame);
 }
 // do testów (tools/): stan gry i podpowiedź w pikselach ekranu
-window.KL = { stan: () => state, zad: () => zadania[zi] && zadania[zi].typ, hint: () => { const z = zadania[zi], h = z && z.hint(); return h && [toScreen(h[0]), toScreen(h[1])]; },
+window.KL = { stan: () => state, zad: () => zadania[zi] && zadania[zi].typ, hint: () => { const z = zadania[zi], h = z && z.hint(); return h && (h.ekran ? [h.a, h.b] : [toScreen(h[0]), toScreen(h[1])]); },
   problemy: () => problemy.map(q => ({ xy: toScreen(q.f()), found: q.found })), paleta: () => !$('paleta').hidden, lizak: () => !$('bLizak').hidden, rentgen };
 showMenu();
 requestAnimationFrame(frame);

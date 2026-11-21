@@ -49,7 +49,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .card{background:var(--card);border-radius:28px;padding:14px 16px 16px;width:min(520px,100%);box-shadow:0 7px 0 var(--plate-edge),0 18px 40px var(--shade);text-align:center}
 .card h1{font-size:2.3rem;line-height:1;margin:0 0 4px;font-weight:800;color:var(--red);text-shadow:0 3px 0 var(--plate-edge)}
 .card .sub{margin:0 0 10px;font-size:1.05rem;font-weight:700}
-#pick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#pick{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 #pick .btn{flex-direction:column;height:118px;gap:2px;font-size:.95rem;line-height:1.05}
 #pick .btn .ico{font-size:3rem}
 #pick .btn .gw{font-size:.95rem;letter-spacing:-2px;min-height:1.1em}
@@ -60,8 +60,8 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   .card{width:100%;padding:10px 10px 12px}
   .card h1{font-size:1.9rem}
   #pick{gap:6px}
-  #pick .btn{height:104px;font-size:.85rem}
-  #pick .btn img.ico{width:58px;height:58px}
+  #pick .btn{height:96px;font-size:.72rem}
+  #pick .btn img.ico{width:50px;height:50px}
   .rb{width:46px;height:46px}
   #top{gap:6px;padding-left:calc(8px + var(--sl));padding-right:calc(8px + var(--sr))}
   #zad{gap:6px}
@@ -72,6 +72,17 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   #paleta button{width:56px;height:56px}
   #bRtg,#bLizak{width:96px;height:96px}
 }
+/* --- zabiegi bez rentgena: narzędzie pod palcem, bijące serce, kółko bandaża, syropy --- */
+#narz,#bicie{position:absolute;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+#narz img{width:96px;height:96px;display:block}#bicie img{width:120px;height:120px;display:block;opacity:.9}
+.bij{animation:bij .3s ease-out}@keyframes bij{40%{transform:translate(-50%,-50%) scale(1.35)}}
+#krag{position:absolute;transform:translate(-50%,-50%);border-radius:50%;border:6px dashed rgba(255,255,255,.9);box-shadow:0 0 0 3px rgba(30,18,10,.35);animation:krag 2.4s linear infinite;pointer-events:none}
+#krag::after{content:"";position:absolute;right:-16px;top:calc(50% - 14px);border:14px solid transparent;border-top:20px solid #fff;border-bottom:0}
+@keyframes krag{to{transform:translate(-50%,-50%) rotate(360deg)}}
+#syropy{position:absolute;left:50%;bottom:calc(18px + var(--sb));transform:translateX(-50%);display:flex;gap:14px;pointer-events:auto}
+#syropy .btn{width:104px;height:130px;flex-direction:column;padding:4px;animation:pop .3s backwards}
+#syropy .btn img{width:84px;height:84px}#syropy .btn span img{width:48px;height:48px;margin-top:-26px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.3))}
+#syropy .btn.nie{animation:nie .4s}@keyframes nie{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
 #end .duzy{font-size:96px;line-height:1;filter:drop-shadow(0 5px 0 var(--edge));animation:hop .5s infinite alternate}
 @keyframes hop{to{transform:translateY(-14px) rotate(6deg)}}
 #end .nakl{font-size:52px;letter-spacing:4px}
@@ -88,6 +99,10 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   <button id="bLizak" hidden aria-label="Lizak"></button>
   <div id="paleta" hidden></div>
   <div id="raczka" hidden><svg viewBox="0 0 40 52" width="54" height="70"><path d="M14 5a4 4 0 0 1 8 0v17l3-.6a4 4 0 0 1 4 3.6l3-.6a4 4 0 0 1 4 4v10c0 8-6 13-13 13h-3c-5 0-9-3-11-7L4 33a4 4 0 0 1 6-4.5l4 4z" fill="#ffe0c2" stroke="#3a2412" stroke-width="2.4" stroke-linejoin="round"/></svg></div>
+  <div id="narz" hidden></div>
+  <div id="bicie" hidden></div>
+  <div id="krag" hidden></div>
+  <div id="syropy" hidden></div>
   <div id="napis"></div>
 </div>
 <div id="menu">
@@ -116,6 +131,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <script src="../lib/3d/icons.js"></script>
 <script src="dzwieki.js"></script>
 <script src="game.js"></script>
+<script src="zabiegi3d.js"></script>
 <script src="../lib/common/screen.js"></script>
 <script>obrotInit({ oba: true })</script>
 </body>

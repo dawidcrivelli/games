@@ -1,11 +1,12 @@
-// Klinika Zoo — pacjenci: zwierzaki z ZOO (models/animals.js: żyrafa, słoń) i ludzik z Piratów (models/pirates.js: Pan Weterynarz),
+// Klinika Zoo — pacjenci: zwierzaki z ZOO (models/animals.js: żyrafa, słoń, pingwin, tygrys) i ludzik z Piratów (models/pirates.js: Pan Weterynarz),
 // a w nich wnętrze z models/anatomy.js. Dwie warstwy kamery: 0 = model jak w innych grach, 1 = rentgen (świecący zarys
 // tych samych siatek, kości, organy). Wszyscy z boku, przód = +x. P.g = grupa w świecie (bez skali), P.w = korzeń modelu (układ pracy,
 // jednostki modelu, skala P.k) — tu leżą organy, przełyk, kawałki kości.
-// klPacjent('zyrafa'|'slon'|'doktor'|'pingwin') — P.przod: wyprostowani (doktor, pingwin) w rentgenie od przodu, P.w wtedy obrócone (klPrzod) → P = { g, w, k, a, kind, glowa, organy, przelyk(), jelita, ukladanki, kosc, rzeczS, box (w świecie, z x/y/z) }
+// klPacjent('zyrafa'|'slon'|'doktor'|'pingwin'|'tygrys') — P.przod: wyprostowani (doktor, pingwin) w rentgenie od przodu, P.w wtedy obrócone (klPrzod) → P = { g, w, k, a, kind, glowa, organy, przelyk(), jelita, ukladanki, kosc, rzeczS, box (w świecie, z x/y/z) }
 //   przelyk() = linia od żołądka do pyszczka, wezyk = amplituda zakrętów trasy · jelita = rysunek od żołądka do pupy, jelitaB = prostokąt brzucha, pupa = wyjście
 //   ukladanki = [{ id, grupa, sloty, kawalek, ustaw, … }] — kości do wkładania z liczeniem (szyja, ogon, palce, żebra)
 //   organy[n] = { o, dom: [x,y,z], zle: [[x,y], …] } · kosc = { grupa, dol, dom, zle, gips, konczyna, start, skad }
+//   konczyna = grupa łapy/nogi do drzazgi i bandaża, lapa = [mianownik, biernik] („łapa”, „łapę”)
 // klAnim(P, dt, idzie) — chód i oddech (ZOO.anim dla zwierząt, prosty chód dla ludzika; P.taniec = taniec radości)
 // wymaga: models/animals.js (ZOO), models/pirates.js (mkHuman), models/anatomy.js, THREE
 
@@ -120,6 +121,38 @@ function klSlon(P) {
   P.rzeczS = 1.5;
 }
 
+/* --- TYGRYS (ZOO.MK.tiger): z boku jak słoń; ogon z kostek, złamana przednia łapa --- */
+function klTygrys(P) {
+  const a = P.a;
+  for (const L of a.legs) L.kosci = klNogaKosci(L, .05, 1.1, .075);
+  const sp = []; for (let i = 0; i < 12; i++) { const x = -1.3 + i * .22; sp.push([anKreg(.085), x, 1.92 + Math.sin(i / 11 * Math.PI) * .06, -.2]); }
+  klKosci(P.w, sp);
+  klKosci(P.w, [[anZebraBok(-.3, .85, 1.95, .85, 6, .045), 0, 0, -.25], [anPlaska([[-.3, .1], [.2, .2], [.28, -.05], [-.08, -.25]]), -1.0, 1.68, -.2],
+    [anPlaska([[-.15, .3], [.18, .3], [.1, -.32], [-.04, -.32]]), .8, 1.72, -.2]]);
+  a.head.add(klX(klPoz(anCzaszka([[-.3, 0], [-.22, .32], [0, .44], [.25, .38], [.45, .24], [.62, .08], [.78, -.05], [.78, -.2], [.6, -.3], [.35, -.36], [.05, -.42], [-.2, -.32]], [.42, .15, .09], .55), 0, 0, 0)));
+  // układanka: 7 kostek ogona wzdłuż jego łuku (ogon opada, gdy ich brakuje)
+  const tb = a.tail.rotation.z, oc = klKrz([[0, 0], [-.35, -.3], [-.65, -.75], [-.8, -1.1], [-1.05, -1.25], [-1.3, -1.1]]);
+  klUkladanka(P, { id: 'ogon', grupa: a.tail, sloty: [...Array(7)].map((_, i) => { const u = (i + .5) / 7, q = oc.getPointAt(u), t = oc.getTangentAt(u); return { x: q.x, y: q.y, rz: Math.atan2(-t.x, t.y) }; }),
+    kawalek: () => anKreg(.085), ustaw: k => { a.tail.rotation.z = tb - .8 * k; }, ic: 'ogon', objaw: 'ogon mi opadł', znalezione: 'W ogonie brakuje kostek!',
+    start: 'Ogon opadł! Włóż kostki do ogona.', fakt: 'Tygrys ma długi ogon. Pomaga mu skakać i nie przewrócić się!' });
+  const przod = a.legs.find(L => L.front && L.s > 0);
+  P.kosc = klZlamana(przod.p, przod.kosci[1], .35, .06, .7, { y0: -1.08, L: .55, r: .22 });
+  Object.assign(P.kosc, { objaw: 'łapa boli', skad: 'z łapy', start: [-.85, 1.85] });
+  const zle = [[.8, .6], [-.95, .6], [-1.95, 1.0]];
+  klOrgan(P, 'pluca', .45, 1.7, 0, .75, []);
+  klOrgan(P, 'serce', .7, 1.4, .25, .5, zle);
+  klOrgan(P, 'zoladek', -.15, 1.5, .1, .7, []);
+  klOrgan(P, 'watroba', .25, 1.22, .15, .55, zle);
+  klOrgan(P, 'nerki', -.6, 1.8, -.05, .45, zle);
+  klOrgan(P, 'pecherz', -1.0, 1.25, .1, .45, zle);
+  klOrgan(P, 'mozg', 1.42, 2.12, .3, .4, zle);
+  klJelita(P, [-.2, 1.25], { x0: -.9, x1: -.3, y0: 1.08, y1: 1.32 }, 3, [[-1.0, 1.1], [-1.1, 1.35], [-1.3, 1.5], [-1.45, 1.48]], .045);
+  P.przelyk = () => [[-.15, 1.6], [.35, 1.85], [.95, 1.9], klPkt(P, a.head, -.1, -.05), klPkt(P, a.head, .35, -.12), klPkt(P, a.head, .74, -.14)];
+  P.wezyk = .13;
+  P.tulow = { x0: -1.25, x1: 1.15, y0: 1.0, y1: 2.05 };
+  P.rzeczS = .9;
+}
+
 /* --- PAN WETERYNARZ (mkHuman z Piratów w białym fartuchu): stetoskop, lusterko na czole; skala 1.6; złamana bliższa ręka --- */
 function klStroj(a) {
   const { M, mesh, cg } = ZOO, srebro = M(0xcfd8dc, { metalness: .7, roughness: .25 }), guma = M(0x2b3a67);
@@ -206,7 +239,7 @@ function klPacjent(kind) {
   const g = new THREE.Group(), P = { g, kind, organy: {}, t: Math.random() * 9 };
   let a;
   if (kind === 'doktor') { a = mkHuman('weterynarz', { side: 1 }); a.root.scale.setScalar(1.6); klStroj(a); }
-  else { a = ZOO.MK[{ zyrafa: 'giraffe', slon: 'elephant', pingwin: 'penguin' }[kind]](); if (kind === 'pingwin') a.root.scale.setScalar(1.15); }
+  else { a = ZOO.MK[{ zyrafa: 'giraffe', slon: 'elephant', pingwin: 'penguin', tygrys: 'tiger' }[kind]](); if (kind === 'pingwin') a.root.scale.setScalar(1.15); }
   P.przod = kind === 'doktor' || kind === 'pingwin';                // wyprostowani: rentgen od przodu, zwierzęta czworonożne z boku
   P.a = a; P.w = P.przod ? klPrzod(a.root) : a.root; P.k = a.root.scale.x; P.glowa = a.head; g.add(a.root);
   a.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
@@ -215,7 +248,10 @@ function klPacjent(kind) {
   g.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(g);
   P.box = { x0: b.min.x, x1: b.max.x, y0: 0, y1: b.max.y, z0: b.min.z, z1: b.max.z };
-  ({ zyrafa: klZyrafa, slon: klSlon, doktor: klDoktor, pingwin: klPingwin })[kind](P);
+  ({ zyrafa: klZyrafa, slon: klSlon, doktor: klDoktor, pingwin: klPingwin, tygrys: klTygrys })[kind](P);
+  // kończyna do drzazgi i bandaża (widoczna z kamery 3D, nie ta ze złamaną kością): tylna łapa / noga człowieka / łapka pingwina
+  P.konczyna = a.human ? a.legs[0] : (a.legs.find(L => !L.front && L.s > 0) || a.legs.find(L => L.s > 0)).p;
+  P.lapa = a.human ? ['noga', 'nogę'] : kind === 'pingwin' ? ['łapka', 'łapkę'] : ['łapa', 'łapę'];
   g.rotation.y = 0; g.userData.pacjent = kind;
   return P;
 }

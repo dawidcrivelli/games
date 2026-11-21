@@ -5,6 +5,7 @@
 // Organy: anSerce · anPluca · anZoladek · anJelita · anMozg · anWatroba · anNerki · anPecherz (s) · anOrgan(nazwa, s) · anPrzelyk(punkty, r) · anJelitaTrasa(punkty, r, iGrube)
 // Rzeczy: anRzecz('kaczka'|'budzik'|'skarpetka'|'klucz'|'rybka'|'pilka'|'klocek'|'lod', s) · anGips(L, r, kolor) · anDuch(obiekt)
 // anZadrapanie(r) · anPlaster(r, kolor) — zadrapania do zaklejania na skórze · anLizak(s) — nagroda · anLupa() · anGwiazda() — ikony
+// anDrzazga(L) · anPchla(s) · anBandaz(r, h) · anStetoskop() · anTermometr() · anSyrop(kolor) — narzędzia i kłopoty do zabiegów bez rentgena
 // anTik(obiekt, t) — bicie serca, oddech płuc, bulgot żołądka (gdy organ jest na swoim miejscu: userData.zywy)
 // wymaga: lib/3d/comic.js, lib/ui/comic.js (brPart, brExt, brCyl, brMat), THREE
 
@@ -241,6 +242,59 @@ function anLupa() {
   brPart(g, brCyl(.46, .46, .05, 28, 'z'), new THREE.MeshStandardMaterial({ color: 0x5ad1ff, emissive: 0x1a6aa0, emissiveIntensity: .6, roughness: .1 }), 0, 0, 0, { ol: 0 });
   const k = anKosc(.5, .05); k.position.set(-.08, -.25, .06); k.rotation.z = -.6; g.add(k);
   brPart(g, brCyl(.09, .11, .75, 10), 0xc46a2a, .62, -.62, 0, { r: [0, 0, Math.PI / 4], ol: .03 });
+  return g;
+}
+// Drzazga (kolec): brązowy patyczek z ostrym końcem wzdłuż +z (wbity końcem w 0, wystaje na zewnątrz), długość L
+function anDrzazga(L) {
+  const g = new THREE.Group(), r = L * .09;
+  brPart(g, brCyl(r, r * .3, L * .8, 8, 'z'), 0x9b5a2a, 0, 0, L * .4 + L * .2, { ol: L * .02 });
+  brPart(g, new THREE.ConeGeometry(r * .3, L * .25, 8).rotateX(-Math.PI / 2), 0x6e3d1a, 0, 0, L * .1, { ol: 0 });
+  brPart(g, new THREE.SphereGeometry(r, 8, 6), 0xb06a34, 0, 0, L, { ol: L * .02 });
+  return g;
+}
+// Pchła: ciemnobrązowa kropka z nóżkami i czułkami, oczka; leży na powierzchni (oś +z = na zewnątrz), wielkość ~ s
+function anPchla(s) {
+  const g = new THREE.Group(), K = 0x4a2a14;
+  brPart(g, new THREE.SphereGeometry(.5, 12, 8), K, 0, 0, .3, { s: [1.2, .8, .7], ol: .05 });
+  brPart(g, new THREE.SphereGeometry(.28, 10, 6), K, .55, .05, .35, { ol: .04 });
+  for (const y of [-1, 1]) {
+    brPart(g, new THREE.SphereGeometry(.1, 8, 6), brMat(0xffffff, 'glow'), .72, y * .12, .5, { ol: 0 });
+    brPart(g, brCyl(.025, .02, .5, 5), K, .75, y * .25, .45, { r: [0, 0, -y * .9], ol: 0 });
+    for (const x of [-.3, 0, .3]) brPart(g, brCyl(.04, .03, .55, 5), K, x, y * .45, .15, { r: [y * .6, 0, 0], ol: 0 });
+  }
+  g.scale.setScalar(s); return g;
+}
+// Bandaż: biały walec (opaska) wzdłuż +y od 0 do h, promień r, z delikatnymi liniami zwojów
+function anBandaz(r, h) {
+  const g = new THREE.Group();
+  brPart(g, brCyl(r, r, h, 18), 0xfbfaf2, 0, h / 2, 0, { ol: .015 });
+  for (let i = 1; i < 3; i++) brPart(g, new THREE.TorusGeometry(r * 1.01, r * .04, 4, 24).rotateX(Math.PI / 2), 0xd9d4c4, 0, h * i / 3, 0, { r: [.15, 0, .1], ol: 0 });
+  return g;
+}
+// Stetoskop (ikona i słuchawka): srebrna główka, gumowy wąż do słuchawek
+function anStetoskop() {
+  const g = new THREE.Group(), guma = 0x2b3a67;
+  brPart(g, brCyl(.32, .32, .14, 22, 'z'), new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: .7, roughness: .25 }), -.35, -.4, 0, { ol: .03 });
+  brPart(g, brCyl(.24, .24, .16, 22, 'z'), 0xeeeeee, -.35, -.4, .02, { ol: 0 });
+  brPart(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-.35, -.1], [-.2, .3], [.15, .5], [.3, .2], [.35, -.1]].map(p => new THREE.Vector3(p[0], p[1], 0))), 24, .05, 6), guma, 0, 0, 0, { ol: .02 });
+  for (const x of [.3, .42]) brPart(g, new THREE.SphereGeometry(.07, 8, 6), 0x222222, x, -.12, 0, { ol: 0 });
+  return g;
+}
+// Termometr: biała pałeczka z czerwonym słupkiem i kulką na dole (wzdłuż +y), wysokość ~1
+function anTermometr() {
+  const g = new THREE.Group();
+  brPart(g, brCyl(.09, .09, .9, 12), 0xffffff, 0, .45, 0, { ol: .025 });
+  brPart(g, brCyl(.04, .04, .6, 8), brMat(0xff3a4a, 'glow'), 0, .38, .06, { ol: 0 });
+  brPart(g, new THREE.SphereGeometry(.13, 12, 8), brMat(0xff3a4a, 'glow'), 0, 0, 0, { ol: .025 });
+  return g;
+}
+// Syrop: butelka w kolorze col z białą etykietą i nakrętką (wzdłuż +y), wysokość ~1
+function anSyrop(col) {
+  const g = new THREE.Group();
+  brPart(g, brCyl(.3, .32, .65, 18), col, 0, .33, 0, { ol: .03 });
+  brPart(g, brCyl(.13, .18, .16, 14), col, 0, .73, 0, { ol: .025 });
+  brPart(g, brCyl(.15, .15, .14, 14), 0xffffff, 0, .86, 0, { ol: .025 });
+  brPart(g, brCyl(.305, .305, .3, 18), 0xfffdf2, 0, .33, 0, { ol: 0 });
   return g;
 }
 // Złota gwiazdka-naklejka
