@@ -3,7 +3,7 @@
 // tych samych siatek, kości, organy). Wszyscy z boku, przód = +x. P.g = grupa w świecie (bez skali), P.w = korzeń modelu (układ pracy,
 // jednostki modelu, skala P.k) — tu leżą organy, przełyk, kawałki kości.
 // klPacjent('zyrafa'|'slon'|'doktor'|'pingwin') — P.przod: wyprostowani (doktor, pingwin) w rentgenie od przodu, P.w wtedy obrócone (klPrzod) → P = { g, w, k, a, kind, glowa, organy, przelyk(), jelita, ukladanki, kosc, rzeczS, box (w świecie) }
-//   jelita = trasa od żołądka do pupy · siecKrew() / siecNerwy() = linie naczyń i nerwów (organy płyną naczyniami, kość nerwami)
+//   przelyk() = linia od żołądka do pyszczka, wezyk = amplituda zakrętów trasy · jelita = trasa od żołądka do pupy · siecKrew() / siecNerwy() = linie naczyń i nerwów (organy płyną naczyniami, kość nerwami)
 //   ukladanki = [{ id, grupa, sloty, kawalek, ustaw, … }] — kości do wkładania z liczeniem (szyja, ogon, palce, żebra)
 //   organy[n] = { o, dom: [x,y,z], zle: [[x,y], …] } · kosc = { grupa, dol, dom, zle, gips, konczyna, start, skad }
 // klAnim(P, dt, idzie) — chód i oddech (ZOO.anim dla zwierząt, prosty chód dla ludzika; P.taniec = taniec radości)
@@ -73,7 +73,7 @@ function klZyrafa(P) {
   klUkladanka(P, { id: 'szyja', grupa: a.neck, sloty: [...Array(7)].map((_, i) => ({ x: -.05, y: .02 + i * .34 })), kawalek: () => anKreg(.14),
     ustaw: k => { a.neckBase = nb - 1.05 * k; a.headBase = hb - .25 * k; }, ic: 'kregi', objaw: 'szyja mi się chwieje', znalezione: 'W szyi brakuje kości!',
     start: 'Szyja się chwieje! Włóż kości do szyi.', fakt: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!' });
-  klUkladanka(P, { id: 'ogon', grupa: a.tail, sloty: [...Array(6)].map((_, i) => ({ x: 0, y: -.12 - i * .19 })), kawalek: () => anKreg(.075),
+  klUkladanka(P, { id: 'ogon', grupa: a.tail, sloty: [...Array(6)].map((_, i) => ({ x: 0, y: -.12 - i * .19 })), kawalek: () => anKreg(.088),
     ustaw: k => { a.tail.rotation.z = tb - 1.0 * k; }, ic: 'ogon', objaw: 'ogon mi opadł', znalezione: 'W ogonie brakuje kostek!',
     start: 'Ogon opadł! Włóż kostki do ogona.', fakt: 'Żyrafa macha ogonem i odgania muchy!' });
   klOrgan(P, 'pluca', .35, 3.2, 0, .95, []);
@@ -83,8 +83,9 @@ function klZyrafa(P) {
   klOrgan(P, 'nerki', -.55, 3.42, -.05, .55, [[-.85, 1.25], [.75, 1.25], [-1.58, 1.75]]);
   klOrgan(P, 'pecherz', -.95, 2.62, .1, .65, []);
   klJelita(P, [-.32, 2.78], { x0: -.95, x1: -.08, y0: 2.4, y1: 2.82 }, 4, [[-1.08, 2.42], [-1.15, 2.75], [-1.24, 2.98], [-1.42, 3.0]], .055);
-  // przełyk (do buzi): z dna żołądka, zakosami przez szyję
-  P.przelyk = () => [[-.3, 2.82], [-.05, 3.2], [.4, 3.42], klPkt(P, a.neck, .05, -.3), klPkt(P, a.neck, .22, .45), klPkt(P, a.neck, -.05, 1.0), klPkt(P, a.neck, .2, 1.55), klPkt(P, a.neck, -.02, 2.05), klPkt(P, a.head, .3, -.02), klPkt(P, a.head, .97, -.1)];
+  // przełyk (do buzi): z dna żołądka środkiem szyi do pyszczka; gra wygina go w wężyk (P.wezyk = amplituda)
+  P.przelyk = () => [[-.3, 2.82], [.15, 3.2], [.55, 3.4], klPkt(P, a.neck, 0, -.2), klPkt(P, a.neck, 0, .6), klPkt(P, a.neck, 0, 1.4), klPkt(P, a.neck, 0, 2.1), klPkt(P, a.head, .3, -.02), klPkt(P, a.head, .97, -.1)];
+  P.wezyk = .14;
   P.tulow = { x0: -1.0, x1: .95, y0: 2.45, y1: 3.6 };
   // naczynia krwionośne: od serca do szyi i głowy, nóg, ogona
   P.siecKrew = () => {
@@ -106,7 +107,7 @@ function klSlon(P) {
   klKosci(P.w, sp);
   klKosci(P.w, [[anZebraBok(-.6, .9, 3.15, 1.45, 7, .07), 0, 0, -.35], [anPlaska([[-.5, .15], [.35, .35], [.45, -.1], [-.15, -.4]]), -1.3, 2.6, -.3], [anPlaska([[-.25, .45], [.3, .45], [.18, -.45], [-.05, -.45]]), .95, 2.7, -.3]]);
   const tb = a.tail.rotation.z;
-  klUkladanka(P, { id: 'ogon', grupa: a.tail, sloty: [...Array(6)].map((_, i) => ({ x: 0, y: -.1 - i * .17 })), kawalek: () => anKreg(.08),
+  klUkladanka(P, { id: 'ogon', grupa: a.tail, sloty: [...Array(6)].map((_, i) => ({ x: 0, y: -.1 - i * .17 })), kawalek: () => anKreg(.1),
     ustaw: k => { a.tail.rotation.z = tb - .9 * k; }, ic: 'ogon', objaw: 'ogon mi opadł', znalezione: 'W ogonie brakuje kostek!',
     start: 'Ogon opadł! Włóż kostki do ogona.', fakt: 'Na końcu ogona słoń ma włoski jak pędzelek!' });
   const hd = []; for (let i = 0; i < 16; i++) { const t = i / 16 * Math.PI * 2; hd.push([.15 + Math.cos(t) * .72, Math.sin(t) * .62]); }
@@ -139,7 +140,8 @@ function klSlon(P) {
       [S3, [-1.15, 2.4], klPkt(P, BL.p, .06, -.5), klPkt(P, BL.p, .06, -1.0), klPkt(P, BL.p, .06, -1.45)]];
   };
   klOrgan(P, 'mozg', 1.6, 2.92, .3, .55, [[2.55, 1.0], [-2.2, 1.45], [-1.15, .9]]);
-  P.przelyk = () => [[-.45, 1.9], [-.2, 2.5], [.3, 2.85], [.75, 2.45], [1.1, 2.95], klPkt(P, a.head, .05, -.1), klPkt(P, a.head, .35, -.45), klPkt(P, a.head, .5, -.78)];
+  P.przelyk = () => [[-.45, 1.9], [0, 2.4], [.6, 2.6], [1.1, 2.7], klPkt(P, a.head, .05, -.1), klPkt(P, a.head, .35, -.45), klPkt(P, a.head, .5, -.78)];
+  P.wezyk = .22;
   P.rzeczS = 1.5;
 }
 
@@ -189,7 +191,8 @@ function klDoktor(P) {
   klOrgan(P, 'nerki', 0, .74, -.06, .26, [[-.14, .12], [.14, .12], [-.42, .62], [.42, .62]]);
   klOrgan(P, 'pecherz', 0, .58, .1, .24, [[-.14, .12], [.14, .12], [-.42, .62], [.42, .62]]);
   klJelita(P, [.07, .72], { x0: -.13, x1: .13, y0: .62, y1: .7 }, 3, [[.19, .61], [.2, .77], [-.2, .77], [-.19, .61], [0, .53], [0, .4]], .014);
-  P.przelyk = () => [[.07, .74], [-.06, .82], [.06, .9], [-.05, .98], [.04, 1.06], [-.02, 1.14], [0, 1.2], [0, 1.27]];
+  P.przelyk = () => [[.07, .74], [0, .95], [0, 1.12], [0, 1.27]];
+  P.wezyk = .07;
   P.tulow = { x0: -.22, x1: .22, y0: .6, y1: 1.08 };
   const ramie = r => [[0, 1.05], klPkt(P, r, 0, 0), klPkt(P, r, .02, -.2), klPkt(P, r, .04, -.42)], noga = l => [[0, .6], klPkt(P, l, 0, -.05), klPkt(P, l, 0, -.3), klPkt(P, l, 0, -.5)];
   P.siecKrew = () => [[[.07, .9], [0, 1.05], [0, 1.2], [0, 1.4]], [[.07, .9], [0, .75], [0, .6]], ramie(a.armOn), ramie(a.armOff), noga(a.legs[0]), noga(a.legs[1])];
@@ -221,7 +224,8 @@ function klPingwin(P) {
   klOrgan(P, 'nerki', 0, .78, -.12, .5, [[-.28, .1], [.28, .1], [-.64, .72], [.64, .72]]);
   klOrgan(P, 'pecherz', 0, .3, .15, .5, [[-.28, .1], [.28, .1], [-.64, .72], [.64, .72]]);
   klJelita(P, [.12, .68], { x0: -.32, x1: .32, y0: .4, y1: .62 }, 4, [[.42, .36], [.46, .78], [-.46, .78], [-.42, .36], [0, .2], [0, .02]], .04);
-  P.przelyk = () => [[.12, .72], [-.12, .9], [.12, 1.1], [-.1, 1.3], [.1, 1.5], [-.06, 1.7], [0, 1.88], [0, 2.07]];
+  P.przelyk = () => [[.12, .72], [0, 1.0], [0, 1.5], [0, 1.88], [0, 2.07]];
+  P.wezyk = .17;
   P.tulow = { x0: -.45, x1: .45, y0: .35, y1: 1.55 };
   const skrz = e => [[0, 1.45], klPkt(P, e.p, 0, -.05), klPkt(P, e.p, 0, -.5), klPkt(P, e.p, 0, -.95)], lapa = L => [[0, .45], klPkt(P, L.p, 0, 0), klPkt(P, L.p, 0, -.22)];
   P.siecKrew = () => [[[.15, 1.08], [0, 1.45], [0, 1.75], [0, 2.0], [0, 2.15]], [[.15, 1.08], [0, .75], [0, .45]], ...a.ears.map(skrz), ...a.legs.map(lapa)];
