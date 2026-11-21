@@ -2,7 +2,7 @@
 
 Gry 3D (three.js r128) dla dzieci, wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [kosmopatologia](https://dawidcrivelli.github.io/games/kosmopatologia/) (2D), [zoopatologia](https://dawidcrivelli.github.io/games/zoopatologia/) (2D).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [klinika](https://dawidcrivelli.github.io/games/klinika/), [kosmopatologia](https://dawidcrivelli.github.io/games/kosmopatologia/) (2D), [zoopatologia](https://dawidcrivelli.github.io/games/zoopatologia/) (2D).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Zakładka „dźwięki”: klaksony i silniki z `lib/` do odsłuchania. Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -21,6 +21,7 @@ flowchart LR
 - Stary układ: nazwa pliku = gry, które go używają (z `tools/split.mjs`). W przebudowie na pliki wg funkcji (`lib/<area>/<name>.js`, bez nazw gier) — `PLAN.md`. Kto używa pliku: `node tools/deps.mjs`.
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa, piraci), `models/morze.js` → `MORZE` (rafa, arka, piraci; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
+- `klinika/` — weterynarz dla 4–6 lat, gra pionowa (`obrotInit({ pion: true })`): pacjent przychodzi ulicą do kliniki (3D), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D — zwierzęta z boku, wyprostowani (Pan Doktor, pingwin) od przodu. Jak w „Operacji”: połknięta rzecz krętym przełykiem do buzi albo przez jelita do pupy, organ wraca naczyniami krwionośnymi, uciekła kość wraca nerwami (+ gips), układanki kości z liczeniem (szyja i ogon żyrafy, ogon słonia, palce doktora, żebra pingwina), plasterki na zadrapania, lizak. Wizyta = 3 losowe zabiegi + plasterki; test konkretnych: `?zabiegi=organ,kosc`. Bez przegranej; lektor = polska synteza mowy przeglądarki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js), niezależna od `lib/` i `models/`: `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka).
 - `kosmopatologia/`, `zoopatologia/` — gry 2D (canvas, pikselowa grafika) przeniesione z osobnych repo (stan z 2026-11-08: kosmopatologia `c5066df`, zoopatologia `7a5440b`; historia zostaje tam). `index.html`, `css/app.css`, `js/*.js` w kolejności z `index.html`; PWA: `manifest.json` + `sw.js` (offline). Nowy plik w `js/` → dopisz do `CORE` w `sw.js` i zmień `VERSION`.
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
@@ -41,6 +42,11 @@ flowchart LR
 | `lib/silnik.taxi.js` | 35 | engineProfile engineCreate engineBang engineStep engineMute |
 | `lib/diesel.taxi-zniwa.js` | 29 | dieselProfile dieselCreate dieselSet |
 | `lib/przechylanie.taxi-zniwa-rafa.js` | 28 | enableTilt tiltFromEvent tiltCurve |
+| `lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js` | 28 | obrotInit obrotPelny (plansza „Obróć telefon poziomo”, albo pionowo z `{ pion: true }`; pełny ekran, blokada orientacji) |
+| `lib/komiks.bryki-klinika.js` | 74 | styl „komiks”: brMat brOutline (kolor konturu) brPart brChaikin brExt brBox brCyl brLimb brGwiazdaPts komiksDymek |
+| `lib/komiks.bryki-klinika.css` | 26 | tabliczki-przyciski `.btn`, okienka `.box`, komiksowe napisy `.bub`, konfetti |
+| `lib/dzwiek.bryki-klinika.js` | 43 | AUD audSetup(klucz) audInit audMute audTone audNoise audMetal (klocki Web Audio) |
+| `lib/ikony.klinika.js` | 27 | ikonaModelu (miniatura PNG z modelu 3D — przyciski bez emoji) SVG_IKONY (dom, głośnik, dalej) |
 | `models/akcesoria.pralnia.js` | 10 | mkHat |
 | `models/budynki.ciuchcia-taxi-zniwa.js` | 12 | gableHouse |
 | `models/budynki.ciuchcia.js` | 10 | groundPad ramp nameBoard |
@@ -48,14 +54,14 @@ flowchart LR
 | `models/ludzie.ciuchcia-taxi-zniwa.js` | 16 | makeFarmer |
 | `models/ludzie.taxi.js` | 6 | pedGroup pedMats |
 | `models/bron.piraci.js` | 38 | bladeGeo mkWeapon (miecze, szabla, katana, topór, łuk…) mkArrow starGeo mkStar |
-| `models/piraci.piraci.js` | 79 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman mkFighter |
+| `models/piraci.piraci-klinika.js` | 90 | mkHat pirateGear (czapka dla zwierzaka z ZOO) fitPirate mkHuman (też `weterynarz` dla Kliniki: biały fartuch, bez czapki i opaski) mkFighter |
 | `models/pociagi.ciuchcia-taxi.js` | 161 | makeRailWheel addWheels coupler buffers mkCar buildLoco buildTender buildCoach buildWagon buildEU07 buildPend setConsist |
 | `models/pojazdy.ciuchcia-taxi-zniwa.js` | 27 | makeWheel makeSteeringWheel gaugeNeedle |
 | `models/pojazdy.ciuchcia-taxi.js` | 80 | mkAuto autoWheels autoSW paint profGeo pane sideWin autoWheelTpl carSides aiModel buildBus buildRacer |
 | `models/pojazdy.ciuchcia.js` | 26 | carFace buildTaxi |
 | `models/pojazdy.taxi.js` | 49 | carFace buildTaxi planeBody buildPlane buildPolice |
 | `models/morze.js` | 354 | MORZE: M (materiał podwodny) fishGeo speciesGeo makeClown makeTurtle makeManta makeShark makePuffer seahorseGeo makeCrab makeOcto jellyGeos makeWhale makeDolphin makeMoray |
-| `models/przyroda.pralnia.js` | 7 | duck tree palm |
+| `models/przyroda.pralnia-klinika.js` | 7 | duck tree palm |
 | `models/przyroda.zniwa.js` | 48 | tuftGeo |
 | `models/rafa.rafa.js` | 118 | branchGeo brainGeo tableGeo tubesGeo platesGeo pillarsGeo anemoneGeo kelpGeo grassGeo nubGeo rockGeo urchinGeo clamGeo starGeo shellGeo makeWreck makeChest |
 | `models/rolnicze.ciuchcia-taxi.js` | 89 | buildTractor |
@@ -64,8 +70,11 @@ flowchart LR
 | `models/statki.piraci.js` | 140 | hullGeo cannonParts mkCannon sailMesh foreAftSail buildShip (kadłub, maszty, wanty, działa, załoga) |
 | `models/zwierzeta.js` | 231 | ZOO: MK.elephant…kangaroo, fit(typ, wysokość), anim, cfg {scale, cast}; ZOO.pose(a, 'rear'…) — pozy (dęba, skok, przysiad, łapa, byk, wierzgnięcie, oberwanie, zamroczenie, radość, siad) |
 | `models/zwierzeta.zniwa.js` | 33 | saddle rideAnimal buildGiraffe buildElephant (ZOO + siedzisko) |
-| `models/pojazdy.bryki.js` | 430 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
-| `models/trasy.bryki.js` | 190 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
+| `models/pojazdy.bryki.js` | 442 | buildBryka (rekin, ptak, ośmiornica, krab, nietoperz, żaba — spawane z blach, kontur) brykaPose (jazda, atak, moc, oberwał) brykaTick |
+| `models/trasy.bryki.js` | 277 | brykiTrasy (pustynia, złomowisko, wulkan, lodowiec) brProp (rekwizyty) brObst (przeszkody, też ruchome: biegacz, beczka, pingwin, głaz, śnieżka, kula burząca, meteor) brMeta brTunel brMost |
+| `models/anatomia.klinika.js` | 234 | kości (anKosc anKoscP anKreg anCzaszka anZebraBok anZebraPrzod anPlaska — świecące, z poświatą), organy (anSerce anPluca anZoladek anJelita anMozg anOrgan anTik), anPrzelyk, połknięte rzeczy anRzecz (kaczka, budzik, skarpetka, klucz, rybka, piłka, klocek, lód), anGips, anDuch (cień miejsca), anGuz anPlaster anLizak anLupa anGwiazda |
+| `models/pacjenci.klinika.js` | 182 | klPacjent (żyrafa, słoń, pingwin z ZOO; Pan Weterynarz = mkHuman z Piratów; rentgen = bliźniaki siatek na warstwie 1 + kości i organy; wyprostowani od przodu: klPrzod) klAnim klStroj klX klObie |
+| `models/gabinet.klinika.js` | 107 | klGabinet — budynek weterynarza w przekroju: drzwi dla żyrafy, leki dla zwierząt, maskotki z ZOO, tablica wzroku ze zwierzątkami, szyld, tło rentgena |
 
 ## Narzędzia
 

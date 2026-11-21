@@ -1,7 +1,7 @@
 // Trasy Dzikich Bryk: motywy (niebo, ziemia, droga, rekwizyty), przeszkody na pasach, gwiazdki, rampa, pole turbo, meta.
 // Wszystko w tym samym kreskówkowym stylu co pojazdy. Początek modelu = środek podstawy na ziemi, przód toru = +x.
 // brykiTrasy() → motywy · brProp(nazwa) → Group · brObst(typ) → Group z userData { rodzaj, col }
-// wymaga: models/pojazdy.bryki.js (brPart, brMat, brExt, brBox, brCyl, brRivets), THREE
+// wymaga: lib/komiks.bryki-klinika.js (brPart, brMat, brExt, brBox, brCyl, brGwiazdaPts), models/pojazdy.bryki.js (brRivets), THREE
 
 // rodzaje przeszkód: twarda = trafienie (mruganie), skrzynia = rozbija się i daje gwiazdkę, miekka = odbija się,
 // slisko = poślizg, lawa = trafienie, rampa = skok, turbo = przyspieszenie, gwiazda = ładuje moc
@@ -258,11 +258,6 @@ function brMost(len, A, w, woda, lawa, luk) {
   return g;
 }
 function rnd2(i) { return Math.abs(Math.sin(i * 91.7 + 3.1) * 1234.5) % 1; }
-function brGwiazdaPts(R, r) {
-  const p = [];
-  for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; p.push([Math.cos(a) * rr, Math.sin(a) * rr, 1]); }
-  return p;
-}
 // Brama start/meta nad drogą (szerokość drogi w), z szachownicą na asfalcie; brama = false: tylko linia
 function brMeta(w, meta = true, brama = true) {
   const g = new THREE.Group();

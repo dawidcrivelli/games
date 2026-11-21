@@ -1,4 +1,4 @@
-// piraci (ludziki, czapki, opaski, wojownicy) — tylko: piraci
+// piraci (ludziki, czapki, opaski, wojownicy) — piraci; klinika bierze mkHuman (Ania)
 // wymaga z gry: T, PI, G, cg, mergeC, grp, clamp, rnd, MK, M, MVC, mkWeapon
 'use strict';
 function lo8() { return lo8.g || (lo8.g = new T.SphereGeometry(1, 9, 7)); }
@@ -42,6 +42,7 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
     baska:{ coat:0x7a3fa8, pants:0x222233, skin:0xf4cfae, hair:0x1b1b22, long:1, hat:0, ring:1, sash:0xffc93c, smile:1 },
     ania:{ coat:0xff6fa5, pants:0x1f9e9a, skin:0xf6cfae, hair:0x7a4320, stripe:0xffffff, long:1, hat:0, ring:1, smile:1 },
     wilk:{ coat:0x24456e, pants:0x2b2420, skin:0xd9a47c, hair:0xb9bcc2, beard:2, hat:0, hook:1, epau:1, sash:0xffc93c },
+    weterynarz:{ coat:0xf7f7f2, pants:0x35b5a5, skin:0xf2c39a, hair:0x5a3418, hat:null, smile:1, patch:false },   // Klinika Zoo: biały fartuch, bez czapki i bez opaski
     czarny:{ coat:0x23232b, pants:0x4a1f1f, skin:0xd9a47c, hair:0x111116, beard:2, hat:1, peg:1, hook:1, epau:1, sash:0xb02a2a } },
     o = Object.assign({}, HUM[kind] || HUM.human), sd = opt.side || 1, S = lo8(), p = [], hp = [], lp = { 1:[], '-1':[] }, ap = { 1:[], '-1':[] }, bk = 0x1d1d24, go = 0xffc93c, wh = 0xf4f1e6;
   // opt.alt: barwy wroga — ta sama postać, płaszcz/szarfa/czapka w przesuniętym kolorze
@@ -64,9 +65,9 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
   // głowa (osobna siatka, środek w 0)
   hp.push({ g:S, p:[0, 0, 0], s:.25, c:o.skin }, { g:S, p:[.25, -.035, 0], s:[.065, .055, .055], c:o.skin });
   for (const s of [1, -1]) { hp.push({ g:S, p:[-.01, -.01, s*.245], s:[.05, .07, .035], c:o.skin });
-    if (s !== sd) hp.push({ g:S, p:[.2, .05, s*.105], s:[.045, .06, .055], c:wh }, { g:S, p:[.235, .05, s*.112], s:.03, c:0x15110e }, { g:G.box, p:[.225, .125, s*.11], s:[.03, .025, .1], r:[s*.25, 0, 0], c:o.hair });
+    if (s !== sd || o.patch === false) hp.push({ g:S, p:[.2, .05, s*.105], s:[.045, .06, .055], c:wh }, { g:S, p:[.235, .05, s*.112], s:.03, c:0x15110e }, { g:G.box, p:[.225, .125, s*.11], s:[.03, .025, .1], r:[s*.25, 0, 0], c:o.hair });
     if (o.ring && s !== sd) hp.push({ g:new T.TorusGeometry(.045, .012, 4, 10), p:[-.01, -.11, s*.25], c:go }); }
-  hp.push({ g:S, p:[.218, .05, sd*.108], s:[.035, .078, .075], c:bk }, { g:new T.TorusGeometry(.254, .016, 4, 20), p:[0, .075, 0], r:[PI/2 - sd*.42, 0, 0], c:bk });
+  if (o.patch !== false) hp.push({ g:S, p:[.218, .05, sd*.108], s:[.035, .078, .075], c:bk }, { g:new T.TorusGeometry(.254, .016, 4, 20), p:[0, .075, 0], r:[PI/2 - sd*.42, 0, 0], c:bk });   // opaska na oko
   if (o.beard) { hp.push({ g:S, p:[.09, -.17, 0], s:[.2, o.beard > 1 ? .24 : .17, .215], c:o.hair }); for (const s of [1, -1]) hp.push({ g:S, p:[.235, -.085, s*.075], s:[.05, .035, .09], r:[s*.3, 0, 0], c:o.hair }); }
   else hp.push({ g:S, p:[.225, -.12, 0], s:[.03, o.smile ? .035 : .02, .085], c:0x9c3b34 });
   hp.push({ g:S, p:[-.06, .03, 0], s:[.235, .235, .255], c:o.hair }); if (o.long) hp.push({ g:S, p:[-.13, -.16, 0], s:[.19, .36, .28], c:o.hair });
@@ -74,7 +75,7 @@ function mkHuman(kind, opt) { opt = opt || {}; const HUM = {
   // ruchome części: nogi (oś w biodrze) i wolna ręka (oś w barku); obrót .z > 0 = wymach do przodu
   const limb = (parts, x, y, z) => { if (!parts.length) return null; const gm = mergeC(parts); gm.translate(-x, -y, -z); const pv = grp(body, x, y, z); pv.add(new T.Mesh(gm, MVC)); return pv; };
   const legs = [limb(lp[sd], 0, .58, sd*.13), limb(lp[-sd], 0, .58, -sd*.13)], arms = [limb(ap[sd], 0, 1.03, sd*.3), limb(ap[-sd], 0, 1.03, -sd*.3)];
-  const head = grp(body, 0, 1.38, 0); head.add(new T.Mesh(mergeC(hp), MVC)); const hat = mkHat(o.hat, o.hatC); hat.position.set(-.02, .16, 0); hat.scale.setScalar(.76); head.add(hat);
+  const head = grp(body, 0, 1.38, 0); head.add(new T.Mesh(mergeC(hp), MVC)); if (o.hat != null) { const hat = mkHat(o.hat, o.hatC); hat.position.set(-.02, .16, 0); hat.scale.setScalar(.76); head.add(hat); }
   return { root, body, head, legs, armOff:arms[1], armOn:arms[0], human:true, coat:o.coat, skin:o.skin, dims:{ h:2.05, len:.7, hw:.32 }, cx:0, t:rnd(9) }; }
 // wojownik do pojedynku: side +1 patrzy w +x (gracz), -1 w -x (wróg); kamera z +z
 function mkFighter(kind, side, weapon) { const g = new T.Group(), body = grp(g); let a, k, arm = null;

@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
 // kategoria → prefiks pliku w models/
-const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron', bryki: 'pojazdy', trasy: 'trasy' };
+const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron', bryki: 'pojazdy', trasy: 'trasy', pacjenci: 'pacjenci', anatomia: 'anatomia' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -80,6 +80,18 @@ const MODELE = [
   { kat: 'trasy', typ: 'meta', gra: 'bryki', js: 'brMeta(12.6)' },
   { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brTunel(30, 0xc07a48, 12.6)' },
   { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brMost(32, 1.8, 12.6, 0x3aa0d0, 0, 0xd8342a)' },
+
+  // Klinika Zoo: pacjenci (skóra; rentgen to warstwa 1 kamery) i wnętrze — organy, kości, połknięte rzeczy, gips
+  ...[['żyrafa', 'zyrafa'], ['słoń', 'slon'], ['pingwin', 'pingwin'], ['doktor', 'doktor']].map(([typ, k]) => ({ kat: 'pacjenci', typ, gra: 'klinika', js: `klPacjent('${k}').g` })),
+  ...['serce', 'pluca', 'zoladek', 'jelita', 'mozg', 'watroba', 'nerki', 'pecherz'].map(n => ({ kat: 'anatomia', typ: 'organy', gra: 'klinika', js: `anOrgan('${n}', 1)` })),
+  { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anKosc(1, .08)' },
+  { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anKreg(.2)' },
+  { kat: 'anatomia', typ: 'kości', gra: 'klinika', js: 'anZebraBok(0, .8, .7, .7, 5)' },
+  ...['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'].map(k => ({ kat: 'anatomia', typ: 'połknięte', gra: 'klinika', js: `anRzecz('${k}', 1.5)` })),
+  { kat: 'anatomia', typ: 'gips', gra: 'klinika', js: 'anGips(.9, .25, 0x3ab0ff)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anLizak(1)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anZadrapanie(.3)' },
+  { kat: 'anatomia', typ: 'nagrody', gra: 'klinika', js: 'anPlaster(.3, 0xff8fb1)' },
 
   { kat: 'broń', typ: 'strzała', gra: 'piraci', js: 'mkArrow()' },
   { kat: 'broń', typ: 'rozgwiazda', gra: 'piraci', js: 'mkStar()' },
