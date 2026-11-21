@@ -44,7 +44,7 @@ const lupaMat = new T.ShaderMaterial({
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
   fragmentShader: `uniform sampler2D tx; uniform vec2 c; uniform float r, asp, t; varying vec2 vUv;
     void main(){ vec2 d = vUv - c; d.x *= asp; float L = length(d);
-      vec3 col = texture2D(tx, vUv).rgb + .035 * sin(vUv.y * 700.0 + t * 5.0);
+      vec3 col = texture2D(tx, vUv).rgb + .035 * (1.0 - smoothstep(.3, .8, r)) * sin(vUv.y * 700.0 + t * 5.0);
       float inside = 1.0 - smoothstep(r - .004, r, L);
       float ring = smoothstep(r - .022, r - .012, L) * (1.0 - smoothstep(r + .004, r + .012, L));
       gl_FragColor = vec4(mix(col, vec3(1.0, .8, .25), ring), max(inside, ring)); }`,
@@ -107,12 +107,12 @@ function widok3D(at) {
 function widokBok() { const b = P.box, m = rozmiar() * .1; return dopasuj(b.x0 - m, b.x1 + m, b.y0 - m, b.y1 + m, V(0, .05, 1), { t: pion() ? .09 : .14, b: .02 }); }
 // z boku razem z miską (wyciągnięta rzecz leci do miski)
 function widokMiska() { const b = P.box, m = rozmiar() * .1; return dopasuj(Math.min(b.x0 - m, GAB.miska.position.x - 1), b.x1 + m, b.y0 - m, b.y1 + m, V(0, .05, 1), { t: pion() ? .09 : .14, b: .02 }); }
-// zabieg: zbliżenie na jego obszar (trasa, cel, kupka kości) — punkty świata z.roi; nie bliżej niż połowa pacjenta
+// zabieg: zbliżenie na jego obszar (trasa, cel, kupka kości) — punkty świata z.roi; kadr co najmniej 0,7 pacjenta
 function widokZad(z) {
   if (!z || !z.roi || !z.roi.length) return widokBok();
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (const p of z.roi) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
-  const S = rozmiar() * .5, m = Math.max(x1 - x0, y1 - y0) * .1 + rozmiar() * .03;
+  const S = rozmiar() * .7, m = Math.max(x1 - x0, y1 - y0) * .15 + rozmiar() * .05;
   x0 -= m; x1 += m; y0 -= m; y1 += m;
   if (x1 - x0 < S) { const c = (x0 + x1) / 2; x0 = c - S / 2; x1 = c + S / 2; }
   if (y1 - y0 < S) { const c = (y0 + y1) / 2; y0 = c - S / 2; y1 = c + S / 2; }
@@ -155,38 +155,32 @@ function dymek(txt, w, cls = '') { if (!w) return; const [X, Y] = toScreen(w); k
 const WIERZCH = [];
 function naWierzch(obj, on = true) {
   obj.traverse(m => {
-    if (!m.isMesh || m.userData.aureola) return;
-    if (on && !m.userData.mat0) {
-      m.userData.mat0 = m.material; m.material = m.material.clone(); m.material.depthTest = false;
+    if (!m.isMesh) return;
+    if (on && !m.userData.mat0) {                         // przezroczysty przebieg: rysowany po trasie (renderOrder działa tylko w obrębie przebiegu)
+      m.userData.mat0 = m.material; m.material = m.material.clone(); m.material.depthTest = false; m.material.transparent = true; m.material.depthWrite = false;
       const bs = m.material.side === T.BackSide; m.userData.poswiata = bs; m.renderOrder = bs ? 30 : 31;
-    } else if (!on && m.userData.mat0) { m.material = m.userData.mat0; m.userData.mat0 = null; m.userData.poswiata = false; m.renderOrder = 0; }
+      if (bs) { m.userData.ol0 = { s: m.scale.clone(), p: m.position.clone() }; obrys(m, 2.6); }   // obrys ~2,6× grubszy
+    } else if (!on && m.userData.mat0) {
+      m.material = m.userData.mat0; m.userData.mat0 = null; m.userData.poswiata = false; m.renderOrder = 0;
+      if (m.userData.ol0) { m.scale.copy(m.userData.ol0.s); m.position.copy(m.userData.ol0.p); m.userData.ol0 = null; }
+    }
   });
   const i = WIERZCH.indexOf(obj); if (on && i < 0) WIERZCH.push(obj); if (!on && i >= 0) WIERZCH.splice(i, 1);
-  aureola(obj, on);
 }
-// Aureola: świecące koło za problemem (pod rzeczą, nad trasą i resztą wnętrza) — widać go nawet wśród organów i kości
-function aureola(obj, on) {
-  const stara = obj.children.find(c => c.userData.aureola);
-  if (!on) { if (stara) obj.remove(stara); return; }
-  if (stara) return;
-  const tex = aureola.tex || (aureola.tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
-    g.addColorStop(0, 'rgba(255,250,200,.95)'); g.addColorStop(.45, 'rgba(255,210,80,.75)'); g.addColorStop(1, 'rgba(255,170,40,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c); })());
-  const b = pudlo(obj, true), sz = b.getSize(V()), r = Math.max(sz.x, sz.y) / 2 * 1.9, c = b.getCenter(V());
-  const h = new T.Mesh(new T.PlaneGeometry(2 * r, 2 * r), new T.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
-  h.position.set(c.x, c.y, c.z - .01); h.renderOrder = 28; h.userData = { aureola: true, nd: true }; obj.add(klX(h));
+// Kontur (BackSide z brOutline: powiększona kopia) k razy grubszy, środek bez zmian
+function obrys(m, k) {
+  const g = m.geometry; if (!g.boundingBox) g.computeBoundingBox(); const c = g.boundingBox.getCenter(V());
+  m.scale.set(1 + (m.scale.x - 1) * k, 1 + (m.scale.y - 1) * k, 1 + (m.scale.z - 1) * k); m.position.set(c.x * (1 - m.scale.x), c.y * (1 - m.scale.y), c.z * (1 - m.scale.z));
 }
-// Pudło obiektu bez aureoli: w świecie albo (lokalnie = true) w układzie samego obiektu (nie zależy od nieaktualnych macierzy rodziców)
-function pudlo(obj, lokalnie) {
-  obj.updateMatrixWorld(true);
-  const b = new T.Box3(), inv = lokalnie ? obj.matrixWorld.clone().invert() : new T.Matrix4(), mm = new T.Matrix4();
-  obj.traverse(m => { if (!m.isMesh || m.userData.aureola) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(mm.multiplyMatrices(inv, m.matrixWorld))); });
+// Pudło obiektu (bez konturów): w świecie
+function pudlo(obj) {
+  obj.updateMatrixWorld(true); const b = new T.Box3();
+  obj.traverse(m => { if (!m.isMesh || m.material.side === T.BackSide) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); });
   return b;
 }
-// Kopia obiektu bez aureoli (do „ducha” miejsca docelowego)
-function duchBez(obj) { const d = anDuch(obj); d.children.filter(c => c.userData.aureola).forEach(c => d.remove(c)); return d; }
 function pulsWierzch() {
   const k = .5 + .5 * Math.sin(czas * 6);
-  for (const o of WIERZCH) o.traverse(m => { if (m.userData.poswiata) m.material.color.setRGB(1, .45 + .4 * k, .1 * k); else if (m.userData.aureola) m.scale.setScalar(.9 + .2 * k); });
+  for (const o of WIERZCH) o.traverse(m => { if (m.userData.poswiata) m.material.color.setRGB(1, .72 + .23 * k, .08 + .3 * k); });   // złoty, pulsuje
   for (let i = RURY.length - 1; i >= 0; i--) { const g = RURY[i]; let a = g; while (a.parent) a = a.parent; if (a !== scene) { RURY.splice(i, 1); continue; } g.userData.krok(czas); }
 }
 // Trasa po punktach [[x,y],…] w układzie pacjenta: długość L, punkt at(s), rzut proj(p, s0) → {s, d} (szuka w okolicy s0)
@@ -209,10 +203,10 @@ function Trasa(pts2) {
   return { krz, L, at, proj };
 }
 // Kręta trasa (wężyk): linia [[x,y],…] wygięta na boki falą o amplitudzie amp (jednostki pacjenta), łagodnie od zera na końcach;
-// pół fali ~ 2,2 × amp (droga ~1,5 × dłuższa). Dłuższa i ciekawsza droga dla palca, ale cały czas w tym samym miejscu ciała.
+// pół fali ~ 3,2 × amp (droga ~1,3 × dłuższa). Dłuższa i ciekawsza droga dla palca, ale cały czas w tym samym miejscu ciała.
 function wezyk(pts, amp) {
   if (!amp || pts.length < 2) return pts;
-  const krz = klKrz(pts), L = krz.getLength(), fal = Math.max(2, Math.round(L / (amp * 2.2))), n = Math.max(40, fal * 16), out = [];
+  const krz = klKrz(pts), L = krz.getLength(), fal = Math.max(2, Math.round(L / (amp * 3.2))), n = Math.max(40, fal * 16), out = [];
   for (let i = 0; i <= n; i++) {
     const u = i / n, p = krz.getPointAt(u), t = krz.getTangentAt(u), k = Math.min(1, u / .1, (1 - u) / .1);
     const a = amp * ease(clamp(k, 0, 1)) * Math.sin(u * fal * PI);
@@ -344,7 +338,7 @@ function zOrgan(names) {
   Z.start = () => {
     if (siec) { naczynia = rysujSiec(siec, 'krew', px2lok(5)); P.w.add(naczynia); }
     for (const x of L) {
-      const o = x.d.o; x.duch = klX(duchBez(o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(o.scale); P.w.add(x.duch);
+      const o = x.d.o; x.duch = klX(anDuch(o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(o.scale); P.w.add(x.duch);
       x.rura = rysujTrase(x.tr, px2lok(8), 0xffe03a); x.rura.position.z = x.d.dom[2] + .2; P.w.add(x.rura);
       x.ctl = Prowadz({ tr: x.tr, obj: o, z: x.d.dom[2] + .5, W: px2lok(58), R: px2lok(75) + .35 * o.scale.x, end: () => { x.snap = { a: o.position.clone(), t: 0 }; },
         wall: () => { snd('oj'); dymek('OJ!', swiat(o), 'small'); P.trzes = .3; } });
@@ -481,7 +475,7 @@ function zKosc() {
     return [...probki(tr), ...rogi(nos)];
   };
   Z.start = () => {
-    duch = klX(duchBez(k)); duch.position.set(B.dom.x, B.dom.y, 0); duch.rotation.set(0, 0, B.dom.rz); B.grupa.add(duch);
+    duch = klX(anDuch(k)); duch.position.set(B.dom.x, B.dom.y, 0); duch.rotation.set(0, 0, B.dom.rz); B.grupa.add(duch);
     rura = rysujSiec(siec, 'nerwy', px2lok(5)); P.w.add(rura);
     const trasa = rysujTrase(tr, px2lok(8), 0xffe03a); trasa.position.z = .3; rura.add(trasa); rura.userData.ring = trasa.userData.ring;
     ctl = Prowadz({ tr, obj: nos, z: .5, W: px2lok(58), R: px2lok(80), end: () => { B.grupa.attach(k); snap = { a: k.position.clone(), r: k.rotation.z, t: 0 }; },
@@ -583,8 +577,9 @@ function startWizyta(kind) {
   P = klPacjent(kind); P.g.position.set(-11, 0, 6.1); P.droga = [[0, 6.1], [0, 0]];   // chodnikiem z lewej, potem do gabinetu (kamera idzie za nim)
   scene.add(P.g);
   GAB.miska.position.set(P.box.x0 - 1.0, .06, 1.2);
+  czysc();                                                  // najpierw sprzątanie (czyści też listę podświetlonych), potem przygotowanie zabiegów
   zadania = zabiegi(kind); zi = -1; zadania.forEach(z => z.prep());
-  $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = ''; czysc();
+  $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = '';
   $('zad').innerHTML = zadania.map(z => `<b>${img(z.ic)}</b>`).join('');
   lupa.r = lupa.cel = 0;
   setState('wejscie'); camGo(widok3D(P.g.position), 1.2);
