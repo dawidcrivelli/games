@@ -2,14 +2,14 @@
 // przełyk, połknięte rzeczy, gips, „duch” = półprzezroczysty cień miejsca, gdzie coś ma wrócić.
 // Wszystko w płaszczyźnie x-y (widok z boku), grubość wzdłuż z, środek części w (0, 0) — gra ustawia pozycję.
 // Kości: anKosc(L, r) · anKoscP(rodzic, [x0,y0], [x1,y1], r) · anKreg(r) · anCzaszka(obrys, oko) · anZebraBok · anZebraPrzod · anPlaska(obrys, gł.)
-// Organy: anSerce(s) · anPluca(s) · anZoladek(s) · anJelita(s) · anMozg(s) · anOrgan(nazwa, s) · anPrzelyk(punkty, r)
+// Organy: anSerce · anPluca · anZoladek · anJelita · anMozg · anWatroba · anNerki · anPecherz (s) · anOrgan(nazwa, s) · anPrzelyk(punkty, r) · anJelitaTrasa(punkty, r, iGrube)
 // Rzeczy: anRzecz('kaczka'|'budzik'|'skarpetka'|'klucz'|'rybka'|'pilka'|'klocek'|'lod', s) · anGips(L, r, kolor) · anDuch(obiekt)
-// anGuz(r) · anPlaster(r, kolor) — guzy do zaklejania na skórze · anLizak(s) — nagroda · anLupa() · anGwiazda() — ikony
+// anZadrapanie(r) · anPlaster(r, kolor) — zadrapania do zaklejania na skórze · anLizak(s) — nagroda · anLupa() · anGwiazda() — ikony
 // anTik(obiekt, t) — bicie serca, oddech płuc, bulgot żołądka (gdy organ jest na swoim miejscu: userData.zywy)
 // wymaga: lib/komiks.bryki-klinika.js (brPart, brExt, brCyl, brMat), THREE
 
 const AN_KOSC = 0xf2fbff, AN_POSWIATA = 0x56cfff;
-const AN_ORGANY = { serce: 0xff3d5e, pluca: 0xff9cbc, zoladek: 0xffa45c, jelita: 0xffc79e, mozg: 0xffb0d6 };
+const AN_ORGANY = { serce: 0xff3d5e, pluca: 0xff9cbc, zoladek: 0xffa45c, jelita: 0xffc79e, mozg: 0xffb0d6, watroba: 0xb5503c, nerki: 0xc0395a, pecherz: 0xffe27a, grube: 0xf2a98a };
 
 /* --- kości --- */
 const anKoscMat = () => brMat(AN_KOSC, 'glow');
@@ -111,7 +111,34 @@ function anMozg(s = 1) {
   anBlask(g, -.2, .18, .22, .05);
   g.scale.setScalar(s); g.userData.organ = 'mozg'; return g;
 }
-function anOrgan(n, s = 1) { return ({ serce: anSerce, pluca: anPluca, zoladek: anZoladek, jelita: anJelita, mozg: anMozg })[n](s); }
+// Wątroba: duży brązowo-czerwony płat (trochę jak klin)
+function anWatroba(s = 1) {
+  const g = new THREE.Group();
+  anO(g, brExt([[-.5, .18], [-.1, .3], [.42, .24], [.55, .05], [.3, -.12], [-.1, -.2], [-.45, -.05]], .26, .08, 2), AN_ORGANY.watroba);
+  anBlask(g, -.2, .15, .18, .05);
+  g.scale.setScalar(s); g.userData.organ = 'watroba'; return g;
+}
+// Nerki: dwie fasolki (środek między nimi)
+function anNerki(s = 1) {
+  const g = new THREE.Group(), fas = [[0, .22], [.13, .18], [.16, 0], [.13, -.18], [0, -.22], [-.06, -.12], [-.03, 0], [-.06, .12]];
+  for (const k of [-1, 1]) { anO(g, brExt(fas.map(([x, y]) => [x * -k, y]), .14, .05, 2), AN_ORGANY.nerki, k * .26, 0, 0); anBlask(g, k * .3, .1, .1, .03); }
+  g.scale.setScalar(s); g.userData.organ = 'nerki'; return g;
+}
+// Pęcherz: żółty baloniko-woreczek
+function anPecherz(s = 1) {
+  const g = new THREE.Group();
+  anO(g, new THREE.SphereGeometry(.2, 14, 10), AN_ORGANY.pecherz, 0, 0, 0, { s: [1, .9, .8] }); anO(g, brCyl(.04, .05, .14, 8), AN_ORGANY.pecherz, 0, -.22, 0);
+  anBlask(g, -.07, .08, .14, .04);
+  g.scale.setScalar(s); g.userData.organ = 'pecherz'; return g;
+}
+function anOrgan(n, s = 1) { return ({ serce: anSerce, pluca: anPluca, zoladek: anZoladek, jelita: anJelita, mozg: anMozg, watroba: anWatroba, nerki: anNerki, pecherz: anPecherz })[n](s); }
+// Jelita jako trasa: cienkie (zwinięte) i grube (szersze) — jedna rura po punktach [[x,y],…], od żołądka do pupy; grube od indeksu iGrube
+function anJelitaTrasa(pts, r, iGrube) {
+  const g = new THREE.Group(), V = p => new THREE.Vector3(p[0], p[1], p[2] || 0);
+  const cz = (a, b, rr, col) => { if (b - a < 1) return; brPart(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.slice(a, b + 1).map(V)), (b - a) * 10, rr, 10), col, 0, 0, 0, { ol: .015 }); };
+  cz(0, iGrube, r, AN_ORGANY.jelita); cz(iGrube, pts.length - 1, r * 1.5, AN_ORGANY.grube);
+  g.userData.organ = 'jelita'; return g;
+}
 // Przełyk: miękka różowa rura przez punkty [[x,y],…] (od żołądka do pyszczka)
 function anPrzelyk(pts, r = .14) {
   const g = new THREE.Group(), c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], 0)));
@@ -179,11 +206,15 @@ function anGips(L, r, col) {
   for (let i = 0; i < 9; i++) { const a = i * 2.4, y = .15 + (i / 8) * (L - .3); brPart(g, dot, dc, Math.cos(a) * r, y, Math.sin(a) * r, { ol: 0, s: [1, 1, .4] }); }
   return g;
 }
-// Guz (do zaklejenia plastrem): różowo-fioletowy bąbel z gwiazdkami „au!”; leży na powierzchni, oś +z = na zewnątrz
-function anGuz(r) {
-  const g = new THREE.Group();
-  brPart(g, new THREE.SphereGeometry(r, 14, 10), 0xd977c7, 0, 0, 0, { s: [1, 1, .55], ol: .015 });
-  brPart(g, new THREE.SphereGeometry(r * .35, 8, 6), brMat(0xffffff, 'glow'), -r * .35, r * .35, r * .4, { ol: 0 });
+// Zadrapanie (do zaklejenia plastrem): trzy różowe kreski jak od pazurka, bez krwi; leży na powierzchni, oś +z = na zewnątrz
+function anZadrapanie(r) {
+  const g = new THREE.Group(), m = brMat(0xff6f9a, 'glow');
+  for (let i = -1; i <= 1; i++) {
+    const k = brPart(g, brCyl(r * .09, r * .09, r * 1.6 - Math.abs(i) * r * .3, 8), m, i * r * .38, 0, 0, { r: [0, 0, .5], ol: 0 });
+    brPart(k, new THREE.SphereGeometry(r * .09, 8, 6), m, 0, (r * 1.6 - Math.abs(i) * r * .3) / 2, 0, { ol: 0 });
+    brPart(k, new THREE.SphereGeometry(r * .09, 8, 6), m, 0, -(r * 1.6 - Math.abs(i) * r * .3) / 2, 0, { ol: 0 });
+  }
+  brPart(g, new THREE.SphereGeometry(r * 1.05, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffb3c8, transparent: true, opacity: .35, depthWrite: false }), 0, 0, -r * .05, { s: [1, 1, .15], ol: 0 });
   return g;
 }
 // Plaster: zaokrąglony beżowy pasek z kropkami w kolorze col, płasko na powierzchni (oś +z = na zewnątrz)
@@ -216,9 +247,9 @@ function anLupa() {
 function anGwiazda() { const g = new THREE.Group(); brPart(g, brExt(brGwiazdaPts(.5, .23), .16, .05, 0), 0xffc93c, 0, 0, 0, { ol: .03 }); return g; }
 // Cień miejsca: ten sam kształt jako biała, półprzezroczysta poświata (bez konturów)
 function anDuch(obj) {
-  const m = anDuch.m || (anDuch.m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .28, depthWrite: false }));
+  const m = anDuch.m || (anDuch.m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .28, depthWrite: false, depthTest: false }));
   const c = obj.clone(true), drop = [];
-  c.traverse(o => { if (o.isMesh) { if (o.material.side === THREE.BackSide) drop.push(o); else o.material = m; } });
+  c.traverse(o => { if (o.isMesh) { if (o.material.side === THREE.BackSide) drop.push(o); else { o.material = m; o.renderOrder = 25; } } });
   drop.forEach(o => o.parent.remove(o));
   c.userData = { duch: true }; return c;
 }
@@ -231,4 +262,6 @@ function anTik(o, t) {
   else if (n === 'zoladek') o.scale.set(s0 * (1 + Math.sin(t * 3) * .03), s0 * (1 - Math.sin(t * 3) * .03), s0);
   else if (n === 'mozg') o.rotation.z = Math.sin(t * 2) * .04;
   else if (n === 'jelita') o.rotation.z = Math.sin(t * 1.4) * .05;
+  else if (n === 'pecherz') o.scale.setScalar(s0 * (1 + Math.sin(t * 2) * .04));
+  else if (n === 'nerki') o.rotation.z = Math.sin(t * 1.7) * .03;
 }

@@ -54,6 +54,24 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #pick .btn .ico{font-size:3rem}
 #pick .btn .gw{font-size:.95rem;letter-spacing:-2px;min-height:1.1em}
 #bSnd{position:fixed;left:calc(12px + var(--sl));top:calc(10px + var(--st));width:56px;height:48px;font-size:1.4rem}
+/* --- pion (telefon trzymany pionowo): karta na dole, mniejsze ikonki, paleta gipsu w rzędzie --- */
+@media (orientation:portrait){
+  #menu{align-items:flex-end;justify-content:center;padding:calc(10px + var(--st)) calc(10px + var(--sr)) calc(12px + var(--sb)) calc(10px + var(--sl))}
+  .card{width:100%;padding:10px 10px 12px}
+  .card h1{font-size:1.9rem}
+  #pick{gap:6px}
+  #pick .btn{height:104px;font-size:.85rem}
+  #pick .btn img.ico{width:58px;height:58px}
+  .rb{width:46px;height:46px}
+  #top{gap:6px;padding-left:calc(8px + var(--sl));padding-right:calc(8px + var(--sr))}
+  #zad{gap:6px}
+  #zad b{width:50px;height:50px;border-radius:15px}
+  #zad b img{width:42px;height:42px}
+  #napis{top:calc(66px + var(--st));font-size:1.05rem;max-width:92vw}
+  #paleta{top:auto;bottom:calc(16px + var(--sb));right:auto;left:50%;transform:translateX(-50%);flex-direction:row}
+  #paleta button{width:56px;height:56px}
+  #bRtg,#bLizak{width:96px;height:96px}
+}
 #end .duzy{font-size:96px;line-height:1;filter:drop-shadow(0 5px 0 var(--edge));animation:hop .5s infinite alternate}
 @keyframes hop{to{transform:translateY(-14px) rotate(6deg)}}
 #end .nakl{font-size:52px;letter-spacing:4px}
@@ -95,6 +113,6 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <script src="dzwieki.js"></script>
 <script src="game.js"></script>
 <script src="../lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js"></script>
-<script>obrotInit()</script>
+<script>obrotInit({ pion: true })</script>
 </body>
 </html>

@@ -31,6 +31,8 @@ function snd(name) {
     case 'pingwin': for (const d of [0, .22]) T(620, 880, .16, 'sawtooth', .14, d, [28, 50]); T(900, 500, .3, 'sawtooth', .12, .45, [20, 40]); break;   // kwaa-kwaa-kwaaa
     case 'czlap': N(.08, .3, 1500, 600, 2); T(220, 120, .06, 'sine', .15); break;                                      // płetwa o podłogę
     case 'mniam': [0, .16, .32].forEach(d => { T(300, 520, .1, 'sine', .25, d); N(.05, .15, 1500, 800, 3, d + .05); }); T(523, 1047, .3, 'triangle', .14, .5); break;
+    case 'prrt': T(95, 70, .7, 'sawtooth', .3, 0, [22, 18]); N(.7, .35, 500, 160, 1, 0, 'lowpass'); T(140, 210, .18, 'square', .1, .55, [30, 25]); break;   // PRRT!
+    case 'chlup': N(.25, .35, 1400, 400, 1.5); T(500, 180, .18, 'sine', .22, .05); T(700, 300, .14, 'sine', .15, .2); break;
     case 'plum': T(300, 900, .15, 'sine', .3); break;
     case 'lad': T(160, 80, .12, 'sine', .3); M(400, .15, .1); break;
     case 'oj': T(500, 300, .25, 'sine', .2, 0, [8, 30]); break;
@@ -52,7 +54,7 @@ function mow(txt, napis = true) {
   if (!AUD.on || !window.speechSynthesis) return;
   try {
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt); u.lang = 'pl-PL'; u.rate = .95; u.pitch = 1.15;
+    const u = new SpeechSynthesisUtterance(txt); u.lang = 'pl-PL'; u.rate = 1.12; u.pitch = 1.15;
     MOWA_GLOS = MOWA_GLOS || mowGlos(); if (MOWA_GLOS) u.voice = MOWA_GLOS;
     speechSynthesis.speak(u);
   } catch (e) {}

@@ -21,7 +21,7 @@ flowchart LR
 - Nazwa pliku = gry, które go używają. Nowe biblioteki: `lib/<funkcja>.<gry>.js` (jak `models/`), np. `lib/klaksony.ciuchcia-taxi.js`; starsze `lib/<gry>.js` to mieszanka helperów z `tools/split.mjs`. Kod identyczny w kilku grach jest w jednym pliku; różniące się kopie leżą obok siebie jako warianty — do wybrania najlepszego.
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/zwierzeta.js` → `ZOO` (pralnia, arka, taxi, żniwa, piraci), `models/morze.js` → `MORZE` (rafa, arka, piraci; `MORZE_CFG={water:false}` nad wodą).
 - `// wymaga z gry:` w nagłówku — zmienne, które plik nadal bierze z `game.js` (materiały, `scene`…).
-- `klinika/` — weterynarz dla 4–6 lat: pacjent wchodzi do budynku kliniki (3D), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D: zwierzęta z boku, wyprostowani (Pan Doktor, pingwin) od przodu. Połknięta rzecz przez przełyk, organ na miejsce, kręgi szyi żyrafy, złamana kość + gips, plasterki na guzy, lizak. Bez przegranej; lektor = polska synteza mowy przeglądarki.
+- `klinika/` — weterynarz dla 4–6 lat, gra pionowa (`obrotInit({ pion: true })`): pacjent przychodzi ulicą do kliniki (3D), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D — zwierzęta z boku, wyprostowani (Pan Doktor, pingwin) od przodu. Jak w „Operacji”: połknięta rzecz krętym przełykiem do buzi albo przez jelita do pupy, organ wraca naczyniami krwionośnymi, uciekła kość wraca nerwami (+ gips), układanki kości z liczeniem (szyja i ogon żyrafy, ogon słonia, palce doktora, żebra pingwina), plasterki na zadrapania, lizak. Wizyta = 3 losowe zabiegi + plasterki; test konkretnych: `?zabiegi=organ,kosc`. Bez przegranej; lektor = polska synteza mowy przeglądarki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js), niezależna od `lib/` i `models/`: `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka).
 - `orig/` — oryginalne artefakty; `tools/split.mjs` zrobił z nich obecny podział (jednorazowo, dalej edytujemy pliki gier).
 
@@ -41,7 +41,7 @@ flowchart LR
 | `lib/silnik.taxi.js` | 35 | engineProfile engineCreate engineBang engineStep engineMute |
 | `lib/diesel.taxi-zniwa.js` | 29 | dieselProfile dieselCreate dieselSet |
 | `lib/przechylanie.taxi-zniwa-rafa.js` | 28 | enableTilt tiltFromEvent tiltCurve |
-| `lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js` | 28 | obrotInit obrotPelny (plansza „Obróć telefon poziomo”, pełny ekran) |
+| `lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js` | 28 | obrotInit obrotPelny (plansza „Obróć telefon poziomo”, albo pionowo z `{ pion: true }`; pełny ekran, blokada orientacji) |
 | `lib/komiks.bryki-klinika.js` | 74 | styl „komiks”: brMat brOutline (kolor konturu) brPart brChaikin brExt brBox brCyl brLimb brGwiazdaPts komiksDymek |
 | `lib/komiks.bryki-klinika.css` | 26 | tabliczki-przyciski `.btn`, okienka `.box`, komiksowe napisy `.bub`, konfetti |
 | `lib/dzwiek.bryki-klinika.js` | 43 | AUD audSetup(klucz) audInit audMute audTone audNoise audMetal (klocki Web Audio) |
