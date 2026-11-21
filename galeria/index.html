@@ -44,13 +44,22 @@ h3{margin:14px 0 6px;font-size:19px}
 <script src="modele.js"></script>
 <!-- dźwięki: te same biblioteki co w grach -->
 <script>const AU = {}, S = { muted: false }; let seed = 7;</script>
-<script src="../lib/ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci.js"></script>
-<script src="../lib/ciuchcia-taxi-zniwa-rafa.js"></script>
-<script src="../lib/ciuchcia-taxi-zniwa.js"></script>
-<script src="../lib/ciuchcia-taxi.js"></script>
-<script src="../lib/klaksony.ciuchcia-taxi.js"></script>
-<script src="../lib/silnik.taxi.js"></script>
-<script src="../lib/diesel.taxi-zniwa.js"></script>
+<script src="../lib/common/math.js"></script>
+<script src="../lib/common/dom.js"></script>
+<script src="../lib/common/random.js"></script>
+<script src="../lib/common/angle.js"></script>
+<script src="../lib/3d/shapes.js"></script>
+<script src="../lib/3d/sky.js"></script>
+<script src="../lib/3d/particles.js"></script>
+<script src="../lib/audio/synth.js"></script>
+<script src="../lib/3d/view.js"></script>
+<script src="../lib/3d/weather.js"></script>
+<script src="../lib/3d/smoke.js"></script>
+<script src="../lib/audio/ambience.js"></script>
+<script src="../lib/ui/controls.js"></script>
+<script src="../lib/audio/horns.js"></script>
+<script src="../lib/audio/engine.js"></script>
+<script src="../lib/audio/diesel.js"></script>
 <script>
 'use strict';
 const FOV = 35, VIEW_DIR = new THREE.Vector3(1, .55, 1.25).normalize(), SPIN = .5, FRAME_MS = 6000;
@@ -105,7 +114,7 @@ function prep(obj) {
 
 /* --- Lista: sekcje po typie, warianty obok siebie --- */
 const nazwa = m => `${m.typ} — ${m.gra}`;
-const plik = m => m.plik ?? m.gra;
+const plik = m => m.plik ?? KAT_PLIK[m.kat];
 let kat = decodeURIComponent(location.hash.slice(1)) || KATEGORIE[0];
 KATEGORIE.push('dźwięki');
 tabs.innerHTML = KATEGORIE.map(k => `<button data-k="${k}">${k}</button>`).join('');
@@ -121,7 +130,7 @@ function show() {
 const info = m => `${m.view.size.x.toFixed(1)}×${m.view.size.y.toFixed(1)}×${m.view.size.z.toFixed(1)} m · ${m.view.tris} trójk. · ${m.js}`;
 list.onclick = e => { const c = e.target.closest('.card'); if (c && MODELE[c.dataset.i].view) open(MODELE[c.dataset.i]); };
 
-/* --- Dźwięki: klaksony (lib/klaksony.ciuchcia-taxi.js) i silnik z biegami (lib/silnik.taxi.js). Trzymaj przycisk. --- */
+/* --- Dźwięki: klaksony (lib/audio/horns.js), silnik z biegami (lib/audio/engine.js), diesel (lib/audio/diesel.js). Trzymaj przycisk. --- */
 const DZW = [
   ['🚕', 'taxi', 'taksówka', 27, 10], ['🚓', 'police', 'radiowóz', 30, 11], ['🏎️', 'race', 'wyścigówka', 40, 15], ['🚌', 'bus', 'autobus', 20, 6.5], ['🚜', 'ursus', 'Ursus', 14, 7, 'diesel'], ['🛩️', 'plane', 'samolot', 34, 9],
   ['🌾', 'combine', 'kombajn (Żniwa)', 7, 3, 'diesel'], ['🚜', 'big', 'duży traktor (Żniwa)', 8, 3, 'diesel'],
@@ -129,7 +138,7 @@ const DZW = [
 const SND = { EN: null, D: {}, kind: '', v: 0, vmax: 1, acc: 1, gas: false, siren: false, horn: null, iv: 0, drpm: 0 };
 const DSL_OF = { ursus: 'tractor', combine: 'combine', big: 'big' };       // nazwy profili diesla
 function showSounds() {
-  list.innerHTML = '<section><h3>klaksony i silniki</h3><div class="row">' + DZW.map(([e, k, n, vmax, , dsl], i) => `<div class="snd" data-i="${i}"><div class="e">${e}</div><p>${n}<small>${vmax ? `hornStart('${k}') · ${dsl ? `dieselSet(dieselProfile('${DSL_OF[k]}'))` : `engineStep({ kind: '${k}' })`}` : `trainHornStart('${k}')`}<br>lib/klaksony.ciuchcia-taxi.js${vmax ? (dsl ? ' · lib/diesel.taxi-zniwa.js' : ' · lib/silnik.taxi.js') : ''}</small></p>
+  list.innerHTML = '<section><h3>klaksony i silniki</h3><div class="row">' + DZW.map(([e, k, n, vmax, , dsl], i) => `<div class="snd" data-i="${i}"><div class="e">${e}</div><p>${n}<small>${vmax ? `hornStart('${k}') · ${dsl ? `dieselSet(dieselProfile('${DSL_OF[k]}'))` : `engineStep({ kind: '${k}' })`}` : `trainHornStart('${k}')`}<br>lib/audio/horns.js${vmax ? (dsl ? ' · lib/audio/diesel.js' : ' · lib/audio/engine.js') : ''}</small></p>
     <div class="b">${k === 'combine' || k === 'big' ? '' : '<button data-a="horn">📯 klakson</button>'}${vmax ? '<button data-a="gas">▲ gaz</button>' + (k === 'police' ? '<button data-a="siren">🚨</button>' : '') : ''}</div>${vmax ? '<meter min="0" max="1" value="0"></meter>' : ''}</div>`).join('') + '</div></section>';
   st.textContent = 'trzymaj przycisk; gaz rozpędza auto przez biegi, puszczony zwalnia';
 }
@@ -157,7 +166,7 @@ list.addEventListener('pointerdown', e => {
 
 /* --- Podgląd: obracanie palcem/myszą, zoom kółkiem/szczypaniem --- */
 let big = null; const orbit = { yaw: 0, pitch: .45, zoom: 1 };
-function open(m) { big = m; Object.assign(orbit, { yaw: 0, pitch: .45, zoom: 1 }); bigHidden(false); document.getElementById('info').innerHTML = `${nazwa(m)}<small>models/${KAT_PLIK[m.kat]}${plik(m) && "." + plik(m)}.js · ${info(m)}</small>`; }
+function open(m) { big = m; Object.assign(orbit, { yaw: 0, pitch: .45, zoom: 1 }); bigHidden(false); document.getElementById('info').innerHTML = `${nazwa(m)}<small>${plik(m)} · ${info(m)}</small>`; }
 const bigHidden = h => { document.getElementById('big').hidden = h; if (h) big = null; };
 x.onclick = () => bigHidden(true);
 addEventListener('keydown', e => e.key === 'Escape' && bigHidden(true));

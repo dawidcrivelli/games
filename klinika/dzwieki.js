@@ -1,5 +1,5 @@
 'use strict';
-// Klinika Zoo — dźwięki (klocki w lib/dzwiek.bryki-klinika.js) i głos lektora (synteza mowy przeglądarki, po polsku).
+// Klinika Zoo — dźwięki (klocki w lib/audio/aud.js) i głos lektora (synteza mowy przeglądarki, po polsku).
 // snd('bek') — efekty · mow('Serce!') — lektor + napis na dole ekranu (gdy dźwięk włączony)
 audSetup('klinika-dzwiek');
 

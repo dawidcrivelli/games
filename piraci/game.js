@@ -1,6 +1,6 @@
 'use strict';
 // Piraci! Bitwa morska — statki i armaty, potem abordaż i pojedynek na szable.
-// Zwierzęta: models/zwierzeta.js (ZOO), morskie: models/morze.js (MORZE), audio/clamp/lerp: lib/*piraci.js
+// Zwierzęta: models/animals.js (ZOO), morskie: models/sea.js (MORZE), audio: lib/audio/music.js, clamp/lerp: lib/common/math.js
 const T=THREE,$=id=>document.getElementById(id);
 const {rnd,pick,canvasTex,M,cg,G,mesh,ball,box,grp,mergeC,MK}=ZOO;
 ZOO.cfg.cast=false;
@@ -132,7 +132,7 @@ function startMusic(){let nt=AC.currentTime+.1,i=0;const R=99;   // własna szan
       if(mode==='duel'&&(b===2||b===5))mnote(nt,r*2,step*.6,'square',.12);
       i++;nt+=step;}},120);}
 
-/* ---------- modele: models/statki.piraci.js, models/piraci.piraci-klinika.js, models/bron.piraci.js ---------- */
+/* ---------- modele: models/ships.js, models/pirates.js, models/weapons.js ---------- */
 const MVC=new T.MeshLambertMaterial({vertexColors:true});
 const SH={L:13,W:4.4,D:1.3,H:1.5,QD:.95,FC:.45};       // kadłub: długość, szerokość, zanurzenie, pokład, podwyższenie rufy i dziobu
 // wd: czas zamachu, chip: część obrażeń przechodząca przez blok, bow: strzela (bez doskoku)

@@ -5,8 +5,8 @@
 //   połknięta rzecz → przeciągnij przełykiem do pyszczka (dotknięcie ścianki = czkawka, nie przegrana) · BEEEK!
 //   organ nie na miejscu → przenieś na świecący cień · krzywa szyja żyrafy → włóż 7 kręgów (liczymy) · złamana kość → złóż + kolorowy gips.
 //   Na koniec w 3D: plasterki na rany (stuknij), radość pacjenta (poza „cheer” z ZOO / taniec doktora) i lizak dla dzielnego pacjenta.
-// Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/zwierzeta.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomia.klinika.js
-// (models/pacjenci.klinika.js); budynek kliniki w przekroju (models/gabinet.klinika.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
+// Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/animals.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomy.js
+// (klinika/patients.js); budynek kliniki w przekroju (klinika/office.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
 const T = THREE, $ = id => document.getElementById(id);
 const KINDS = ['zyrafa', 'slon', 'pingwin', 'doktor'];
@@ -22,7 +22,7 @@ const ORG_BIERNIK = { ...ORG_NAZWA, watroba: 'wątrobę' };
 const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
-const { rnd, pick, M, MT, ball, box, cg, mesh, grp, G, mergeC, mK } = ZOO;     // pomocniki 3D z models/zwierzeta.js (jak w Pralni i Arce)
+const { rnd, pick, M, MT, ball, box, cg, mesh, grp, G, mergeC, mK } = ZOO;     // pomocniki 3D z models/animals.js (jak w Pralni i Arce)
 const PI = Math.PI, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), MVC = new T.MeshLambertMaterial({ vertexColors: true });   // MVC: ludziki z Piratów
 const ease = t => t * t * (3 - 2 * t), V = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const SET = Object.assign({ wyleczeni: {}, kind: 'zyrafa' }, JSON.parse(localStorage.getItem('klinika') || '{}'));
@@ -58,7 +58,7 @@ const lupa = { c: new T.Vector2(.5, .5), cc: new T.Vector2(.5, .5), r: 0, cel: 0
 const GAB = klGabinet(); scene.add(GAB.g); const BG = GAB.niebo;
 const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-5.6, -2.6, -.2, 1.7][i], 0, [-1.6, -.4, 1.4, 2.4][i]); scene.add(p.g); return p; });
 
-// Ikony przycisków = małe rysunki prawdziwych modeli z gry (lib/ikony.klinika.js), bez emoji
+// Ikony przycisków = małe rysunki prawdziwych modeli z gry (lib/3d/icons.js), bez emoji
 const IKONA = {}, img = (k, cls = '') => `<img class="ik ${cls}" src="${IKONA[k]}" alt="">`;
 function budujIkony() {
   for (const k of KINDS) { const p = klPacjent(k); IKONA['p_' + k] = ikonaModelu(p.g, { ry: p.przod ? -PI / 2 + .4 : -.5 }); }

@@ -1,6 +1,6 @@
 'use strict';
 const T=THREE,$=id=>document.getElementById(id);
-// zwierzęta i helpery 3D: models/zwierzeta.js
+// zwierzęta i helpery 3D: models/animals.js
 const {rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,MK}=ZOO;
 
 const PI=Math.PI;

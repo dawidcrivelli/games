@@ -7,7 +7,7 @@
 <title>Dzikie Bryki</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦈</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Bangers&display=swap">
-<link rel="stylesheet" href="../lib/komiks.bryki-klinika.css">
+<link rel="stylesheet" href="../lib/ui/comic.css">
 <style>
 :root{--panel:#fff3d6;--ink:#3a2412;--edge:#1e120a;--gold:#ffc93c;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}[hidden]{display:none !important}
@@ -98,13 +98,14 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <div id="end" class="box" hidden><div class="in"><div id="podium"></div><div class="row"><button id="bAgain" class="btn"><span class="ico">🔁</span>Jeszcze raz</button><button id="bNext" class="btn go"><span class="ico">➡️</span>Następna trasa</button><button id="bHome" class="btn"><span class="ico">🏠</span>Menu</button></div></div></div>
 <div id="confetti"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="../lib/komiks.bryki-klinika.js"></script>
-<script src="../lib/dzwiek.bryki-klinika.js"></script>
-<script src="../models/pojazdy.bryki.js"></script>
-<script src="../models/trasy.bryki.js"></script>
+<script src="../lib/3d/comic.js"></script>
+<script src="../lib/ui/comic.js"></script>
+<script src="../lib/audio/aud.js"></script>
+<script src="../models/wild-cars.js"></script>
+<script src="tracks.js"></script>
 <script src="dzwieki.js"></script>
 <script src="game.js"></script>
-<script src="../lib/obrot.ciuchcia-taxi-zniwa-pralnia-arka-rafa-piraci-bryki-klinika.js"></script>
+<script src="../lib/common/screen.js"></script>
 <script>obrotInit()</script>
 </body>
 </html>

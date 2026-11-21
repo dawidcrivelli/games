@@ -1,6 +1,6 @@
 'use strict';
 // Dzikie Bryki — dźwięki syntezowane w Web Audio (bez plików).
-// Klocki (audTone, audNoise, audMetal) w lib/dzwiek.bryki-klinika.js.
+// Klocki (audTone, audNoise, audMetal) w lib/audio/aud.js.
 // snd('chap') — efekty; audVoice('rekin') → silnik z charakterem auta: v.set(obroty 0..1, turbo, głośność, pan)
 audSetup('bryki-dzwiek');
 

@@ -698,7 +698,7 @@ const JOY = { on:false, id:-1, x:0, st:0, idle:0 };          // joystick tylko w
 /* sterowanie złożone z joysticka, przycisków i klawiatury. Sam skręt dodaje trochę gazu (STEER_GAS), żeby auto nie stało w miejscu i nie utykało
    przy ścianie: dziecko, które tylko skręca, i tak pojedzie. Przy pasażerze (nearStop) bez dodatkowego gazu, żeby dało się zatrzymać w kole. */
 const STEER_GAS = .5, IN = { st:0, fwd:0, back:false, gas:0 };
-/* przechylanie telefonu (lib/przechylanie.taxi-zniwa-rafa.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu.
+/* przechylanie telefonu (lib/input/tilt.js, jak w Żniwach): w bok skręca, od siebie gaz, do siebie hamulec; włącza się tylko w menu.
    Krzywa: drobne drgania rąk nic nie robią, średni przechył to już pełny skręt (tilt.x = 1 przy 17°). */
 const TILT_DEAD = .25, TILT_FULL = .8;
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
@@ -748,9 +748,9 @@ sfx.trumpet = () => { tone(330, .5, 'sawtooth', .16, 660); tone(660, .45, 'sawto
 sfx.roar = () => { tone(110, .9, 'sawtooth', .22, 55); burst(260, .9, .3, 0, .7, 'lowpass'); tone(73, .9, 'square', .08, 40); };
 sfx.peep = () => { [0, .14, .28].forEach(d => tone(1100, .1, 'square', .07, 800, d)); };
 sfx.hum = () => { tone(196, .5, 'sine', .25, 262); tone(294, .5, 'triangle', .1, 392, .1); };
-/* ---------- silnik z biegami (lib/silnik.taxi.js) i klakson (lib/klaksony.ciuchcia-taxi.js) ---------- */
+/* ---------- silnik z biegami (lib/audio/engine.js) i klakson (lib/audio/horns.js) ---------- */
 let EN = null, hornV = null, hornHeld = false, hornAt = 0, popFlash = 0, jx = 0, jz = 0, overTrain = false;
-let DSL = null, dslRpm = 0;                        // Ursus: niski diesel z Żniw (lib/diesel.taxi-zniwa.js)
+let DSL = null, dslRpm = 0;                        // Ursus: niski diesel z Żniw (lib/audio/diesel.js)
 function initEngine() { if (!EN && AU.ctx) EN = engineCreate(); }
 function engineSound(dt, vf, air, skid, tb) {
   if (!EN) return;
@@ -762,7 +762,7 @@ function engineSound(dt, vf, air, skid, tb) {
 }
 function engineOff() { engineMute(EN); dieselSet(DSL, 0, false); hornOff(); }
 function hornOn() {
-  initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/klaksony.ciuchcia-taxi.js
+  initAudio(); initEngine(); hornStop(hornV); if (S.veh === 'train') { hornHeld = true; hornV = trainHornStart(TR.kind); return; }      // klaksony z biblioteki lib/audio/horns.js
   if (AK === 'police') { sirenOn = !sirenOn; toast(sirenOn ? '🚨 Syrena włączona: wszyscy z drogi!' : 'Syrena wyłączona'); return; }
   if (GAR.horn !== 'h0') { hornT = 1.2; if (performance.now() - hornAt > 900) { hornAt = performance.now(); melody(GAR.horn); } return; }
   hornHeld = true; hornAt = performance.now(); hornT = .7; hornV = hornStart(AK);
@@ -930,7 +930,7 @@ const beacon = new T.Group(), outP = pedMats(0xf08a2a), arrow = new T.Group();
   const geo = new T.ExtrudeGeometry(s, { depth:.4, bevelEnabled:false }); geo.rotateX(Math.PI/2);
   arrow.userData.m = new T.MeshBasicMaterial({ color:0x35e04a, fog:false, depthTest:false, transparent:true }); const edge = new T.MeshBasicMaterial({ color:0x1c1c1e, fog:false, depthTest:false, transparent:true });
   const dial = new T.Group(), e = new T.Mesh(geo, edge); e.scale.set(1.2, 1, 1.12); e.position.y = -.14; e.renderOrder = 9; dial.add(e); const a = new T.Mesh(geo, arrow.userData.m); a.renderOrder = 10; dial.add(a); arrow.add(dial); arrow.userData.dial = dial; arrow.rotation.order = 'YXZ'; arrow.visible = false; scene.add(arrow); }
-// zwierzęta z Pralni (models/zwierzeta.js), dopasowane wysokością; ruch przez anims
+// zwierzęta z Pralni (models/animals.js), dopasowane wysokością; ruch przez anims
 const zoo = (type, h) => { const { g, a } = ZOO.fit(type, h); let last = 0; anims.push(t => { ZOO.anim(a, Math.min(.1, t - last)); last = t; }); return g; };
 const ZOOA = [{ name:'Żyrafa', ico:'🦒', g:zoo('giraffe', 6.2), s:.8, rs:.4, top:5.6, snd:'hum' }, { name:'Słoń', ico:'🐘', g:zoo('elephant', 3.15), s:.75, rs:.36, top:3.4, snd:'trumpet' }, { name:'Lew', ico:'🦁', g:zoo('lion', 1.4), s:1.15, rs:.62, top:2.2, snd:'roar' },
   { name:'Pingwin', ico:'🐧', g:zoo('penguin', .9), s:1.9, rs:1.1, top:2.4, snd:'peep' }, { name:'Krowa', ico:'🐄', g:cloneTpl(cowTpl[0], true), s:1.1, rs:.55, top:2.6, snd:'moo' }];

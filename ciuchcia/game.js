@@ -1379,7 +1379,7 @@ function hud() {
 }
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3600); }
-let hornV = null;                                   // klakson i gwizdek z biblioteki lib/klaksony.ciuchcia-taxi.js: gra, dopóki trzymasz
+let hornV = null;                                   // klakson i gwizdek z biblioteki lib/audio/horns.js: gra, dopóki trzymasz
 function hornUp() { hornStop(hornV, S.veh !== 'car' && TR.kind === 'steam' ? .5 : .3); hornV = null; }
 function horn() { hornDown(); setTimeout(hornUp, 350); }
 function hornDown() {

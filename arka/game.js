@@ -1,6 +1,6 @@
 'use strict';
 const T=THREE,$=id=>document.getElementById(id);
-// zwierzęta i helpery 3D: models/zwierzeta.js (arka: mniejsze, cienie tylko brył ciała)
+// zwierzęta i helpery 3D: models/animals.js (arka: mniejsze, cienie tylko brył ciała)
 const {rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,MK}=ZOO;
 ZOO.cfg.scale=.78;ZOO.cfg.cast=false;
 
@@ -119,7 +119,7 @@ const ALLC=[];for(let f=0;f<NF;f++)for(let c=0;c<NC;c++)ALLC.push([f,c]);
 
 
 
-// zwierzęta morskie z Rafy (models/morze.js, tryb nad wodą)
+// zwierzęta morskie z Rafy (models/sea.js, tryb nad wodą)
 const {makeDolphin,makeWhale,makeShark,makeTurtle,makeManta}=MORZE,TAU=PI*2;
 const sea=[];
 function seaAdd(obj,o){scene.add(obj.g);if(o.s)obj.g.scale.setScalar(o.s);let th=o.th==null?rnd(TAU):o.th,ph=rnd(9),py=WATER+o.y;const d=o.dir||1;

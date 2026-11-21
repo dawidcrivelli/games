@@ -1,7 +1,7 @@
 'use strict';
 if (!window.THREE) { $('err').style.display = 'flex'; $('load').hidden = true; throw new Error('brak three.js'); }
 const T = THREE, V3 = T.Vector3, TAU = Math.PI*2;
-// zwierzęta morskie, materiał podwodny i helpery geometrii: models/morze.js
+// zwierzęta morskie, materiał podwodny i helpery geometrii: models/sea.js
 const { U, GL_WATER, SUN, C, mix3, mul3, M, fl, merge, sweep, flat, ball, setCol, tf, sstep, hexCell, setAT, K, SP, fishMat, fishGeoC, fishGeo, speciesGeo, speciesMat, makeClown, makeTurtle, makeManta, makeShark, makePuffer, seahorseGeo, makeCrab, makeOcto, jellyGeos, makeWhale, makeDolphin, makeMoray } = MORZE;
 
 /* =====================================================================
@@ -569,7 +569,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 18); }      // lib/przechylanie.taxi-zniwa-rafa.js
+function onTilt(e) { tiltFromEvent(e, 18); }      // lib/input/tilt.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 function readInput() {

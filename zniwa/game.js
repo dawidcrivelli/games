@@ -694,7 +694,7 @@ function initAudio() {
   for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
   AU.noiseBuf = nb;
   const noise = () => { const s = ctx.createBufferSource(); s.buffer = nb; s.loop = true; s.start(); return s; };
-  AU.eng = { big:dieselCreate(dieselProfile('big')), combine:dieselCreate(dieselProfile('combine')), tractor:dieselCreate(dieselProfile('tractor')) };      // lib/diesel.taxi-zniwa.js
+  AU.eng = { big:dieselCreate(dieselProfile('big')), combine:dieselCreate(dieselProfile('combine')), tractor:dieselCreate(dieselProfile('tractor')) };      // lib/audio/diesel.js
   // omłot (szum pasmowy) i terkot maszyny
   const tn = noise(), tf = ctx.createBiquadFilter(); tf.type = 'bandpass'; tf.frequency.value = 1500; tf.Q.value = .8;
   AU.thr = ctx.createGain(); AU.thr.gain.value = 0; tn.connect(tf); tf.connect(AU.thr); AU.thr.connect(AU.master);
@@ -742,7 +742,7 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* przechylanie telefonu */
 const tilt = { on:false, x:0, y:0, cal:true, r0:0, f0:0, events:0, listening:false };
-function onTilt(e) { tiltFromEvent(e, 17); }      // lib/przechylanie.taxi-zniwa-rafa.js
+function onTilt(e) { tiltFromEvent(e, 17); }      // lib/input/tilt.js
 
 addEventListener('orientationchange', () => { tilt.cal = true; });
 $('bCal').addEventListener('click', () => { tilt.cal = true; toast('Środek ustawiony'); });

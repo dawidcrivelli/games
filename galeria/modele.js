@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
-// kategoria → prefiks pliku w models/
-const KAT_PLIK = { 'zwierzęta': 'zwierzeta', pozy: 'zwierzeta', morze: 'morze', ludzie: 'ludzie', pojazdy: 'pojazdy', rolnicze: 'rolnicze', 'pociągi': 'pociagi', piraci: 'piraci', statki: 'statki', 'broń': 'bron', bryki: 'pojazdy', trasy: 'trasy', pacjenci: 'pacjenci', anatomia: 'anatomia' };
+// kategoria → plik z modelami (podpis w galerii); inny plik dla wariantu: `plik` we wpisie
+const KAT_PLIK = { 'zwierzęta': 'models/animals.js', pozy: 'models/animals.js', morze: 'models/sea.js', ludzie: 'models/people.js', pojazdy: 'models/cars.js', rolnicze: 'models/farm.js', 'pociągi': 'models/trains.js', piraci: 'models/pirates.js', statki: 'models/ships.js', 'broń': 'models/weapons.js', bryki: 'models/wild-cars.js', trasy: 'bryki/tracks.js', pacjenci: 'klinika/patients.js', anatomia: 'models/anatomy.js' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -9,37 +9,37 @@ const RAFA_RYBY = ['clown', 'blue', 'yellow', 'serg', 'chrom', 'anth', 'butt', '
 const MORZE = [['delfin', 'Dolphin'], ['wieloryb', 'Whale'], ['rekin', 'Shark'], ['manta', 'Manta'], ['żółw', 'Turtle']];
 
 const MODELE = [
-  ...ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'pralnia', plik: '', js: `ZOO.MK.${f}()` })),
+  ...ZOO.map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'pralnia', js: `ZOO.MK.${f}()` })),
   // pozy z ZOO.pose — te same dla wszystkich gier
   ...['rear', 'pounce', 'crouch', 'swipe', 'headbutt', 'kick', 'hurt', 'dizzy', 'cheer', 'sit'].flatMap(pz => ['lion', 'elephant', 'kangaroo', 'penguin']
-    .map(f => ({ kat: 'pozy', typ: pz, gra: 'pralnia', plik: '', js: `(() => { const a = ZOO.MK.${f}(); ZOO.pose(a, '${pz}'); ZOO.anim(a, 1); ZOO.anim(a, 1); return a; })()` }))),
+    .map(f => ({ kat: 'pozy', typ: pz, gra: 'pralnia', js: `(() => { const a = ZOO.MK.${f}(); ZOO.pose(a, '${pz}'); ZOO.anim(a, 1); ZOO.anim(a, 1); return a; })()` }))),
   // pojazdy w żniwach: ten sam model + siedzisko
-  { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', js: 'buildElephant()' },
-  { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', js: 'buildGiraffe()' },
-  { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
-  { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },
+  { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', plik: 'models/animal-rides.js', js: 'buildElephant()' },
+  { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', plik: 'models/animal-rides.js', js: 'buildGiraffe()' },
+  { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
+  { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },
 
-  ...MORZE.map(([typ, f]) => ({ kat: 'morze', typ, gra: 'rafa', plik: '', js: `make${f}()` })),
-  ...['Clown', 'Puffer', 'Crab', 'Octo', 'Moray'].map(f => ({ kat: 'morze', typ: f.toLowerCase(), gra: 'rafa', plik: '', js: `make${f}()` })),
-  { kat: 'morze', typ: 'konik morski', gra: 'rafa', plik: '', js: 'seahorseGeo()' },
-  { kat: 'morze', typ: 'meduza', gra: 'rafa', plik: '', js: 'jellyGeos()' },
-  ...RAFA_RYBY.map(k => ({ kat: 'morze', typ: 'ryba ' + k, gra: 'rafa', plik: '', js: `speciesGeo('${k}')` })),
+  ...MORZE.map(([typ, f]) => ({ kat: 'morze', typ, gra: 'rafa', js: `make${f}()` })),
+  ...['Clown', 'Puffer', 'Crab', 'Octo', 'Moray'].map(f => ({ kat: 'morze', typ: f.toLowerCase(), gra: 'rafa', js: `make${f}()` })),
+  { kat: 'morze', typ: 'konik morski', gra: 'rafa', js: 'seahorseGeo()' },
+  { kat: 'morze', typ: 'meduza', gra: 'rafa', js: 'jellyGeos()' },
+  ...RAFA_RYBY.map(k => ({ kat: 'morze', typ: 'ryba ' + k, gra: 'rafa', js: `speciesGeo('${k}')` })),
 
-  { kat: 'ludzie', typ: 'rolnik', gra: 'ciuchcia', plik: 'ciuchcia-taxi-zniwa', js: 'makeFarmer()' },
+  { kat: 'ludzie', typ: 'rolnik', gra: 'ciuchcia', js: 'makeFarmer()' },
 
-  { kat: 'pojazdy', typ: 'taxi', gra: 'ciuchcia', js: 'buildTaxi()' },
-  { kat: 'pojazdy', typ: 'taxi', gra: 'taxi', js: 'buildTaxi()' },
-  { kat: 'pojazdy', typ: 'autobus', gra: 'ciuchcia', plik: 'ciuchcia-taxi', js: 'buildBus()' },
-  { kat: 'pojazdy', typ: 'wyścigówka', gra: 'ciuchcia', plik: 'ciuchcia-taxi', js: 'buildRacer()' },
-  ...[0, 1, 2, 3].map(k => ({ kat: 'pojazdy', typ: 'auto ' + k, gra: 'ciuchcia', plik: 'ciuchcia-taxi', js: `aiModel(0x3a7bd5, ${k})` })),
-  { kat: 'pojazdy', typ: 'policja', gra: 'taxi', js: 'buildPolice()' },
-  { kat: 'pojazdy', typ: 'samolot', gra: 'taxi', js: 'buildPlane()' },
+  { kat: 'pojazdy', typ: 'taxi', gra: 'ciuchcia', plik: 'models/cab-simple.js', js: 'buildTaxi()' },
+  { kat: 'pojazdy', typ: 'taxi', gra: 'taxi', plik: 'models/cab.js', js: 'buildTaxi()' },
+  { kat: 'pojazdy', typ: 'autobus', gra: 'ciuchcia', js: 'buildBus()' },
+  { kat: 'pojazdy', typ: 'wyścigówka', gra: 'ciuchcia', js: 'buildRacer()' },
+  ...[0, 1, 2, 3].map(k => ({ kat: 'pojazdy', typ: 'auto ' + k, gra: 'ciuchcia', js: `aiModel(0x3a7bd5, ${k})` })),
+  { kat: 'pojazdy', typ: 'policja', gra: 'taxi', plik: 'models/cab.js', js: 'buildPolice()' },
+  { kat: 'pojazdy', typ: 'samolot', gra: 'taxi', plik: 'models/plane.js', js: 'buildPlane()' },
 
-  { kat: 'rolnicze', typ: 'traktor', gra: 'ciuchcia', plik: 'ciuchcia-taxi', js: 'buildTractor()' },
+  { kat: 'rolnicze', typ: 'traktor', gra: 'ciuchcia', plik: 'models/tractor.js', js: 'buildTractor()' },
   { kat: 'rolnicze', typ: 'traktor', gra: 'zniwa', js: 'buildTractor()' },
   { kat: 'rolnicze', typ: 'duży traktor', gra: 'zniwa', js: 'buildBigTractor()' },
   { kat: 'rolnicze', typ: 'kombajn', gra: 'zniwa', js: 'buildCombine()' },
-  { kat: 'rolnicze', typ: 'kombajn', gra: 'taxi', js: 'buildKombajn()' },
+  { kat: 'rolnicze', typ: 'kombajn', gra: 'taxi', plik: 'models/combine-simple.js', js: 'buildKombajn()' },
   { kat: 'rolnicze', typ: 'pług', gra: 'zniwa', js: 'buildPlough()' },
   { kat: 'rolnicze', typ: 'siewnik', gra: 'zniwa', js: 'buildSeeder()' },
   { kat: 'rolnicze', typ: 'prasa', gra: 'zniwa', js: 'buildBaler({})' },
@@ -48,7 +48,7 @@ const MODELE = [
 
   ...[['parowóz', 'buildLoco()'], ['tender', 'buildTender()'], ['wagon osobowy', 'buildCoach()'], ['wagon towarowy', 'buildWagon()'],
     ['EU07', 'buildEU07()'], ['pendolino czoło', 'buildPend(1)'], ['pendolino środek', 'buildPend(0)'], ['pendolino tył', 'buildPend(-1)']]
-    .map(([typ, js]) => ({ kat: 'pociągi', typ, gra: 'ciuchcia', plik: 'ciuchcia-taxi', js })),
+    .map(([typ, js]) => ({ kat: 'pociągi', typ, gra: 'ciuchcia', js })),
 
   // Piraci! — wojownicy z bronią (zwierzaki z ZOO + czapka), ludziki, czapki
   ...[['pirat junior', 'human', 'wood'], ['piratka ania', 'ania', 'rapier'], ['rudobrody', 'rudy', 'sword'], ['czarna baśka', 'baska', 'katana'], ['czarnobrody', 'czarny', 'axe'], ['kapitan hak', 'wilk', 'sword'], ['majtek', 'majtek', 'saber'], ['majtek', 'majtek2', 'bow']]
@@ -71,7 +71,7 @@ const MODELE = [
   ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
     .map(pz => ({ kat: 'bryki', typ, gra: 'bryki', js: `(() => { const b = buildBryka('${k}'); brykaPose(b, '${pz}', 1); return b.g; })()` }))),
 
-  // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (models/trasy.bryki.js)
+  // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (bryki/tracks.js)
   ...['glaz', 'beczki', 'opony', 'wrak', 'bryla', 'skrzynia', 'balwan', 'pacholki', 'olej', 'lod', 'lawa', 'rampa', 'turbo', 'gwiazda', 'biegacz', 'glaz_tocz', 'sniezka', 'beczka_tocz', 'pingwin', 'kula_burzaca', 'meteor']
     .map(t => ({ kat: 'trasy', typ: 'przeszkody', gra: 'bryki', js: `brObst('${t}')` })),
   ...['kaktus', 'kamien', 'opony', 'beczka', 'zlom', 'wrak', 'skala', 'dym', 'sosna', 'balwan', 'lodblok']
