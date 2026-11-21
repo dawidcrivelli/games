@@ -116,7 +116,10 @@ function widokZad(z) {
   x0 -= m; x1 += m; y0 -= m; y1 += m;
   if (x1 - x0 < S) { const c = (x0 + x1) / 2; x0 = c - S / 2; x1 = c + S / 2; }
   if (y1 - y0 < S) { const c = (y0 + y1) / 2; y0 = c - S / 2; y1 = c + S / 2; }
-  return dopasuj(x0, x1, y0, y1, V(0, .05, 1), pion() ? { t: .09, b: .1 } : { t: .14, b: .02, r: .09 });
+  const ui = pion() ? { t: .09, b: .1 } : { t: .14, b: .02, r: .09 }, asp = cam.aspect * (1 - (ui.r || 0)) / (1 - ui.t - ui.b);
+  if ((x1 - x0) / (y1 - y0) > asp) { const c = (y0 + y1) / 2, h = (x1 - x0) / asp; y0 = c - h / 2; y1 = c + h / 2; }   // tyle widać w pionie naprawdę
+  const dno = -rozmiar() * .05; if (y0 < dno) { y1 += dno - y0; y0 = dno; }                                                // bez pustej podłogi pod pacjentem
+  return dopasuj(x0, x1, y0, y1, V(0, .05, 1), ui);
 }
 function widok() {
   if (!P || state === 'menu') return widokMenu();
@@ -214,16 +217,27 @@ function wezyk(pts, amp) {
   }
   return out;
 }
-// Widoczna trasa: jaskrawa rura z ciemnym obrysem (widać ją na każdym organie), kropki płyną do celu, zielone kółko na końcu
-const RURY = [];
+// Widoczna trasa: jaskrawa rura z ciemnym obrysem (widać ją na każdym organie), białe strzałki płyną do celu, zielone kółko na końcu.
+// g.userData.postep(s): przebyta część (do s) znika — zostaje tylko droga przed rzeczą, więc widać, dokąd iść
+const RURY = [], SEG = 600;
 function rysujTrase(tr, r, col) {
-  const g = new T.Group(), mk = (rr, c, o, ro) => { const t = new T.Mesh(new T.TubeGeometry(tr.krz, 600, rr, 8), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false })); t.renderOrder = ro; g.add(t); };
+  const g = new T.Group(), rury = [], mk = (rr, c, o, ro) => { const t = new T.Mesh(new T.TubeGeometry(tr.krz, SEG, rr, 8), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false })); t.renderOrder = ro; g.add(t); rury.push(t); };
   mk(r * 1.6, 0x0b1a33, .9, 20); mk(r, col, 1, 21);
-  const dm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false }), dg = new T.SphereGeometry(r * .42, 8, 6), krok = r * 5, n = Math.max(6, Math.floor(tr.L / krok)), kropki = [];
-  for (let i = 0; i < n; i++) { const d = new T.Mesh(dg, dm); d.renderOrder = 22; g.add(d); kropki.push(d); }
+  const sm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false, depthWrite: false, side: T.DoubleSide });
+  const sg = new T.ShapeGeometry(new T.Shape([[-.55, .7], [.6, 0], [-.55, -.7], [-.2, 0]].map(([x, y]) => new T.Vector2(x * r * 1.9, y * r * 1.9))));
+  const krok = r * 7, n = Math.max(6, Math.ceil(tr.L / krok)), strz = [];
+  for (let i = 0; i < n; i++) { const d = new T.Mesh(sg, sm); d.renderOrder = 22; g.add(d); strz.push(d); }
   const ring = new T.Mesh(new T.TorusGeometry(r * 3, r * .7, 8, 28), new T.MeshBasicMaterial({ color: 0x7dff6a, transparent: true, depthTest: false }));
   ring.position.copy(tr.at(tr.L)); ring.renderOrder = 23; g.add(ring); g.userData.ring = ring;
-  g.userData.krok = t => { const off = (t * r * 6) % krok; kropki.forEach((d, i) => { const s = i * krok + off; d.visible = s < tr.L - r * 3; d.position.copy(tr.at(s)); }); };
+  let s0 = 0;
+  g.userData.postep = s => { s0 = clamp(s, 0, tr.L); const st = Math.floor(s0 / tr.L * SEG) * 48; for (const t of rury) t.geometry.setDrawRange(st, Infinity); };
+  g.userData.krok = t => {
+    const off = (t * r * 5) % krok;
+    strz.forEach((d, i) => {
+      const s = s0 + r * 3 + i * krok + off; d.visible = s < tr.L - r * 3.5; if (!d.visible) return;
+      const a = tr.at(s), b = tr.at(s + r * .5); d.position.copy(a); d.rotation.z = Math.atan2(b.y - a.y, b.x - a.x);
+    });
+  };
   g.userData.krok(0); RURY.push(g);
   return klX(g);
 }
@@ -242,7 +256,7 @@ function Prowadz(o) {
     if (c.s >= o.tr.L * .97) { c.koniec = true; c.grab = false; if (o.end) o.end(); }
   };
   c.up = () => { c.grab = false; };
-  c.step = dt => { if (c.koniec) return; const tg = o.tr.at(c.s); tg.z = o.z; o.obj.position.lerp(tg, Math.min(1, dt * 14)); c.wob = Math.max(0, c.wob - dt * 2); };
+  c.step = dt => { if (c.koniec) return; if (o.rura) o.rura.userData.postep(c.s); const tg = o.tr.at(c.s); tg.z = o.z; o.obj.position.lerp(tg, Math.min(1, dt * 14)); c.wob = Math.max(0, c.wob - dt * 2); };
   c.hint = () => { const a = o.tr.at(Math.min(o.tr.L, c.s + o.tr.L * .22)); a.z = o.z; return [swiat(o.obj), wLok(a)]; };
   return c;
 }
@@ -267,12 +281,13 @@ function zPolkniete(kind, tryb) {
   const Z = { typ: 'polkniete', ic: 'r_' + kind, done: false, rzecz: kind, tryb,
     objaw: kind === 'budzik' ? 'w brzuchu coś dzwoni' : pupa ? 'brzuch burczy' : 'brzuch boli', znalezione: pupa ? 'Coś utknęło w jelitach!' : 'Coś jest w brzuchu!' };
   const sciezka = () => pupa ? P.jelita : wezyk(P.przelyk(), P.wezyk), s0 = () => pupa ? tr.L * .1 : 0;
-  Z.prep = () => { tr = Trasa(sciezka()); item = klX(anRzecz(kind, S * .85)); const p0 = tr.at(s0()); item.position.set(p0.x, p0.y, .6 * S); P.w.add(item); naWierzch(item); };
+  Z.prep = () => { tr = Trasa(sciezka()); item = klX(anRzecz(kind, S * (pupa ? .6 : .85))); const p0 = tr.at(s0()); item.position.set(p0.x, p0.y, .6 * S); P.w.add(item); naWierzch(item); };
   Z.kotwice = () => [() => swiat(item)];
+  Z.obj = () => [item];
   Z.fokus = () => { tr = Trasa(sciezka()); return [...probki(tr), ...rogi(item)]; };
   Z.start = () => {
     rura = rysujTrase(tr, px2lok(pupa ? 8 : 9), pupa ? 0xffa53a : 0xff4f9a); P.w.add(rura);
-    ctl = Prowadz({ tr, obj: item, z: .6 * S, s0: s0(), W: px2lok(58), R: px2lok(80), end: wyjdz,
+    ctl = Prowadz({ tr, obj: item, rura, z: .6 * S, s0: s0(), W: px2lok(58), R: px2lok(80), end: wyjdz,
       wall: () => { if (P.a.tickle !== undefined) P.a.tickle = 1; snd('hik'); if (kind === 'kaczka') snd('kwa'); dymek('HIK!', swiat(item), 'small'); P.trzes = .5; } });
     mow(pupa ? 'Przeciągnij to przez jelita, aż do pupy!' : 'Wyciągnij to krętym przełykiem do buzi!');
   };
@@ -325,27 +340,25 @@ function zOrgan(names) {
     }
   };
   Z.kotwice = () => L.map(x => () => swiat(x.d.o));
-  let siec = null, naczynia = null;
-  Z.fokus = () => {
-    siec = P.siecKrew ? Siec(P.siecKrew()) : null;
-    const pts = [];
-    for (const x of L) {
-      const o = x.d.o, droga = siec ? drogaSiecia(siec, [o.position.x, o.position.y], x.d.dom) : drogaOrganu([o.position.x, o.position.y], x.d.dom);
-      x.tr = Trasa(wezyk(droga, P.wezyk * .7)); pts.push(...probki(x.tr), ...rogi(o));
-    }
-    return pts;
-  };
+  Z.obj = () => L.map(x => x.d.o);
+  let siec = null, naczynia = null, ten = 0;               // organy po kolei: widać tylko jeden, jego trasę i jego miejsce
+  const trasaOrganu = x => { const o = x.d.o, droga = siec ? drogaSiecia(siec, [o.position.x, o.position.y], x.d.dom) : drogaOrganu([o.position.x, o.position.y], x.d.dom); x.tr = Trasa(wezyk(droga, P.wezyk * .7)); return [...probki(x.tr), ...rogi(o)]; };
+  Z.fokus = () => { siec = P.siecKrew ? Siec(P.siecKrew()) : null; return trasaOrganu(L[0]); };
+  function pokaz(i) {                                      // i-ty organ: widoczny, podświetlony, z trasą; reszta czeka schowana
+    ten = i; L.forEach((x, j) => { if (!x.ok) x.d.o.visible = j === i; });
+    const x = L[i], o = x.d.o;
+    if (i > 0) { Z.roi = trasaOrganu(x); camGo(widokZad(Z), .9); }
+    x.duch = klX(anDuch(o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(o.scale); P.w.add(x.duch);
+    x.rura = rysujTrase(x.tr, px2lok(8), 0xffe03a); x.rura.position.z = x.d.dom[2] + .2; P.w.add(x.rura);
+    x.ctl = Prowadz({ tr: x.tr, obj: o, rura: x.rura, z: x.d.dom[2] + .5, W: px2lok(58), R: px2lok(75) + .35 * o.scale.x, end: () => { x.snap = { a: o.position.clone(), t: 0 }; },
+      wall: () => { snd('oj'); dymek('OJ!', swiat(o), 'small'); P.trzes = .3; } });
+    mow((i ? 'Teraz ' : 'Zaprowadź ') + ORG_BIERNIK[x.n] + (i ? '' : ' naczyniami') + ' na swoje miejsce!'); idleT = 2.5;
+  }
   Z.start = () => {
     if (siec) { naczynia = rysujSiec(siec, 'krew', px2lok(5)); P.w.add(naczynia); }
-    for (const x of L) {
-      const o = x.d.o; x.duch = klX(anDuch(o)); x.duch.position.set(...x.d.dom); x.duch.rotation.z = 0; x.duch.scale.copy(o.scale); P.w.add(x.duch);
-      x.rura = rysujTrase(x.tr, px2lok(8), 0xffe03a); x.rura.position.z = x.d.dom[2] + .2; P.w.add(x.rura);
-      x.ctl = Prowadz({ tr: x.tr, obj: o, z: x.d.dom[2] + .5, W: px2lok(58), R: px2lok(75) + .35 * o.scale.x, end: () => { x.snap = { a: o.position.clone(), t: 0 }; },
-        wall: () => { snd('oj'); dymek('OJ!', swiat(o), 'small'); P.trzes = .3; } });
-    }
-    mow('Zaprowadź ' + names.map(n => ORG_BIERNIK[n]).join(' i ') + ' naczyniami na swoje miejsce!');
+    pokaz(0);
   };
-  Z.down = p => { for (const x of L) if (!x.ok && !x.snap && x.ctl && x.ctl.down(p)) { akt = x; snd('pyk'); return; } };
+  Z.down = p => { const x = L[ten]; if (x && !x.ok && !x.snap && x.ctl && x.ctl.down(p)) { akt = x; snd('pyk'); } };
   Z.move = p => { if (akt) akt.ctl.move(p); };
   Z.up = () => { if (akt) akt.ctl.up(); akt = null; };
   Z.step = dt => {
@@ -360,11 +373,12 @@ function zOrgan(names) {
           x.snap = null; x.ok = true; o.rotation.z = 0; o.userData.zywy = true; naWierzch(o, false); P.w.remove(x.duch); P.w.remove(x.rura);
           snd('pyk'); setTimeout(() => snd(ORG_SND[x.n]), 250); mow(ORG_MOWA[x.n]); dymek(img('o_' + x.n, 'dym'), swiat(o), 'emoji');
           if (L.every(y => y.ok)) { if (naczynia) P.w.remove(naczynia); setTimeout(() => { Z.done = true; }, 1800); }
+          else setTimeout(() => pokaz(L.findIndex(y => !y.ok)), 1600);
         }
       }
     }
   };
-  Z.hint = () => { const x = L.find(x => !x.ok && !x.snap); return x && x.ctl && x.ctl.hint(); };
+  Z.hint = () => { const x = L[ten]; return x && !x.ok && !x.snap && x.ctl && x.ctl.hint(); };
   return Z;
 }
 // Pacjent na chwilę w pozycji do zabiegu (w środku gabinetu, przodem lub bokiem) — do liczenia miejsc w jego układzie
@@ -421,6 +435,7 @@ function zUkladanka(U) {
     } });
   };
   Z.kotwice = () => [() => slotW(N >> 1)];
+  Z.obj = () => kaw.map(c => c.k);
   Z.fokus = () => [...U.sloty.map((_, i) => slotW(i)), ...kaw.map(c => swiat(c.k))];
   Z.start = () => {
     U.sloty.forEach(sl => { const d = klX(anDuch(U.kawalek())); klPoz(d, sl.x, sl.y, sl.z || 0, sl.rz || 0); U.grupa.add(d); duchy.push(d); });
@@ -468,6 +483,7 @@ function zKosc() {
     P.kulawy = B.konczyna || B.grupa; naWierzch(k);
   };
   Z.kotwice = () => [() => swiat(nos)];
+  Z.obj = () => [nos];
   Z.fokus = () => {
     P.kulawy = null; B.grupa.updateMatrixWorld(true);
     const cel = P.w.worldToLocal(domW());
@@ -478,7 +494,7 @@ function zKosc() {
     duch = klX(anDuch(k)); duch.position.set(B.dom.x, B.dom.y, 0); duch.rotation.set(0, 0, B.dom.rz); B.grupa.add(duch);
     rura = rysujSiec(siec, 'nerwy', px2lok(5)); P.w.add(rura);
     const trasa = rysujTrase(tr, px2lok(8), 0xffe03a); trasa.position.z = .3; rura.add(trasa); rura.userData.ring = trasa.userData.ring;
-    ctl = Prowadz({ tr, obj: nos, z: .5, W: px2lok(58), R: px2lok(80), end: () => { B.grupa.attach(k); snap = { a: k.position.clone(), r: k.rotation.z, t: 0 }; },
+    ctl = Prowadz({ tr, obj: nos, rura: trasa, z: .5, W: px2lok(58), R: px2lok(80), end: () => { B.grupa.attach(k); snap = { a: k.position.clone(), r: k.rotation.z, t: 0 }; },
       wall: () => { snd('oj'); dymek('OJ!', swiat(nos), 'small'); P.trzes = .3; } });
     mow('Kość uciekła ' + (B.skad || 'z nogi') + '! Zaprowadź ją nerwami z powrotem.');
   };
@@ -595,7 +611,8 @@ function rentgen() {
   }, 1300);
 }
 function nastepneZadanie() {
-  zi++; idleT = 0;
+  zi++; idleT = 2.5;                                       // rączka pokazuje drogę już po ~1,5 s
+  zadania.forEach((z, j) => { if (z.obj) for (const o of z.obj()) { o.visible = j <= zi; if (j > zi) naWierzch(o, false); else if (j === zi && z.typ !== 'ukladanka') naWierzch(o); } });   // tylko bieżące zadanie
   [...$('zad').children].forEach((b, i) => { b.classList.toggle('ok', i < zi); b.classList.toggle('teraz', i === zi); });
   if (zi >= zadania.length) { zdrowy(); return; }
   const z = zadania[zi];
