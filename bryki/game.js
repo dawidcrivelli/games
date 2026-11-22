@@ -19,8 +19,13 @@ const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT
 // Moc: u każdego 3 s, ta sama prędkość i odporność; różni się tylko sposobem trafiania aut wokół
 const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3 };
 const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3 };
-const INF_T = 60, INF_V = 20, INF_VMAX = 1.7, STREAK_T = 25;   // Infinity: czas [s], prędkość startowa [m/s], ×prędkość przy pełnej serii, seria pełna po [s]
+const INF_T = 60, INF_V = 20;                                // Infinity: czas [s], prędkość startowa [m/s]
+// Seria Infinity (czas bez uderzenia): [od ilu s, mnożnik punktów, ×prędkość]; ostatni poziom = 🔥 FIRE. Prędkość rośnie płynnie między
+// poziomami, po FIRE dalej do VTOP (×2,6 = 52 m/s po 50 s). Uderzenie zeruje serię.
+const TIERS = [[0, 1, 1], [5, 2, 1.25], [12, 5, 1.55], [22, 10, 1.9], [35, 20, 2.3]], VTOP = [50, 2.6], FIRE = TIERS.length - 1;
 const REACH = 7;                                            // zwykły atak: u wszystkich do przodu, ten sam zasięg [m]
+// Infinity: auto jest szybkie, a cios pada ok. 0,22 s po naciśnięciu — zasięg rośnie z prędkością, żeby przeszkoda w celowniku zawsze pękła
+const reachOf = c => REACH + (INF ? c.v * .35 : 0);
 const DIFF = {
   latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .06, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
   trudny: { cruise: 1.0, think: .28, react: .92, aggro: .7, aggroP: .28, look: 20, turbo: .25, band: .02, gap: [-6, 16] },
@@ -124,11 +129,31 @@ function setTheme(name) {
     if (front) p.scale.setScalar(.7);
     sc(p, r() * 140, 1, 140, 0);
   }
-  if (INF) for (let i = 0; i < 40; i++) {                 // Infinity: rekwizyty dalej przed autem, po obu stronach
-    const p = brProp(TH.props[i % TH.props.length]), sd = i % 2 ? 1 : -1;
-    p.position.z = sd * (ROAD / 2 + 4 + r() * 26); p.rotation.y = r() * 6; sc(p, r() * 240, 1, 240, 0, 145);
-  }
+  if (INF) infSide(r, sc);
   for (let i = 0; i < 7; i++) { const p = brProp(TH.far[i % TH.far.length]); p.position.z = (INF && i % 2 ? 1 : -1) * (70 + r() * 40); p.rotation.y = r() * 6; sc(p, r() * 300, .15, 300, 0); }
+}
+// Infinity: pobocze z obu stron, pętla 300 m przed kamerą — słupy/znaki równo przy drodze (widać prędkość), rekwizyty motywu dalej,
+// większe w głębi, plamy na ziemi (inny odcień gruntu), żeby pobocze nie było gołe
+function infSide(r, sc) {
+  const pb = TH.pobocze, W = 300, off = W / 2 - 25, flat = { billboard: 1, znak: 1, kontener: 1, plot: 1, igloo: 1 };
+  for (let i = 0; i < 24; i++) {                            // co 25 m, na zmianę lewa / prawa
+    const sd = i % 2 ? 1 : -1, k = pb.blisko[(i >> 1) % pb.blisko.length], p = brProp(k);
+    p.position.z = sd * (ROAD / 2 + 1.7); p.rotation.y = k === 'latarnia' && sd < 0 ? Math.PI : k === 'plot' ? Math.PI / 2 : 0;
+    sc(p, i * 12.5, 1, W, 0, off);
+  }
+  for (let i = 0; i < 70; i++) {                            // rekwizyty motywu: blisko (4–16 m od drogi) i w głębi (16–45 m, większe)
+    const k = pb.dalej[Math.floor(r() * pb.dalej.length)], p = brProp(k), sd = i % 2 ? 1 : -1, far = i % 3 === 0;
+    p.position.z = sd * (ROAD / 2 + (far ? 16 + r() * 29 : 4 + r() * 12));
+    p.rotation.y = flat[k] ? (r() - .5) * .5 : r() * 6; p.scale.setScalar((far ? 1.5 : .85) + r() * .5);
+    sc(p, r() * W, 1, W, 0, off);
+  }
+  const gc = new T.Color(TH.ground), pg = new T.CircleGeometry(1, 14);
+  const pm = [.9, 1.08, .82].map(f => new T.MeshLambertMaterial({ color: gc.clone().multiplyScalar(f) }));
+  for (let i = 0; i < 46; i++) {
+    const m = new T.Mesh(pg, pm[i % 3]), sd = i % 2 ? 1 : -1, R = 1.5 + r() * 5;
+    m.rotation.x = -Math.PI / 2; m.scale.set(R * (1.5 + r()), R, 1); m.position.set(0, -.015, sd * (ROAD / 2 + 4 + R + r() * 34));
+    sc(m, r() * W, 1, W, 0, off);
+  }
 }
 function placeDeco() {
   for (const d of deco) {
@@ -190,7 +215,7 @@ const immune = c => c.blinkT > 0 || mocOn(c) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
-    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, yaw: 0, bonkT: 0, streakT: 0,
+    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, yaw: 0, bonkT: 0, streakT: 0, pts: 0, tier: 0,
     ai: { t: rnd(.2, .6), gap: 0, gapT: 0 } });
 }
 function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.lane = n; return true; }
@@ -402,7 +427,7 @@ function act(c, a) {
   c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false;
   if (c.kind === 'zaba' && a === 'atak') {                 // język sięga do najbliższego auta przed sobą
     const t = state === 'menu' ? null : cars.filter(o => inReach(c, o)).sort((p, q) => p.s - q.s)[0];
-    c.b.tongueYaw = 0; c.b.tongueLen = t ? clamp(t.s - c.s - c.len / 2, 2, REACH + 1) : REACH;
+    c.b.tongueYaw = 0; c.b.tongueLen = t ? clamp(t.s - c.s - c.len / 2, 2, reachOf(c) + 1) : reachOf(c);
   }
   if (state === 'menu') snd(a === 'atak' ? SND_ATAK[c.kind] : SND_MOC[c.kind]);
   return true;
@@ -433,25 +458,25 @@ function hit(o, by, how) {
 function inReach(c, o) {
   if (o === c || o.fin || o.y > 1.4 || under(o) || high(o)) return false;
   const ds = o.s - c.s;
-  return laneOf(o) === laneOf(c) && ds > 0 && ds - (c.len + o.len) / 2 < REACH;
+  return laneOf(o) === laneOf(c) && ds > 0 && ds - (c.len + o.len) / 2 < reachOf(c);
 }
 function itemInReach(c, it) {
   if (!it.alive || !['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj)) return false;
   const ds = it.s - c.s;
-  return it.lane === laneOf(c) && ds > 0 && ds - (c.len + it.len) / 2 < REACH;
+  return it.lane === laneOf(c) && ds > 0 && ds - (c.len + it.len) / 2 < reachOf(c);
 }
 // Pociski: kula tuszu ośmiornicy i fala dźwiękowa nietoperza (lecą pasem do przodu), rój małych nietoperzy (każdy goni auto)
 function shootInk(c) {
   const g = new T.Group(); scene.add(g);
   brPart(g, new T.SphereGeometry(.42, 12, 9), brMat(0x101018), 0, 0, 0, { ol: .03 });
   for (let i = 0; i < 3; i++) brPart(g, new T.SphereGeometry(.22 - i * .05, 8, 6), brMat(0x101018), -.45 - i * .35, .05, 0, { ol: 0 });
-  shots.push({ typ: 'tusz', g, s: c.s + c.len / 2 + .5, z: c.z, lane: laneOf(c), y: 1.25 + c.y, vy: 2, vs: c.v + 24, left: REACH + 2, owner: c });
+  shots.push({ typ: 'tusz', g, s: c.s + c.len / 2 + .5, z: c.z, lane: laneOf(c), y: 1.25 + c.y, vy: 2, vs: c.v + 24, left: reachOf(c) + 2, owner: c });
 }
 const ringG = new T.TorusGeometry(.7, .07, 6, 20);
 function shootWave(c) {
   const g = new T.Group(); scene.add(g);
   for (let i = 0; i < 3; i++) { const m = new T.Mesh(ringG, new T.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: .85, depthWrite: false })); m.rotation.y = Math.PI / 2; m.position.x = -i * .55; m.scale.setScalar(.6 + i * .25); g.add(m); }
-  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 24, left: REACH + 2, owner: c });
+  shots.push({ typ: 'fala', g, s: c.s + c.len / 2, z: c.z, lane: laneOf(c), y: 1.1 + c.y, vs: c.v + 24, left: reachOf(c) + 2, range: reachOf(c) + 2, owner: c });
 }
 function miniBat() {
   const g = new T.Group();
@@ -464,19 +489,20 @@ function miniBat() {
   }
   return g;
 }
+const swept = (x, a, b, r) => x > Math.min(a, b) - r && x < Math.max(a, b) + r;   // x w odcinku a–b (± r): pocisk nie przeskoczy celu w długiej klatce
 function stepShots(dt) {
   for (let i = shots.length - 1; i >= 0; i--) {
     const p = shots[i]; let done = false;
     if (p.typ === 'tusz') {                                // kula tuszu: trafia pierwsze auto albo przeszkodę na pasie; na końcu lotu zostaje kałuża
-      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.vy -= 6 * dt; p.y = Math.max(.3, p.y + p.vy * dt);
-      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 + .3 && o.y < 1.4 && !under(o) && !high(o)) { hit(o, p.owner, 'tusz'); done = true; break; }
-      if (!done) for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) { destroy(it, p.owner); done = true; break; }
+      const s0 = p.s; p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.vy -= 6 * dt; p.y = Math.max(.3, p.y + p.vy * dt);
+      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && swept(o.s, s0, p.s, o.len / 2 + .3) && o.y < 1.4 && !under(o) && !high(o)) { hit(o, p.owner, 'tusz'); done = true; break; }
+      if (!done) for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && swept(it.s, s0, p.s, 1)) { destroy(it, p.owner); done = true; break; }
       if (p.left < 0) done = true;
       p.g.position.set(p.s - camS, H(p.s) + p.y, p.z);
     } else if (p.typ === 'fala') {
-      p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / (REACH + 2), 0, 1) * .85; });
-      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && Math.abs(o.s - p.s) < o.len / 2 && o.y < 1.4 && !under(o)) { hit(o, p.owner); done = true; break; }
-      for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.s - p.s) < 1) destroy(it, p.owner);
+      const s0 = p.s; p.s += p.vs * dt; p.left -= (p.vs - p.owner.v) * dt; p.g.children.forEach(m => { m.scale.multiplyScalar(1 + dt * 1.2); m.material.opacity = clamp(p.left / p.range, 0, 1) * .85; });
+      for (const o of cars) if (o !== p.owner && laneOf(o) === p.lane && swept(o.s, s0, p.s, o.len / 2) && o.y < 1.4 && !under(o)) { hit(o, p.owner); done = true; break; }
+      for (const it of items) if (it.alive && it.lane === p.lane && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && swept(it.s, s0, p.s, 1)) destroy(it, p.owner);
       if (p.left < 0) done = true;
       p.g.position.set(p.s - camS, H(p.s) + p.y, p.z);
     } else {
@@ -503,7 +529,7 @@ function resolveAct(c) {
     if (k === 'ptak') for (let i = 0; i < 5; i++) part({ s: c.s + c.len / 2 + 1, y: 1.2 + c.y, z: c.z, vs: rnd(-2, 4), vy: rnd(1, 4), vz: rnd(-2, 2), col: pick([0xf06a14, 0xb5651d, 0xe2a417]), size: .15, life: .8, grav: 1, box: 1 });
     if (k === 'osmiornica') { shootInk(c); return; }
     if (k === 'nietoperz') { shootWave(c); return; }
-    if (k === 'zaba') for (const it of items) if (it.alive && it.rodzaj === 'gwiazda' && it.lane === laneOf(c) && it.s > c.s && it.s - c.s < REACH + 3) { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); }   // język zjada też gwiazdki
+    if (k === 'zaba') for (const it of items) if (it.alive && it.rodzaj === 'gwiazda' && it.lane === laneOf(c) && it.s > c.s && it.s - c.s < reachOf(c) + 3) { it.alive = false; sparkle(it.s, 1.2, LANES[it.lane]); addMoc(c, 1); }   // język zjada też gwiazdki
     const t = cars.filter(o => inReach(c, o)).sort((a, b) => a.s - b.s)[0];
     if (t) hit(t, c);
     for (const it of items) if (itemInReach(c, it)) destroy(it, c);
@@ -571,7 +597,8 @@ function touch(c, it) {
   const shield = spiky(c);
   switch (it.rodzaj) {
     case 'gwiazda': it.alive = false; sparkle(it.s, it.y + 1.2, LANES[it.lane]); addMoc(c, 1); break;
-    case 'twarda': if (!immune(c)) hit(c, null); destroy(it, shield ? c : null); break;
+    case 'twarda': if (INF && c.act === 'atak') { destroy(it, c); break; }   // Infinity: najazd w trakcie zamachu = rozbite
+      if (!immune(c)) hit(c, null); destroy(it, shield ? c : null); break;
     case 'skrzynia': destroy(it, c); if (!shield) c.v *= .85; break;
     case 'miekka': destroy(it, null); if (!shield) c.v *= .9; break;
     case 'slisko': if (!shield && !immune(c) && c.y < .1) { c.slipT = 1; c.spinT = c.spinD = 1; if (near(c)) { snd('poslizg'); bubble('ŚLIIIZG!', c, 'small'); } } break;
@@ -614,7 +641,13 @@ function aiThink(c) {
 }
 
 /* ---------- ruch aut ---------- */
-const streakK = c => clamp(c.streakT / STREAK_T, 0, 1);
+const tierOf = c => { let i = 0; while (i < FIRE && c.streakT >= TIERS[i + 1][0]) i++; return i; };
+function spdOf(c) {                                        // ×prędkość z serii: płynnie między poziomami
+  const pts = [...TIERS.map(t => [t[0], t[2]]), VTOP], t = c.streakT;
+  for (let i = 1; i < pts.length; i++) if (t < pts[i][0]) return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * (t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]);
+  return VTOP[1];
+}
+const streakK = c => clamp((spdOf(c) - 1) / (VTOP[1] - 1), 0, 1);
 const place = c => 1 + cars.filter(o => o !== c && (o.fin && (!c.fin || o.finT < c.finT) || (!o.fin && !c.fin && o.s > c.s))).length;
 function stepCar(c, dt, racing) {
   for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ghostT']) c[k] -= dt;
@@ -627,12 +660,12 @@ function stepCar(c, dt, racing) {
   }
   let vt = 0;
   if (racing) {
-    vt = INF ? INF_V * (1 + (INF_VMAX - 1) * streakK(c)) : CRUISE * (c.player ? 1 : DIFF[diff].cruise);
+    vt = INF ? INF_V * spdOf(c) : CRUISE * (c.player ? 1 : DIFF[diff].cruise);
     if (INF && !c.fin && c.hitT <= 0) c.streakT += dt;
     if (!c.player && !c.fin && c.s < LEN * .85) vt *= 1 + clamp((P.s + c.ai.gap - c.s) * DIFF[diff].band, -.3, .35);
     if (c.player && !c.fin && place(c) === 4) vt *= 1.1;                 // ostatni dostaje lekkie wsparcie
     if (c.fin) vt *= .7;
-    if (c.turboT > 0) vt *= 1.5;
+    if (c.turboT > 0) vt *= INF ? 1.25 : 1.5;
     if (mocOn(c)) vt *= MOC_V[c.kind];
     if (c.hitT > 0) vt *= .4;
     if (c.slipT > 0) vt *= .65;
@@ -640,6 +673,11 @@ function stepCar(c, dt, racing) {
   }
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
   c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
+  if (INF && c.player && state === 'race' && !c.fin) {      // Infinity: punkty = metry × mnożnik serii; nowy poziom — napis i dźwięk
+    const t = tierOf(c); c.pts += c.v * dt * TIERS[t][1];
+    if (t > c.tier) { snd(t === FIRE ? 'turbo' : 'moc'); bubble(t === FIRE ? '🔥 FIRE!' : `x${TIERS[t][1]}!`, c, 'big'); if (t === FIRE) shake = .3; }
+    c.tier = t;
+  }
   // zmiana pasa; gdy obok jedzie auto — tylko odbicie z powrotem, bez kary
   const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * (INF ? 13 : 9));
   if (racing && Math.abs(LANES[c.lane] - c.z) > .3 && !spiky(c) && !under(c)) {
@@ -713,7 +751,7 @@ function drawCar(c, dt) {
   g.visible = !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
   c.sh.position.set(x, gy + .03, c.z); c.sh.scale.set(c.b.len * .5 / (1 + c.y * .15), 1.3 / (1 + c.y * .15), 1);
   c.dz.visible = c.hitT > 0; c.dz.position.set(x, 2.6 + c.ya, c.z); c.dz.rotation.y += dt * 6;
-  if (c.turboT > 0 && Math.random() < .8) part({ s: c.s - c.len / 2 - .3, y: 1 + c.y + rnd(0, .4), z: c.z + rnd(-.4, .4), vs: -6, vy: rnd(0, 1), col: pick([0xff7a1a, 0xffd23f, 0xff3a1a]), size: .22, life: .3, grow: 1, op: .9 });
+  if ((c.turboT > 0 || (INF && c.tier === FIRE && c.hitT <= 0)) && Math.random() < .8) part({ s: c.s - c.len / 2 - .3, y: 1 + c.y + rnd(0, .4), z: c.z + rnd(-.4, .4), vs: -6, vy: rnd(0, 1), col: pick([0xff7a1a, 0xffd23f, 0xff3a1a]), size: .22, life: .3, grow: 1, op: .9 });
   else if (c.v > 6 && c.y < .05 && Math.random() < dt * 5 && !under(c)) puff(c.s - c.len / 2, .3, c.z + rnd(-.5, .5));
 }
 
@@ -745,10 +783,12 @@ function buildHud() {
 }
 function hud() {
   if (INF) {                                               // Infinity: czas, metry, pasek serii (płonie, gdy długo bez uderzenia)
-    const k = streakK(P), left = Math.max(0, Math.ceil(INF_T - raceT)), st = $('streak');
+    const t = tierOf(P), left = Math.max(0, Math.ceil(INF_T - raceT)), st = $('streak');
+    const k = t === FIRE ? 1 : (P.streakT - TIERS[t][0]) / (TIERS[t + 1][0] - TIERS[t][0]);   // pasek: do następnego poziomu
     $('infT').textContent = '⏱️' + left; $('infT').classList.toggle('last', left <= 10 && state === 'race');
-    $('infM').textContent = Math.max(0, Math.round(P.s)) + ' m';
-    st.querySelector('i').style.width = k * 100 + '%'; st.classList.toggle('hot', k > .35); st.classList.toggle('max', k >= 1);
+    $('infM').textContent = Math.round(P.pts);
+    $('mult').textContent = t === FIRE ? '🔥' : 'x' + TIERS[t][1]; $('mult').className = 't' + t;
+    st.querySelector('i').style.width = k * 100 + '%'; st.classList.toggle('hot', t >= 2); st.classList.toggle('max', t === FIRE);
   }
   cars.forEach((c, i) => { progIc[i].style.left = clamp(c.s / LEN, 0, 1) * 100 + '%'; });
   const pl = place(P); if (pl !== lastPlace) { $('place').textContent = ['🥇', '🥈', '🥉', '4️⃣'][pl - 1]; $('place').classList.add('pop'); setTimeout(() => $('place').classList.remove('pop'), 200); lastPlace = pl; }
@@ -772,9 +812,10 @@ function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
   cars.forEach((c, i) => { resetCar(c, i, i); c.s = -14 + i * 3.6; });           // auta po lewej, karta menu po prawej
 }
+const bestKey = k => k + (diff === 'inf' ? 'infpkt' : diff);   // Infinity: rekord w punktach
 function buildMenu() {
   $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick car" data-k="${k}">${img(k)}${NAZWY[k]}</button>`).join('');
-  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${!SET.best[k + diff] ? '' : diff === 'inf' ? `<span class="med rek">${SET.best[k + diff]} m</span>` : `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</span>`}</button>`).join('');
+  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${!SET.best[bestKey(k)] ? '' : diff === 'inf' ? `<span class="med rek">🏆${SET.best[bestKey(k)]}</span>` : `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[bestKey(k)] - 1]}</span>`}</button>`).join('');
   [...$('pickCar').children].forEach(b => b.classList.toggle('on', b.dataset.k === SET.car));
   [...$('pickTrack').children].forEach(b => b.classList.toggle('on', b.dataset.t === SET.trasa));
   [...$('pickDiff').children].forEach(b => b.classList.toggle('on', b.dataset.d === diff));
@@ -814,17 +855,17 @@ function finish() { state = 'end'; endT = 2.4; snd('meta'); bubble(INF ? 'KONIEC
 function showEnd() {
   state = 'done';
   $('podium').hidden = INF; $('wynik').hidden = !INF;
-  if (INF) {                                               // Infinity: przejechane metry i rekord trasy
-    const m = Math.round(P.s), key = SET.trasa + diff, old = SET.best[key] || 0;
+  if (INF) {                                               // Infinity: punkty, przejechane metry i rekord trasy
+    const m = Math.round(P.pts), key = bestKey(SET.trasa), old = SET.best[key] || 0;
     if (m > old) { SET.best[key] = m; save(); }
-    $('wynik').innerHTML = `${img(P.kind)}<b>${m} m</b><span>${m > old ? '🎉 Nowy rekord!' : `🏆 Rekord: ${old} m`}</span>`;
+    $('wynik').innerHTML = `${img(P.kind)}<b>${m} pkt</b><small>📏 ${Math.round(P.s)} m</small><span>${m > old ? '🎉 Nowy rekord!' : `🏆 Rekord: ${old} pkt`}</span>`;
     $('hud').hidden = true; $('end').hidden = false;
     const cf = $('confetti'); cf.innerHTML = '';
     for (let i = 0; i < (m > old ? 40 : 18); i++) { const d = document.createElement('i'); d.textContent = pick(m > old ? ['🎉', '⭐', '🏆', '✨'] : ['⭐', '✨', '🎈']); Object.assign(d.style, { left: rnd(0, 100) + '%', animationDuration: rnd(2, 4) + 's', animationDelay: rnd(0, 1.5) + 's' }); cf.append(d); }
     return;
   }
   const order = [...finOrder, ...cars.filter(c => !c.fin).sort((a, b) => b.s - a.s)], pl = order.indexOf(P) + 1;
-  const key = SET.trasa + diff; if (!SET.best[key] || pl < SET.best[key]) SET.best[key] = pl; save();
+  const key = bestKey(SET.trasa); if (!SET.best[key] || pl < SET.best[key]) SET.best[key] = pl; save();
   const med = ['🥇', '🥈', '🥉', '🏅'], show = [1, 0, 2, 3].map(i => order[i]);   // podium: 2 · 1 · 3 · 4
   $('podium').innerHTML = show.map((c, j) => { const i = order.indexOf(c); return `<div class="${c === P ? 'me' : ''}" style="padding-top:${[22, 40, 10, 2][j]}px">${img(c.kind)}<b>${med[i]}</b></div>`; }).join('');
   $('hud').hidden = true; $('end').hidden = false;
