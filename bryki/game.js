@@ -47,7 +47,8 @@ const hemi = new T.HemisphereLight(), sun = new T.DirectionalLight(); sun.positi
 const cam = new T.PerspectiveCamera(32, 1, .5, 400), camBase = new T.Vector3(), camLook = new T.Vector3();
 let camY = 0;
 const V3 = new T.Vector3();
-const INF_CAM = { fov: 58, hor: .2, py: .6, w: .9 };    // Infinity: kąt kamery, horyzont i auto (ułamek wysokości od góry), droga / szerokość ekranu
+const INF_CAM = { fov: 58, hor: .2, py: .58, w: 1.3, follow: .4 };   // Infinity: kąt kamery, horyzont i auto (ułamek wysokości od góry), droga / szerokość ekranu, kamera za pasem gracza
+let camZ = 0;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
   if (INF) {
@@ -915,7 +916,8 @@ function step(dt) {
   marker.position.set(P.s - camS, P.ya + 3.4 + Math.abs(Math.sin(performance.now() / 180)) * .4, P.z); marker.rotation.y += dt * 3;
   shake = Math.max(0, shake - dt);
   camY += (H(P.s + 4) * .6 - camY) * Math.min(1, dt * 3);   // kamera lekko podąża za górką
-  cam.position.copy(camBase).add(V3.set(rnd(-1, 1) * shake * .5, camY + rnd(-1, 1) * shake * .5, 0));
+  camZ += ((INF ? P.z * INF_CAM.follow : 0) - camZ) * Math.min(1, dt * 6);   // Infinity: droga szersza od ekranu, kamera przesuwa się za autem
+  cam.position.copy(camBase).add(V3.set(rnd(-1, 1) * shake * .5, camY + rnd(-1, 1) * shake * .5, camZ));
   if (INF) {                                               // Infinity: im dłuższa seria (i turbo), tym szerszy kąt kamery — poczucie prędkości
     const f = INF_CAM.fov + 8 * streakK(P) + (P.turboT > 0 ? 5 : 0); cam.fov += (f - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix();
   }
