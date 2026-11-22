@@ -77,10 +77,14 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .mb big{display:block;font-size:clamp(38px,7vw,64px);line-height:1.1}.mb small{display:block;font-size:.8em;opacity:.75}
 .mb.dad{background:#ff9d7a;box-shadow:0 8px 0 #c75a35}
 .mc{display:flex;flex-direction:column;align-items:center;gap:10px}
+.lvp{display:flex;align-items:center;gap:6px;background:rgba(255,248,232,.92);border-radius:99px;padding:2px;box-shadow:0 4px 0 rgba(46,26,9,.5);font-size:clamp(15px,2.4vw,20px);white-space:nowrap}
+.lvp button{width:2.1em;height:2.1em;border-radius:50%;background:var(--gold);font-size:1em;padding:0;touch-action:manipulation}.lvp button:disabled{opacity:.3}.lvp b{min-width:6.5em;padding-top:2px}
+.lvs{display:flex;align-items:center;gap:4px}.lva{width:40px;height:40px;border-radius:50%;background:#bfe6fb;box-shadow:0 4px 0 #6aa6c9;font-size:18px;padding:0;touch-action:manipulation}.lva:disabled{opacity:.3}
+.pb{font-weight:800;touch-action:manipulation}#huntD{font-size:14px;opacity:.75;padding-top:3px}
 .rs{background:rgba(255,248,232,.85);border-radius:99px;padding:3px 12px 1px;font-size:14px;touch-action:manipulation}.rs.sure{background:var(--red);color:#fff}
 /* niski ekran (telefon poziomo z paskiem przeglądarki): wszystko liczone od wysokości, żeby nic nie wyszło pod dolną krawędź */
 @media (max-height:520px){#start{gap:1.5vh;padding:6px 12px;overflow:auto}#start h1{font-size:min(9vw,14vh);-webkit-text-stroke-width:2px;text-shadow:0 .9vh 0 #4a2c12}#start .row{font-size:min(5vw,8vh)}
-  .mb{width:auto;min-width:30vh;padding:1.2vh 3vh .8vh;font-size:5vh;border-radius:5vh;box-shadow:0 1.6vh 0 #c79a00}.mb.dad{box-shadow:0 1.6vh 0 #c75a35}.mb big{font-size:14vh;line-height:1.05}.mc{gap:3vh}.rs{font-size:max(11px,4vh);padding:.4vh 2.4vh .1vh}}
+  .mb{width:auto;min-width:30vh;padding:1.2vh 3vh .8vh;font-size:5vh;border-radius:5vh;box-shadow:0 1.6vh 0 #c79a00}.mb.dad{box-shadow:0 1.6vh 0 #c75a35}.mb big{font-size:14vh;line-height:1.05}.mc{gap:3vh}.lvp{font-size:max(12px,4.5vh)}.rs{font-size:max(11px,4vh);padding:.4vh 2.4vh .1vh}}
 #fade{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s;z-index:4}
 @keyframes pulse{to{transform:scale(1.1)}}
 @keyframes glow{to{filter:brightness(1.4)}}
@@ -97,6 +101,8 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
     <div class="pill"><span>❤️</span><div class="bar"><i id="hpP"></i></div></div>
     <div class="pill"><span>🪙</span><b id="goldN">0</b></div>
     <div class="pill"><span>🏴‍☠️</span><b id="lvlN">1</b></div>
+    <div class="pill" id="huntP" hidden><span>🗺️</span><b id="huntN">0</b><span id="huntD"></span></div>
+    <button class="pill pb" id="bBoard" hidden>⚔️ Abordaż</button>
     <div class="sp"></div>
     <button class="rb" id="bHelp" aria-label="Pomoc">❓</button>
     <button class="rb" id="bMus" aria-label="Dźwięk">🔊</button>
@@ -134,26 +140,28 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <div class="ov" id="help" hidden><div class="card" style="text-align:left">
   <h2>Piraci! Bitwa morska</h2>
   <p><b>Na morzu:</b> lewy kciuk – joystick ⛵ (do przodu = pełne żagle, w bok = skręt). Prawy kciuk – 💥 salwa z lewej albo prawej burty. Ustaw się bokiem do wroga! Przycisk świeci na żółto, gdy wróg jest na celowniku. 💨 – wiatr w żagle (szybki zryw, taranowanie boli wroga). Beczki 🛢️ naprawiają statek, skrzynie dają złoto.</p>
+  <p><b>Skarby:</b> po wygranej bitwie morskiej możesz najpierw popłynąć na poszukiwanie skarbów — bez wrogów, kapitan czeka na swoim okręcie. Złota strzałka nad statkiem pokazuje wyspę z ❌; dopłyń do niej po skrzynię. Przycisk ⚔️ Abordaż (albo podpłynięcie do okrętu z białą flagą) zaczyna pojedynek.</p>
+  <p><b>Poziom:</b> na ekranie startowym i w porcie strzałkami ◀ ▶ wybierzesz dowolny odblokowany poziom (np. łatwiejszy dla młodszego pirata).</p>
   <p><b>Abordaż:</b> gdy okręt kapitana ☠️ dymi, podpłyń do niego. Pojedynek: 👊 Cios (szybki), 🦶 Kop (mocniejszy, przełamuje gardę), ⚔️ Broń (najmocniejsza, chwilę się odnawia). Każde trafienie ładuje przycisk Super — gdy się zapełni, rzucasz morskim zwierzakiem. Seria trafień bez oberwania to COMBO (mocniejsze ciosy).</p>
   <p><b>Obrona:</b> ❗ nad wrogiem znaczy, że zaraz uderzy — przytrzymaj 🛡️ Blok. Wciśnięty w ostatniej chwili daje PARADĘ (wróg ogłuszony). Gdy wróg stoi za tarczą 🛡️, zwykłe ciosy się odbijają — kopnij go.</p>
   <p><b>Klawiatura:</b> strzałki / WASD, Q i E – burty, spacja – wiatr. W pojedynku: J cios, K kop, L broń, spacja – blok, Enter – Super.</p>
   <div style="text-align:center"><button class="go" id="bHelpX">OK</button></div>
 </div></div>
 <div class="ov" id="shop" hidden><div class="card">
-  <div id="shopH"><h2>🏝️ Port <span style="font-size:20px">🪙 <span id="shopGold">0</span></span></h2><button class="go" id="bSail">⛵ W rejs! Poziom <span id="shopLvl">1</span></button></div>
+  <div id="shopH"><h2>🏝️ Port <span style="font-size:20px">🪙 <span id="shopGold">0</span></span></h2><div class="lvs"><button class="lva" id="sLvM" aria-label="Niższy poziom">◀</button><button class="go" id="bSail">⛵ W rejs! Poziom <span id="shopLvl">1</span></button><button class="lva" id="sLvP" aria-label="Wyższy poziom">▶</button></div></div>
   <div id="shopG"></div>
 </div></div>
 <div class="ov" id="pick" hidden><div class="card"><h2>Kim dziś jesteś?</h2><div class="heroes" id="pickG"></div></div></div>
 <div class="ov" id="over" hidden><div class="card">
   <h2 id="ovT">Koniec</h2><p id="ovP"></p>
-  <button class="go" id="ovA">OK</button><button class="go alt" id="ovB">Port</button>
+  <button class="go" id="ovA">OK</button><button class="go alt" id="ovB">🏝️ Port</button>
 </div></div>
 <div id="start">
   <h1>Piraci!<br>Bitwa morska</h1>
   <div class="row">⛵💥🏴‍☠️ ⚔️ 🐙⭐🐡🦀🦈</div>
   <div class="modes">
-    <div class="mc"><button class="mb" id="bKid"><big>🦜</big>Spokojnie<small id="sKid">poziom 1</small></button><button class="rs" id="rKid" hidden>🗑️ od nowa</button></div>
-    <div class="mc"><button class="mb dad" id="bDad"><big>☠️</big>Na serio<small id="sDad">poziom 1</small></button><button class="rs" id="rDad" hidden>🗑️ od nowa</button></div>
+    <div class="mc"><button class="mb" id="bKid"><big>🦜</big>Spokojnie<small id="sKid">poziom 1</small></button><div class="lvp" id="lKid" hidden><button data-d="-1" aria-label="Niższy poziom">◀</button><b id="lKidN">1</b><button data-d="1" aria-label="Wyższy poziom">▶</button></div><button class="rs" id="rKid" hidden>🗑️ od nowa</button></div>
+    <div class="mc"><button class="mb dad" id="bDad"><big>☠️</big>Na serio<small id="sDad">poziom 1</small></button><div class="lvp" id="lDad" hidden><button data-d="-1" aria-label="Niższy poziom">◀</button><b id="lDadN">1</b><button data-d="1" aria-label="Wyższy poziom">▶</button></div><button class="rs" id="rDad" hidden>🗑️ od nowa</button></div>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
