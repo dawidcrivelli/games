@@ -76,6 +76,8 @@ const MODELE = [
   ...['kaktus', 'kamien', 'opony', 'beczka', 'zlom', 'wrak', 'skala', 'dym', 'sosna', 'balwan', 'lodblok']
     .map(t => ({ kat: 'trasy', typ: 'przy drodze', gra: 'bryki', js: `brProp('${t}')` })),
   ...['plaskowyz', 'dzwig', 'fabryka', 'wulkan', 'gora'].map(t => ({ kat: 'trasy', typ: 'w oddali', gra: 'bryki', js: `brProp('${t}')` })),
+  ...['slup', 'latarnia', 'znak', 'billboard', 'czaszka', 'krzak', 'kontener', 'plot', 'krysztal', 'lodkrysztal', 'iglica', 'igloo', 'flaga']
+    .map(t => ({ kat: 'trasy', typ: 'pobocze (Infinity)', gra: 'bryki', js: `brProp('${t}')` })),
   { kat: 'trasy', typ: 'meta', gra: 'bryki', js: 'brMeta(12.6)' },
   { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brTunel(30, 0xc07a48, 12.6)' },
   { kat: 'trasy', typ: 'tunel i most', gra: 'bryki', js: 'brMost(32, 1.8, 12.6, 0x3aa0d0, 0, 0xd8342a)' },
