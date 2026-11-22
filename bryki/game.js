@@ -2,6 +2,8 @@
 // Dzikie Bryki — wyścig 4 groźnych pojazdów na 4 pasach, widok z boku (2.5D). Gracz kontra 3 auta komputera.
 // Modele: models/wild-cars.js (auta, pozy), bryki/tracks.js (motywy, przeszkody); styl i dymki: lib/3d/comic.js, lib/ui/comic.js; dźwięki: dzwieki.js.
 // Świat w „s” = metry wzdłuż trasy; na ekranie x = s − camS (kamera jedzie za graczem). Wysokość drogi: H(s) (górki).
+// Tryb Infinity (diff 'inf'): sam gracz, w pionie, kamera za autem; przeszkody lecą z góry ekranu, 60 s jazdy, wynik w metrach,
+// pasek serii (bez uderzeń) przyspiesza auto, uderzenie zeruje serię i spowalnia jak w wyścigu.
 const PAS = 3.5, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
 const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba'];
 const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸' };
@@ -17,6 +19,7 @@ const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT
 // Moc: u każdego 3 s, ta sama prędkość i odporność; różni się tylko sposobem trafiania aut wokół
 const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3 };
 const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3 };
+const INF_T = 60, INF_V = 20, INF_VMAX = 1.7, STREAK_T = 25;   // Infinity: czas [s], prędkość startowa [m/s], ×prędkość przy pełnej serii, seria pełna po [s]
 const REACH = 7;                                            // zwykły atak: u wszystkich do przodu, ten sam zasięg [m]
 const DIFF = {
   latwy: { cruise: .9, think: .55, react: .6, aggro: .3, aggroP: .06, look: 11, turbo: .06, band: .03, gap: [-12, 10] },
@@ -29,6 +32,7 @@ const mod = (v, w) => ((v % w) + w) % w;
 function mulberry(a) { return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const SET = Object.assign({ car: 'rekin', trasa: 'pustynia', diff: 'latwy', best: {} }, JSON.parse(localStorage.getItem('bryki') || '{}'));
 const save = () => localStorage.setItem('bryki', JSON.stringify(SET));
+let diff = SET.diff, INF = false;                          // INF: trwa jazda Infinity (menu zawsze w zwykłym widoku)
 
 /* ---------- górki: gładkie garby wzdłuż trasy ---------- */
 let HILLS = [], SEGS = [];          // SEGS: tunel i most {typ, s0, s1}
@@ -40,37 +44,52 @@ const renderer = new T.WebGLRenderer({ canvas: $('c'), antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new T.Scene(); scene.fog = new T.Fog(0xffffff, 45, 130);
 const hemi = new T.HemisphereLight(), sun = new T.DirectionalLight(); sun.position.set(-4, 10, 7); scene.add(hemi, sun);
-const cam = new T.PerspectiveCamera(32, 1, .5, 400), camBase = new T.Vector3();
+const cam = new T.PerspectiveCamera(32, 1, .5, 400), camBase = new T.Vector3(), camLook = new T.Vector3();
 let camY = 0;
+const V3 = new T.Vector3();
+const INF_CAM = { fov: 58, hor: .2, py: .6, w: .9 };    // Infinity: kąt kamery, horyzont i auto (ułamek wysokości od góry), droga / szerokość ekranu
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
+  if (INF) {
+    // Infinity: kamera za autem, droga zbiega się w punkt na horyzoncie (INF_CAM.hor od góry ekranu); auto całe na wysokości INF_CAM.py,
+    // droga przy aucie = INF_CAM.w × szerokość ekranu (na poziomym ekranie droga jak na pionowym, po bokach krajobraz)
+    const C = INF_CAM, t = Math.tan(C.fov / 2 * Math.PI / 180), a = Math.min(cam.aspect, .62);
+    const pitch = Math.atan(t * (1 - 2 * C.hor)), below = Math.atan(t * (2 * C.py - 1)), dep = pitch + below;
+    const d = ROAD / 2 / C.w / (t * a) / Math.cos(below);
+    camBase.set(PX - d * Math.cos(dep), .7 + d * Math.sin(dep), 0); camLook.copy(camBase).add(V3.set(Math.cos(pitch), -Math.sin(pitch), 0));
+    cam.fov = C.fov; cam.position.copy(camBase); cam.lookAt(camLook); cam.updateProjectionMatrix();
+    return;
+  }
+  cam.fov = 32;
   // kamera „3” z porównania: skos 8° (widać przody aut), nachylenie 38°, pasy 3,5 m
   const d = Math.max(1, 2.1 / cam.aspect), pit = 38 * Math.PI / 180, yaw = 8 * Math.PI / 180, tz = .3;
   const D = .95 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;
-  camBase.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw)); cam.position.copy(camBase); cam.lookAt(0, .2, tz); cam.updateProjectionMatrix();
+  camBase.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw)); camLook.set(0, .2, tz); cam.position.copy(camBase); cam.lookAt(camLook); cam.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
-const V3 = new T.Vector3();
 function toScreen(x, y, z) { V3.set(x, y, z).project(cam); return [(V3.x + 1) / 2 * innerWidth, (1 - V3.y) / 2 * innerHeight]; }
 
 /* ---------- świat: motyw trasy, droga z górkami ---------- */
 let world = null, deco = [], strips = [], TH = null;
-const NSEG = 160, XW = 160;
+const NSEG = 160;
+// Infinity: droga ciągnie się aż do punktu zbiegu na horyzoncie (XW, XOFF: długość i przesunięcie pasów siatki do przodu),
+// dekoracje i przedmioty widać daleko przed autem (VIEW: od–do względem kamery)
+let XW = 160, XOFF = 0, VIEW = [-30, 45];
 // Pas siatki wzdłuż x; zs = [[z, udział wysokości górki, dodatek y]]
 function strip(zs, col) {
   const nz = zs.length, pos = new Float32Array((NSEG + 1) * nz * 3), idx = [];
   for (let i = 0; i <= NSEG; i++) for (let j = 0; j < nz; j++) { const k = (i * nz + j) * 3; pos[k] = -XW / 2 + i * XW / NSEG; pos[k + 1] = zs[j][2]; pos[k + 2] = zs[j][0]; }
   for (let i = 0; i < NSEG; i++) for (let j = 0; j < nz - 1; j++) { const a = i * nz + j, b = a + nz; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const m = new T.Mesh(g, new T.MeshLambertMaterial({ color: col })); m.userData.zs = zs; world.add(m); strips.push(m); return m;
+  const m = new T.Mesh(g, new T.MeshLambertMaterial({ color: col })); m.position.x = XOFF; m.userData.zs = zs; world.add(m); strips.push(m); return m;
 }
 function updStrips() {
-  const hs = []; for (let i = 0; i <= NSEG; i++) hs.push(H(camS - XW / 2 + i * XW / NSEG));
+  const hs = []; for (let i = 0; i <= NSEG; i++) hs.push(H(camS + XOFF - XW / 2 + i * XW / NSEG));
   const most = SEGS.find(q => q.typ === 'most');
   for (const m of strips) {
     const zs = m.userData.zs, nz = zs.length, p = m.geometry.attributes.position.array;
     for (let i = 0; i <= NSEG; i++) {
-      const s = camS - XW / 2 + i * XW / NSEG, f = m.userData.bank && most && s > most.s0 + 1 && s < most.s1 - 1 ? 0 : 1;   // na moście bez nasypu: pod spodem woda
+      const s = camS + XOFF - XW / 2 + i * XW / NSEG, f = m.userData.bank && most && s > most.s0 + 1 && s < most.s1 - 1 ? 0 : 1;   // na moście bez nasypu: pod spodem woda
       for (let j = 0; j < nz; j++) p[(i * nz + j) * 3 + 1] = hs[i] * zs[j][1] * f + zs[j][2] - (f ? 0 : .3);
     }
     m.geometry.attributes.position.needsUpdate = true; if (HILLS.length) m.geometry.computeVertexNormals();
@@ -78,33 +97,41 @@ function updStrips() {
 }
 function setTheme(name) {
   TH = TRASY[name];
+  XW = INF ? 700 : 160; XOFF = INF ? XW / 2 - 25 : 0; VIEW = INF ? [-16, 230] : [-30, 45];
+  scene.fog.near = INF ? 90 : 45; scene.fog.far = INF ? 340 : 130;
   if (world) scene.remove(world);
   world = new T.Group(); scene.add(world); deco = []; strips = [];
   scene.background = new T.Color(TH.sky); scene.fog.color.set(TH.fog);
   hemi.color.set(TH.hemi[0]); hemi.groundColor.set(TH.hemi[1]); hemi.intensity = TH.hemi[2];
   sun.color.set(TH.sun[0]); sun.intensity = TH.sun[1];
   const r = mulberry(TH.seed), lam = c => new T.MeshLambertMaterial({ color: c });
-  const gnd = new T.Mesh(new T.PlaneGeometry(600, 400), lam(TH.ground)); gnd.rotation.x = -Math.PI / 2; gnd.position.y = -.03; world.add(gnd);
+  const gnd = new T.Mesh(INF ? new T.PlaneGeometry(1600, 900) : new T.PlaneGeometry(600, 400), lam(TH.ground)); gnd.rotation.x = -Math.PI / 2; gnd.position.set(INF ? 300 : 0, -.03, 0); world.add(gnd);
   const bank = new T.Color(TH.ground).multiplyScalar(.88).getHex();
   strip([[-ROAD / 2, 1, .01], [ROAD / 2, 1, .01]], TH.road);
   strip([[-ROAD / 2 - 3.5, 0, -.02], [-ROAD / 2, 1, 0]], bank).userData.bank = 1;
   strip([[ROAD / 2, 1, 0], [ROAD / 2 + 3.5, 0, -.02]], bank).userData.bank = 1;
   const dash = new T.BoxGeometry(2.2, .04, .16), dashM = new T.MeshBasicMaterial({ color: TH.line }), curb = new T.BoxGeometry(2, .18, .5);
   const curbM = TH.curb.map(c => lam(c));
-  const sc = (o, s0, f, w, road) => { world.add(o); deco.push({ o, s0, f, w, road, y0: o.position.y }); };
-  for (let x = 0; x < 120; x += 5) for (const z of [-PAS, 0, PAS]) { const m = new T.Mesh(dash, dashM); m.position.set(0, .03, z); sc(m, x, 1, 120, 1); }
-  for (let x = 0, i = 0; x < 120; x += 2, i++) for (const z of [-ROAD / 2 - .25, ROAD / 2 + .25]) { const m = new T.Mesh(curb, curbM[i % 2]); m.position.set(0, .09, z); sc(m, x, 1, 120, 1); }
+  // dekoracja zawija się co w metrów; off: środek pętli przed kamerą (Infinity: daleko do przodu)
+  const sc = (o, s0, f, w, road, off = 0) => { world.add(o); deco.push({ o, s0, f, w, road, off, y0: o.position.y }); };
+  const RW = INF ? 300 : 120, roff = INF ? RW / 2 - 25 : 0;
+  for (let x = 0; x < RW; x += 5) for (const z of [-PAS, 0, PAS]) { const m = new T.Mesh(dash, dashM); m.position.set(0, .03, z); sc(m, x, 1, RW, 1, roff); }
+  for (let x = 0, i = 0; x < RW; x += 2, i++) for (const z of [-ROAD / 2 - .25, ROAD / 2 + .25]) { const m = new T.Mesh(curb, curbM[i % 2]); m.position.set(0, .09, z); sc(m, x, 1, RW, 1, roff); }
   for (let i = 0; i < 24; i++) {                     // rekwizyty: za drogą i kilka małych z przodu
     const p = brProp(TH.props[i % TH.props.length]), front = i % 6 === 0;
     p.position.z = front ? ROAD / 2 + 4.5 + r() * 2 : -ROAD / 2 - 4 - r() * 22; p.rotation.y = r() * 6;
     if (front) p.scale.setScalar(.7);
     sc(p, r() * 140, 1, 140, 0);
   }
-  for (let i = 0; i < 7; i++) { const p = brProp(TH.far[i % TH.far.length]); p.position.z = -70 - r() * 40; p.rotation.y = r() * 6; sc(p, r() * 300, .15, 300, 0); }
+  if (INF) for (let i = 0; i < 40; i++) {                 // Infinity: rekwizyty dalej przed autem, po obu stronach
+    const p = brProp(TH.props[i % TH.props.length]), sd = i % 2 ? 1 : -1;
+    p.position.z = sd * (ROAD / 2 + 4 + r() * 26); p.rotation.y = r() * 6; sc(p, r() * 240, 1, 240, 0, 145);
+  }
+  for (let i = 0; i < 7; i++) { const p = brProp(TH.far[i % TH.far.length]); p.position.z = (INF && i % 2 ? 1 : -1) * (70 + r() * 40); p.rotation.y = r() * 6; sc(p, r() * 300, .15, 300, 0); }
 }
 function placeDeco() {
   for (const d of deco) {
-    const x = mod(d.s0 - camS * d.f, d.w) - d.w / 2; d.o.position.x = x;
+    const x = mod(d.s0 - camS * d.f - d.off, d.w) - d.w / 2 + d.off; d.o.position.x = x;
     if (d.road) { d.o.position.y = d.y0 + H(camS + x); d.o.rotation.z = Math.atan(Hd(camS + x)); }
   }
   updStrips();
@@ -144,14 +171,14 @@ brPart(marker, new T.ConeGeometry(.45, .8, 4), brMat(0xffd23f), 0, 0, 0, { r: [M
 // Skład wyścigu: gracz + 3 losowe z pozostałych
 function lineup() {
   P = ALL.find(c => c.kind === SET.car);
-  const rest = ALL.filter(c => c !== P).sort(() => Math.random() - .5).slice(0, 3);
+  const rest = INF ? [] : ALL.filter(c => c !== P).sort(() => Math.random() - .5).slice(0, 3);   // Infinity: sam gracz
   cars = [P, ...rest].sort((a, b) => KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
   for (const c of ALL) { const on = cars.includes(c); c.b.g.visible = on; c.sh.visible = on; c.dz.visible = false; }
   buildHud();
 }
 
 /* ---------- stan gry ---------- */
-let state = 'menu', diff = SET.diff, camS = 0, raceT = 0, countT = 0, endT = 0, shake = 0, items = [], eggs = [], shots = [], finOrder = [];
+let state = 'menu', camS = 0, raceT = 0, countT = 0, endT = 0, shake = 0, items = [], eggs = [], shots = [], finOrder = [];
 const laneOf = c => clamp(Math.round(c.z / PAS + 1.5), 0, 3);
 const near = c => Math.abs(c.s - camS) < 16;
 const mocOn = c => c.act === 'moc';
@@ -162,27 +189,17 @@ const immune = c => c.blinkT > 0 || mocOn(c) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
-    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, bonkT: 0,
+    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, yaw: 0, bonkT: 0, streakT: 0,
     ai: { t: rnd(.2, .6), gap: 0, gapT: 0 } });
 }
 function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.lane = n; return true; }
 
 /* ---------- trasa: górki, przeszkody, bonusy ---------- */
-function genTrack(th) {
-  const r = mulberry(th.seed * 7 + (diff === 'trudny' ? 3 : 0)), R = a => a[Math.floor(r() * a.length)], out = [];
-  const add = (typ, s, lane, y = 0) => out.push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
-  // jedyna górka to most
-  HILLS = []; SEGS = [];
-  const most = { typ: 'most', s0: Math.round(LEN * .55), s1: Math.round(LEN * .55) + 36 };
-  SEGS.push(most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
-  out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
-  const inSeg = (a, b) => SEGS.some(q => b > q.s0 - 6 && a < q.s1 + 6);
-  const onHill = s => HILLS.some(q => s > q.s - 4 && s < q.s + q.L + 4);
-  const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'ruch', 'ruch', 'ruch'];
-  let s = 55;
-  while (s < LEN - 70) {
-    const L = [0, 1, 2, 3].sort(() => r() - .5);
-    let p = R(pats); if (onHill(s) && ['rampa', 'turbo', 'slisko', 'slalom'].includes(p)) p = 'gwiazdy';
+// Wzory przeszkód: patterns(motyw, losowanie, push) → (wzór, s, L = pasy w losowej kolejności, na górce?) → s (wzór może przesunąć s dalej)
+function patterns(th, r, push) {
+  const R = a => a[Math.floor(r() * a.length)];
+  const add = (typ, s, lane, y = 0) => push({ typ, s, lane, y, rodzaj: BRYKI_RODZAJ()[typ], len: typ === 'rampa' || typ === 'turbo' ? 3 : 1.6, alive: true, g: null, hitBy: new Set() });
+  return (p, s, L, hill = false) => {
     switch (p) {
       case 'jedna': add(R(th.twarde), s, L[0]); break;
       case 'dwie': add(R(th.twarde), s, L[0]); add(R(th.twarde), s + r() * 3, L[1]); break;
@@ -194,19 +211,49 @@ function genTrack(th) {
       case 'slisko': add(th.slisko, s, L[0]); if (r() < .5) add(th.slisko, s + 4, L[1]); break;
       case 'slalom': for (let i = 0; i < 3; i++) add(R(th.twarde), s + i * 8, L[i]); s += 14; break;
       case 'mix': add(R(th.twarde), s, L[0]); add('gwiazda', s, L[1]); add(R(th.miekkie), s + 3, L[2]); break;
+      case 'sciana': for (let i = 0; i < 3; i++) add(R(th.twarde), s, L[i]); add('gwiazda', s, L[3]); break;   // Infinity: jedna dziura w ścianie
       case 'ruch': {                                      // ruchoma przeszkoda motywu
         const typ = R(th.ruchome), m = BRYKI_RUCH()[typ];
-        if (m === 'swing' && onHill(s)) break;
-        add(typ, s, m === 'swing' ? 1 : L[0]);
-        const it = out[out.length - 1]; it.move = { type: m, t: 0, dir: r() < .5 ? -1 : 1, ph: r() * 6, sp: { biegacz: 3.5, pingwin: 4, beczka_tocz: 3, glaz_tocz: 7, sniezka: 6 }[typ] || 0 };
+        if (m === 'swing' && hill) break;
+        const it = add(typ, s, m === 'swing' ? 1 : L[0]);
+        it.move = { type: m, t: 0, dir: r() < .5 ? -1 : 1, ph: r() * 6, sp: { biegacz: 3.5, pingwin: 4, beczka_tocz: 3, glaz_tocz: 7, sniezka: 6 }[typ] || 0 };
         if (m === 'cross') it.z = LANES[L[0]];
         if (m === 'swing') it.zMid = true;
         break;
       }
     }
+    return s;
+  };
+}
+function genTrack(th) {
+  const r = mulberry(th.seed * 7 + (diff === 'trudny' ? 3 : 0)), R = a => a[Math.floor(r() * a.length)], out = [];
+  // jedyna górka to most
+  HILLS = []; SEGS = [];
+  const most = { typ: 'most', s0: Math.round(LEN * .55), s1: Math.round(LEN * .55) + 36 };
+  SEGS.push(most); HILLS.push({ s: most.s0, L: 36, A: 1.8, most: 1 });
+  out.push({ typ: 'most', s: (most.s0 + most.s1) / 2, half: 18, lane: 1, y: 0, rodzaj: '', len: 0, alive: true, g: null, hitBy: new Set(), zMid: true });
+  const onHill = s => HILLS.some(q => s > q.s - 4 && s < q.s + q.L + 4);
+  const pats = ['jedna', 'jedna', 'dwie', 'skrzynie', 'gwiazdy', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'ruch', 'ruch', 'ruch'];
+  const place = patterns(th, r, it => (out.push(it), it));
+  let s = 55;
+  while (s < LEN - 70) {
+    const L = [0, 1, 2, 3].sort(() => r() - .5);
+    let p = R(pats); if (onHill(s) && ['rampa', 'turbo', 'slisko', 'slalom'].includes(p)) p = 'gwiazdy';
+    s = place(p, s, L, onHill(s));
     s += (diff === 'trudny' ? 14 : 17) + r() * 12;
   }
   return out;
+}
+// Infinity: przeszkody dokładane przed autem w trakcie jazdy; odstęp ok. 1 s jazdy (na początku więcej)
+const INF_PATS = ['jedna', 'dwie', 'dwie', 'sciana', 'sciana', 'skrzynie', 'gwiazdy', 'rampa', 'turbo', 'slisko', 'slalom', 'mix', 'mix', 'ruch', 'ruch', 'ruch'];
+let infS = 0, infPlace = null;
+function genInf() {
+  if (!infPlace) { infS = 45; infPlace = patterns(TH, Math.random, it => (items.push(it), it)); }
+  while (infS < P.s + VIEW[1] + 20) {
+    const L = [0, 1, 2, 3].sort(() => Math.random() - .5), easy = raceT < 8;
+    infS = infPlace(pick(easy ? ['jedna', 'dwie', 'gwiazdy', 'skrzynie', 'mix'] : INF_PATS), infS, L);
+    infS += Math.max(P.v, INF_V) * rnd(.85, 1.3) * (easy ? 1.4 : 1);
+  }
 }
 function itemMesh(it) {
   if (it.typ === 'tusz') return inkMesh();
@@ -234,7 +281,8 @@ function syncItems(dt) {
   for (const it of items) {
     const x = it.s - camS;
     if (it.ttl !== undefined) { it.ttl -= dt; if (it.ttl < 0) it.alive = false; else if (it.g && it.ttl < .6) it.g.scale.setScalar(it.ttl / .6); }
-    const hf = it.half || 0, show = it.alive && x > -30 - hf && x < 45 + hf;
+    const hf = it.half || 0, show = it.alive && x > VIEW[0] - hf && x < VIEW[1] + hf;
+    if (INF && x < VIEW[0] - 10) it.alive = false;            // Infinity: minięte przedmioty znikają
     if (show && !it.g) { it.g = itemMesh(it); world.add(it.g); if (it.move?.type === 'fall') { it.g.userData.rock.visible = false; it.g.userData.ring.visible = false; } }
     if (!show && it.g) { world.remove(it.g); it.g = null; }
     if (it.g) {
@@ -269,7 +317,7 @@ function stepMovers(dt) {
   }
   for (const it of items) {
     const m = it.move; if (!m || !it.alive) continue;
-    const x = it.s - camS; if (x > 40 || x < -25) continue;
+    const x = it.s - camS; if (x > (INF ? 60 : 40) || x < -25) continue;
     m.t += dt; const R = it.g?.userData.roll;
     if (m.type === 'cross') {
       it.z += m.dir * m.sp * dt;
@@ -289,7 +337,7 @@ function stepMovers(dt) {
         if (hit(c, null)) bubbleAt('BAM!', it.s, by + 1, bz, 'big');
     }
     if (m.type === 'fall') {
-      if (!m.on && cars.some(c => it.s - c.s > 0 && it.s - c.s < 24)) { m.on = true; m.y = 24; if (Math.abs(x) < 25) snd('swist'); }
+      if (!m.on && cars.some(c => it.s - c.s > 0 && it.s - c.s < (INF ? Math.max(24, c.v * 1.4) : 24))) { m.on = true; m.y = 24; if (Math.abs(x) < 25) snd('swist'); }
       if (m.on && it.g) {
         m.y -= 22 * dt; const rk = it.g.userData.rock, ring = it.g.userData.ring;
         rk.visible = true; rk.position.y = Math.max(0, m.y) + .8; ring.visible = Math.floor(m.t * 8) % 2 === 0; ring.scale.setScalar(1 + m.y / 24);
@@ -367,7 +415,7 @@ function turbo(c) {
 // Atakujący dostaje gwiazdkę do mocy. Zderzenia aut nigdy nie karzą.
 function hit(o, by, how) {
   if (immune(o)) return false;
-  o.hitT = HIT_T; o.blinkT = BLINK_T; o.ghostT = GHOST_T; o.spinT = o.spinD = SPIN_T; o.v *= .3; o.slipT = 0;
+  o.hitT = HIT_T; o.blinkT = BLINK_T; o.ghostT = GHOST_T; o.spinT = o.spinD = SPIN_T; o.v *= .3; o.slipT = 0; o.streakT = 0;   // seria Infinity od zera
   if (o.act === 'moc' || o.act === 'atak') o.act = null;
   if (how === 'pop') o.vy = Math.max(o.vy, 7);
   sparkle(o.s, 1.6 + o.y, o.z);
@@ -565,6 +613,7 @@ function aiThink(c) {
 }
 
 /* ---------- ruch aut ---------- */
+const streakK = c => clamp(c.streakT / STREAK_T, 0, 1);
 const place = c => 1 + cars.filter(o => o !== c && (o.fin && (!c.fin || o.finT < c.finT) || (!o.fin && !c.fin && o.s > c.s))).length;
 function stepCar(c, dt, racing) {
   for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ghostT']) c[k] -= dt;
@@ -577,7 +626,8 @@ function stepCar(c, dt, racing) {
   }
   let vt = 0;
   if (racing) {
-    vt = CRUISE * (c.player ? 1 : DIFF[diff].cruise);
+    vt = INF ? INF_V * (1 + (INF_VMAX - 1) * streakK(c)) : CRUISE * (c.player ? 1 : DIFF[diff].cruise);
+    if (INF && !c.fin && c.hitT <= 0) c.streakT += dt;
     if (!c.player && !c.fin && c.s < LEN * .85) vt *= 1 + clamp((P.s + c.ai.gap - c.s) * DIFF[diff].band, -.3, .35);
     if (c.player && !c.fin && place(c) === 4) vt *= 1.1;                 // ostatni dostaje lekkie wsparcie
     if (c.fin) vt *= .7;
@@ -590,7 +640,7 @@ function stepCar(c, dt, racing) {
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
   c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
   // zmiana pasa; gdy obok jedzie auto — tylko odbicie z powrotem, bez kary
-  const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * 9);
+  const pz = c.z; c.z += (LANES[c.lane] - c.z) * Math.min(1, dt * (INF ? 13 : 9));
   if (racing && Math.abs(LANES[c.lane] - c.z) > .3 && !spiky(c) && !under(c)) {
     const dir = Math.sign(LANES[c.lane] - c.z);
     const o = c.ghostT <= 0 && cars.find(o => o !== c && o.ghostT <= 0 && !under(o) && !high(o) && !high(c) && Math.abs(o.s - c.s) < (c.len + o.len) / 2 - .5 && Math.sign(o.z - c.z) === dir && Math.abs(o.z - c.z) < PAS * .75 && Math.abs(o.y - c.y) < 1.2);
@@ -600,6 +650,7 @@ function stepCar(c, dt, racing) {
     }
   }
   c.tilt = clamp((c.z - pz) / Math.max(dt, 1e-3) * -.025, -.15, .15);
+  c.yaw += (clamp((c.z - pz) / Math.max(dt, 1e-3) * -.035, -.4, .4) - c.yaw) * Math.min(1, dt * 12);   // Infinity: przy zmianie pasa auto skręca (widać pysk z boku)
   // pion: wysokość bezwzględna ya; na ziemi auto trzyma się drogi, na grzbiecie górki samo wyskakuje
   const gy = H(c.s), sl = Hd(c.s);
   if (mocOn(c) && c.kind === 'ptak') { c.ya += (gy + 1.9 - c.ya) * Math.min(1, dt * 4); c.vy = 0; }
@@ -613,7 +664,7 @@ function stepCar(c, dt, racing) {
   }
   const wasAir = c.y > .35; c.y = c.ya - gy;
   if (!wasAir && c.y > .35 && c.player && racing && !mocOn(c)) bubble('HOP!', c, 'small');
-  if (racing && !c.fin && c.s >= LEN) { c.fin = true; c.finT = raceT; finOrder.push(c); if (c.player) finish(); }
+  if (racing && !c.fin && !INF && c.s >= LEN) { c.fin = true; c.finT = raceT; finOrder.push(c); if (c.player) finish(); }
   if (racing && !c.player && !c.fin) {
     if ((c.ai.gapT -= dt) < 0) { c.ai.gapT = rnd(3, 7); c.ai.gap = rnd(...DIFF[diff].gap); }
     if ((c.ai.t -= dt) < 0) { c.ai.t = DIFF[diff].think * rnd(.7, 1.3); aiThink(c); }
@@ -657,7 +708,7 @@ function drawCar(c, dt) {
   const g = c.b.g, x = c.s - camS, gy = H(c.s);
   const pitch = c.y < .05 ? Math.atan(Hd(c.s)) : (mocOn(c) && c.kind === 'ptak') ? 0 : clamp(Math.atan2(c.vy, Math.max(c.v, 4)), -.45, .45);
   g.position.set(x, c.ya, c.z);
-  g.rotation.set(c.tilt, c.spinT > 0 ? (1 - c.spinT / c.spinD) * Math.PI * 2 : 0, pitch);
+  g.rotation.set(c.tilt, (c.spinT > 0 ? (1 - c.spinT / c.spinD) * Math.PI * 2 : 0) + (INF ? c.yaw : 0), pitch);
   g.visible = !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
   c.sh.position.set(x, gy + .03, c.z); c.sh.scale.set(c.b.len * .5 / (1 + c.y * .15), 1.3 / (1 + c.y * .15), 1);
   c.dz.visible = c.hitT > 0; c.dz.position.set(x, 2.6 + c.ya, c.z); c.dz.rotation.y += dt * 6;
@@ -692,6 +743,12 @@ function buildHud() {
   edges = cars.map(() => { const d = document.createElement('div'); d.className = 'edge'; d.hidden = true; $('edges').append(d); return d; });
 }
 function hud() {
+  if (INF) {                                               // Infinity: czas, metry, pasek serii (płonie, gdy długo bez uderzenia)
+    const k = streakK(P), left = Math.max(0, Math.ceil(INF_T - raceT)), st = $('streak');
+    $('infT').textContent = '⏱️' + left; $('infT').classList.toggle('last', left <= 10 && state === 'race');
+    $('infM').textContent = Math.max(0, Math.round(P.s)) + ' m';
+    st.querySelector('i').style.width = k * 100 + '%'; st.classList.toggle('hot', k > .35); st.classList.toggle('max', k >= 1);
+  }
   cars.forEach((c, i) => { progIc[i].style.left = clamp(c.s / LEN, 0, 1) * 100 + '%'; });
   const pl = place(P); if (pl !== lastPlace) { $('place').textContent = ['🥇', '🥈', '🥉', '4️⃣'][pl - 1]; $('place').classList.add('pop'); setTimeout(() => $('place').classList.remove('pop'), 200); lastPlace = pl; }
   cars.forEach((c, i) => {                               // auta poza ekranem: strzałka przy krawędzi
@@ -716,7 +773,7 @@ function menuLayout() {
 }
 function buildMenu() {
   $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick car" data-k="${k}">${img(k)}${NAZWY[k]}</button>`).join('');
-  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${SET.best[k + diff] ? `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</span>` : ''}</button>`).join('');
+  $('pickTrack').innerHTML = TRASY_KEYS.map(k => `<button class="btn pick" data-t="${k}"><span class="ico">${TRASY[k].ic}</span>${NAZWY[k]}${!SET.best[k + diff] ? '' : diff === 'inf' ? `<span class="med rek">${SET.best[k + diff]} m</span>` : `<span class="med">${['🥇', '🥈', '🥉', '🏅'][SET.best[k + diff] - 1]}</span>`}</button>`).join('');
   [...$('pickCar').children].forEach(b => b.classList.toggle('on', b.dataset.k === SET.car));
   [...$('pickTrack').children].forEach(b => b.classList.toggle('on', b.dataset.t === SET.trasa));
   [...$('pickDiff').children].forEach(b => b.classList.toggle('on', b.dataset.d === diff));
@@ -730,25 +787,41 @@ function fitMenu() {
 }
 addEventListener('resize', () => setTimeout(fitMenu, 50));
 function showMenu() {
-  state = 'menu'; ['hud', 'end', 'pause'].forEach(id => $(id).hidden = true); $('menu').hidden = false; $('confetti').innerHTML = '';
+  state = 'menu'; INF = false; document.body.classList.remove('inf'); resize(); globalThis.obrotUstaw?.({}); ['hud', 'end', 'pause'].forEach(id => $(id).hidden = true); $('menu').hidden = false; $('confetti').innerHTML = '';
   menuLayout(); buildMenu(); fitMenu();
 }
 function startRace() {
   audInit(); snd('klik');
   obrotPelny();
-  clearRace(); setTheme(SET.trasa); if (P.kind !== SET.car) lineup();
+  const wasInf = INF; INF = diff === 'inf';
+  document.body.classList.toggle('inf', INF); $('bUp').textContent = INF ? '⬅️' : '⬆️'; $('bDn').textContent = INF ? '➡️' : '⬇️';
+  $('place').hidden = $('prog').hidden = INF; $('infTop').hidden = !INF;
+  if (INF) obrotUstaw({ pion: true }); else if (wasInf) obrotUstaw({});
+  resize();
+  clearRace(); setTheme(SET.trasa); if (P.kind !== SET.car || INF !== wasInf || INF) lineup();
   const lanes = [1, 0, 2]; let li = 0;
-  cars.forEach((c, i) => resetCar(c, i, c === P ? 3 : lanes[li++]));
-  items = genTrack(TH);
-  newItem({ typ: 'start', s: 0, lane: 1, rodzaj: '', len: 0, zMid: true }); newItem({ typ: 'meta', s: LEN, lane: 1, rodzaj: '', len: 0, zMid: true });
+  cars.forEach((c, i) => resetCar(c, i, INF ? 1 : c === P ? 3 : lanes[li++]));
+  if (INF) { items = []; infPlace = null; genInf(); }
+  else items = genTrack(TH);
+  newItem({ typ: 'start', s: 0, lane: 1, rodzaj: '', len: 0, zMid: true }); if (!INF) newItem({ typ: 'meta', s: LEN, lane: 1, rodzaj: '', len: 0, zMid: true });
   $('bMoc').querySelector('.i').textContent = MOC_IC[P.kind];
   camS = P.s - PX; raceT = 0; lastPlace = 0; shake = 0;
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = '';
   state = 'count'; countT = 3.2; $('count').hidden = false; $('count').textContent = '';
 }
-function finish() { state = 'end'; endT = 2.4; snd('meta'); bubble('META!', P, 'big'); }
+function finish() { state = 'end'; endT = 2.4; snd('meta'); bubble(INF ? 'KONIEC!' : 'META!', P, 'big'); }
 function showEnd() {
   state = 'done';
+  $('podium').hidden = INF; $('wynik').hidden = !INF;
+  if (INF) {                                               // Infinity: przejechane metry i rekord trasy
+    const m = Math.round(P.s), key = SET.trasa + diff, old = SET.best[key] || 0;
+    if (m > old) { SET.best[key] = m; save(); }
+    $('wynik').innerHTML = `${img(P.kind)}<b>${m} m</b><span>${m > old ? '🎉 Nowy rekord!' : `🏆 Rekord: ${old} m`}</span>`;
+    $('hud').hidden = true; $('end').hidden = false;
+    const cf = $('confetti'); cf.innerHTML = '';
+    for (let i = 0; i < (m > old ? 40 : 18); i++) { const d = document.createElement('i'); d.textContent = pick(m > old ? ['🎉', '⭐', '🏆', '✨'] : ['⭐', '✨', '🎈']); Object.assign(d.style, { left: rnd(0, 100) + '%', animationDuration: rnd(2, 4) + 's', animationDelay: rnd(0, 1.5) + 's' }); cf.append(d); }
+    return;
+  }
   const order = [...finOrder, ...cars.filter(c => !c.fin).sort((a, b) => b.s - a.s)], pl = order.indexOf(P) + 1;
   const key = SET.trasa + diff; if (!SET.best[key] || pl < SET.best[key]) SET.best[key] = pl; save();
   const med = ['🥇', '🥈', '🥉', '🏅'], show = [1, 0, 2, 3].map(i => order[i]);   // podium: 2 · 1 · 3 · 4
@@ -774,15 +847,18 @@ for (const id in BTN) {
   b.addEventListener('pointerdown', e => { e.preventDefault(); audInit(); b.classList.add('dn'); press(BTN[id]); });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => b.classList.remove('dn'));
 }
+const KEYS_INF = { ArrowLeft: 'up', KeyA: 'up', ArrowRight: 'dn', KeyD: 'dn' };   // Infinity: pasy w lewo / w prawo
 const KEYS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'dn', KeyS: 'dn', Space: 'atak', KeyX: 'atak', KeyZ: 'moc', KeyC: 'moc', ShiftLeft: 'turbo', ShiftRight: 'turbo', KeyB: 'turbo', KeyH: 'trab' };
 addEventListener('keydown', e => {
-  if (KEYS[e.code] && !e.repeat) { e.preventDefault(); press(KEYS[e.code]); }
+  const k = KEYS[e.code] || (INF && KEYS_INF[e.code]);
+  if (k && !e.repeat) { e.preventDefault(); press(k); }
   if (e.code === 'Escape' && state === 'race') pause(true);
   if (e.code === 'Enter' && state === 'menu') startRace();
 });
-let swipe = null;                                         // przesunięcie palcem po drodze w górę/dół = zmiana pasa; stuknięcie = klakson
-$('c').addEventListener('pointerdown', e => { audInit(); swipe = { y: e.clientY, id: e.pointerId, t: performance.now(), moved: false }; });
-$('c').addEventListener('pointermove', e => { if (swipe && e.pointerId === swipe.id && Math.abs(e.clientY - swipe.y) > 35) { lane(e.clientY < swipe.y ? -1 : 1); swipe.y = e.clientY; swipe.moved = true; } });
+let swipe = null;                                         // przesunięcie palcem po drodze w górę/dół (Infinity: w lewo/prawo) = zmiana pasa; stuknięcie = klakson
+const swipeAt = e => INF ? e.clientX : e.clientY;
+$('c').addEventListener('pointerdown', e => { audInit(); swipe = { y: swipeAt(e), id: e.pointerId, t: performance.now(), moved: false }; });
+$('c').addEventListener('pointermove', e => { const y = swipeAt(e); if (swipe && e.pointerId === swipe.id && Math.abs(y - swipe.y) > 35) { lane(y < swipe.y ? -1 : 1); swipe.y = y; swipe.moved = true; } });
 addEventListener('pointerup', e => {
   if (swipe && !swipe.moved && performance.now() - swipe.t < 300 && e.target === $('c')) { if (state === 'race') press('trab'); else if (state === 'menu') snd('klakson_' + P.kind); }
   swipe = null;
@@ -820,23 +896,29 @@ function step(dt) {
     }
   }
   if (racing) raceT += dt;
+  if (INF && state === 'race' && !P.fin && raceT >= INF_T) { P.fin = true; finish(); }   // Infinity: koniec czasu
+  if (INF && racing) genInf();
   for (const c of cars) stepCar(c, dt, racing);
   if (racing) { collide(); stepEggs(dt); stepShots(dt); stepMovers(dt); }
   if (state === 'menu') {                                  // menu: wybrane auto podskakuje
     menuT += dt; P.ya = P.y = Math.abs(Math.sin(menuT * 4)) * .5; P.vy = 0;
     camS = 0;
-  } else camS += (P.s - PX - camS) * Math.min(1, dt * 5);
+  } else if (INF) camS = P.s - PX;                         // Infinity: kamera sztywno za autem
+  else camS += (P.s - PX - camS) * Math.min(1, dt * 5);
   if (state === 'end' && (endT -= dt) < 0) showEnd();
   placeDeco(); syncItems(dt); stepParts(dt);
   for (const c of cars) drawCar(c, dt);
   const tg = state === 'race' && !P.fin ? [...cars.filter(o => inReach(P, o) && !immune(o)), ...items.filter(it => it.rodzaj === 'twarda' && itemInReach(P, it)).map(it => ({ s: it.s, z: it.z ?? LANES[it.lane] }))] : [];   // celownik i świecący przycisk ataku
   aims.forEach((m, i) => { const o = tg[i]; m.visible = !!o && P.atakCd <= 0; if (o) { m.position.set(o.s - camS, H(o.s) + .06, o.z); m.scale.setScalar(1 + .12 * Math.sin(performance.now() / 90)); } });
   $('bAtak').classList.toggle('hot', tg.length > 0 && P.atakCd <= 0);
-  marker.visible = state !== 'menu' && state !== 'done';
+  marker.visible = state !== 'menu' && state !== 'done' && !INF;
   marker.position.set(P.s - camS, P.ya + 3.4 + Math.abs(Math.sin(performance.now() / 180)) * .4, P.z); marker.rotation.y += dt * 3;
   shake = Math.max(0, shake - dt);
   camY += (H(P.s + 4) * .6 - camY) * Math.min(1, dt * 3);   // kamera lekko podąża za górką
   cam.position.copy(camBase).add(V3.set(rnd(-1, 1) * shake * .5, camY + rnd(-1, 1) * shake * .5, 0));
+  if (INF) {                                               // Infinity: im dłuższa seria (i turbo), tym szerszy kąt kamery — poczucie prędkości
+    const f = INF_CAM.fov + 8 * streakK(P) + (P.turboT > 0 ? 5 : 0); cam.fov += (f - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix();
+  }
   if (state !== 'menu' && state !== 'done') hud();
   engines();
 }

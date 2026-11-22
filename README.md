@@ -56,7 +56,7 @@ flowchart LR
 | `lib/common/math.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci | Liczby: clamp(v, a, b) — przytnij do [a, b]; lerp(a, b, t) — interpolacja liniowa. |
 | `lib/common/noise.js` | 5 | ciuchcia taxi zniwa arka rafa | Szum wartości 2D: hash2(x, y) → [0, 1), vnoise(x, y) — gładki szum (plamy na łące, piasek, fale). |
 | `lib/common/random.js` | 6 | ciuchcia taxi zniwa rafa | Losowanie z ziarnem (ten sam świat dla tego samego seed): rnd() → [0, 1), rr(a, b) → [a, b). |
-| `lib/common/screen.js` | 40 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika | Ekran telefonu: goFS() — pełny ekran; obrotInit({ pion }) — plansza „Obróć telefon poziomo/pionowo” + pełny ekran |
+| `lib/common/screen.js` | 50 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika | Ekran telefonu: goFS() — pełny ekran; obrotInit({ pion }) — plansza „Obróć telefon poziomo/pionowo” + pełny ekran |
 | `lib/input/tilt.js` | 31 | taxi zniwa rafa | Przechylanie telefonu (żyroskop) jako sterowanie: stan tilt = {on, x, y, …} (x w prawo, y od siebie, od -1 do 1). |
 | `lib/ui/comic.css` | 26 | bryki klinika | Styl „komiks”: tabliczki-przyciski, okienka, komiksowe napisy w gwieździe, konfetti — Dzikie Bryki, Klinika Zoo. |
 | `lib/ui/comic.js` | 8 | bryki klinika | Komiksowy napis w gwieździe (CSS .bub z lib/ui/comic.css) w punkcie ekranu X, Y; znika sam |
