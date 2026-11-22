@@ -8,8 +8,8 @@
 // Bez przegranej i bez czasu. Pacjenci = modele z innych gier (ZOO z models/animals.js, ludzik z Piratów jako Pan Weterynarz) + wnętrze z models/anatomy.js
 // (klinika/patients.js); budynek kliniki w przekroju (klinika/office.js), światło jak w Arce Noego; dźwięk i lektor: dzwieki.js.
 // Rentgen: dwie warstwy kamery (0 skóra, 1 wnętrze); warstwa 1 renderowana do tekstury i nakładana w kole lupy.
-const KINDS = ['zyrafa', 'slon', 'tygrys', 'pingwin', 'doktor'];
-const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', tygrys: 'Tygrys', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
+const KINDS = ['zyrafa', 'slon', 'tygrys', 'lew', 'pingwin', 'doktor'];
+const NAZWY = { zyrafa: 'Żyrafa', slon: 'Słoń', tygrys: 'Tygrys', lew: 'Lew', pingwin: 'Pingwin', doktor: 'Pan Doktor' };
 const RZECZY = ['kaczka', 'budzik', 'skarpetka', 'klucz', 'rybka', 'pilka', 'klocek', 'lod'];
 const RZ_MOWA = { kaczka: 'Gumowa kaczka! Kaczek się nie je!', budzik: 'Budzik! To on dzwonił w brzuchu!', skarpetka: 'Skarpetka! Fuj, to nie do jedzenia!',
   klucz: 'Klucz! Kluczy się nie połyka!', rybka: 'Rybka! Ale z plastiku, nie do jedzenia!', pilka: 'Piłka! Piłka jest do grania, nie do jedzenia!', klocek: 'Klocek! Klocki są do budowania!', lod: 'Kostka lodu! Brrr, ale zimna!' };
@@ -19,7 +19,7 @@ const ORG_SND = { serce: 'bum', pluca: 'wdech', zoladek: 'bulg', mozg: 'mysl', w
 const ORG_NAZWA = { serce: 'serce', pluca: 'płuca', zoladek: 'żołądek', mozg: 'mózg', watroba: 'wątroba', nerki: 'nerki', pecherz: 'pęcherz' };
 const ORG_BIERNIK = { ...ORG_NAZWA, watroba: 'wątrobę' };
 const FAKT = { zyrafa: 'Żyrafa ma w szyi siedem kości. Tyle samo co ty!', slon: 'Trąba słonia nie ma ani jednej kości!', doktor: 'Nawet doktor czasem choruje! Twoje serce jest takie duże jak twoja pięść.', pingwin: 'Pingwin ma skrzydła, ale nie lata. Za to świetnie pływa!',
-  tygrys: 'Każdy tygrys ma inne paski. Tak jak ty masz swoje odciski palców!' };
+  tygrys: 'Każdy tygrys ma inne paski. Tak jak ty masz swoje odciski palców!', lew: 'Lew to król zwierząt. Jego ryk słychać aż osiem kilometrów dalej!' };
 const LICZ = ['Jeden', 'Dwa', 'Trzy', 'Cztery', 'Pięć', 'Sześć', 'Siedem'];
 const GIPS_KOL = ['#ff5a8a', '#3ab0ff', '#ffd23f', '#6ad66a', '#b07aff'];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -55,7 +55,7 @@ lupaScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), lupaMat));
 const lupa = { c: new T.Vector2(.5, .5), cc: new T.Vector2(.5, .5), r: 0, cel: 0 };   // c: środek (uv), cc: cel środka
 
 const GAB = klGabinet(); scene.add(GAB.g); const BG = GAB.niebo;
-const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-5.6, -2.6, -4.4, -.2, 1.7][i], 0, [-1.6, -.4, 2.6, 1.4, 2.4][i]); scene.add(p.g); return p; });
+const MENU_P = KINDS.map((k, i) => { const p = klPacjent(k); p.g.position.set([-5.6, -2.6, -4.4, -6.6, -.2, 1.7][i], 0, [-1.6, -.4, 2.6, 4.0, 1.4, 2.4][i]); scene.add(p.g); return p; });
 
 // Ikony przycisków = małe rysunki prawdziwych modeli z gry (lib/3d/icons.js), bez emoji
 const IKONA = {}, img = (k, cls = '') => `<img class="ik ${cls}" src="${IKONA[k]}" alt="">`;
@@ -82,7 +82,7 @@ budujIkony();
 let lezace = [];                                         // wyciągnięte rzeczy w misce (zostają w gabinecie do końca wizyty)
 let ostatni = 0, state = 'menu', stT = 0, czas = 0, P = null, zadania = [], zi = -1, problemy = [], zadT = 0, idleT = 0, nastepny = 0;
 function resize() {
-  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.fov = h > w ? 46 : 32; cam.updateProjectionMatrix();
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.fov = 32; cam.updateProjectionMatrix();
   const s = renderer.getDrawingBufferSize(new T.Vector2()); rt.setSize(s.x, s.y); lupaMat.uniforms.asp.value = w / h;
   if (camK >= 1) { const v = widok(); cam.position.copy(v.pos); camLook.copy(v.look); camTo = v; }
   else camTo = widok();
@@ -110,32 +110,32 @@ function dopasujPkt(pts, kier, ui = {}, m = 0) {
   return { pos: look.clone().addScaledVector(z, D), look };
 }
 const naroza = (x0, x1, y0, y1, z0, z1) => { const o = []; for (const X of [x0, x1]) for (const Y of [y0, y1]) for (const Z of [z0, z1]) o.push(V(X, Y, Z)); return o; };
-const pion = () => innerHeight > innerWidth;
-// menu: cała klinika z szyldem; karta wyboru zajmuje dół (pion) albo prawą połowę (poziom)
-function widokMenu() { return dopasuj(-8, 8, -.4, 10.4, V(.3, .28, 1), pion() ? { b: .4, t: .03 } : { r: .5, t: .04 }); }
+// menu: cała klinika z szyldem; karta wyboru zajmuje prawą połowę (gra tylko poziomo)
+function widokMenu() { return dopasuj(-8, 8, -.4, 10.4, V(.3, .28, 1), { r: .5, t: .04 }); }
 const rozmiar = () => Math.max(P.box.x1 - P.box.x0, P.box.y1);
 // 3D z ukosa: pacjent blisko, wyśrodkowany; at = gdzie stoi (kamera idzie za nim, gdy wchodzi i wychodzi)
-const KIER3D = V(.42, .24, .88), UI3D = () => pion() ? { t: .1, b: .12 } : { t: .14, b: .04, r: .1 };
+const KIER3D = V(.42, .24, .88), UI3D = () => ({ t: .17, b: .12, r: .1 });   // u góry ikony zadań, na dole napis lektora
 function widok3D(at) {
   const b = P.box, v = dopasujPkt(naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), KIER3D, UI3D(), .1);
   if (at) { const d = V(at.x, 0, at.z); v.pos.add(d); v.look.add(d); }
   return v;
 }
 // z boku (2.5D) do szukania lupą: sam pacjent na cały ekran
-function widokBok() { const b = P.box; return dopasujPkt(naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), V(0, .05, 1), { t: pion() ? .09 : .14, b: .02 }, .08); }
+function widokBok() { const b = P.box; return dopasujPkt(naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), V(0, .05, 1), { t: .17, b: .11 }, .08); }
 // z boku razem z miską (wyciągnięta rzecz leci do miski)
-function widokMiska() { const b = P.box, mx = GAB.miska.position; return dopasujPkt([...naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), ...naroza(mx.x - .9, mx.x + .9, 0, .5, mx.z - .9, mx.z + .9)], V(0, .05, 1), { t: pion() ? .09 : .14, b: .02 }, .08); }
-// zabieg (poziomo): zbliżenie na jego obszar (trasa, cel, kupka kości) — punkty świata z.roi; kadr co najmniej 0,7 pacjenta
+function widokMiska() { const b = P.box, mx = GAB.miska.position; return dopasujPkt([...naroza(b.x0, b.x1, -.1, b.y1, b.z0, b.z1), ...naroza(mx.x - .9, mx.x + .9, 0, .5, mx.z - .9, mx.z + .9)], V(0, .05, 1), { t: .17, b: .11 }, .08); }
+// zabieg: zbliżenie na jego obszar (trasa, cel, kupka kości) — punkty świata z.roi; w poziomie co najmniej 0,7 pacjenta, w pionie cały
 function widokZad(z) {
-  if (!z || !z.roi || !z.roi.length || pion()) return widokBok();     // w pionie zawsze cały pacjent (ekran jest za wąski na zbliżenie)
+  if (!z || !z.roi || !z.roi.length) return widokBok();
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (const p of z.roi) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
   const Sx = (P.box.x1 - P.box.x0) * .7, Sy = P.box.y1 * .7, m = Math.max(x1 - x0, y1 - y0) * .15 + rozmiar() * .05;   // nie bliżej niż 0,7 pacjenta w każdą stronę
   x0 -= m; x1 += m; y0 -= m; y1 += m;
   if (x1 - x0 < Sx) { const c = (x0 + x1) / 2; x0 = c - Sx / 2; x1 = c + Sx / 2; }
   if (y1 - y0 < Sy) { const c = (y0 + y1) / 2; y0 = c - Sy / 2; y1 = c + Sy / 2; }
-  const ui = pion() ? { t: .09, b: .1 } : { t: .14, b: .02, r: .09 }, asp = cam.aspect * (1 - (ui.r || 0)) / (1 - ui.t - ui.b);
-  if ((x1 - x0) / (y1 - y0) > asp) { const c = (y0 + y1) / 2, h = (x1 - x0) / asp; y0 = c - h / 2; y1 = c + h / 2; }   // tyle widać w pionie naprawdę
+  y0 = Math.min(y0, 0); y1 = Math.max(y1, P.box.y1 + rozmiar() * .03);                                              // zawsze cały pacjent w pionie (bez uciętej głowy)
+  const ui = { t: .17, b: .11, r: .09 }, asp = cam.aspect * (1 - (ui.r || 0)) / (1 - ui.t - ui.b);
+  if ((x1 - x0) / (y1 - y0) > asp) { const c = (y0 + y1) / 2, h = (x1 - x0) / asp; y0 = c - h / 2; y1 = c + h / 2; }   // tyle widać naprawdę (ekran szerszy niż obszar)
   const dno = -rozmiar() * .05; if (y0 < dno) { y1 += dno - y0; y0 = dno; }                                                // bez pustej podłogi pod pacjentem
   let z0 = 0, z1 = 0; for (const p of z.roi) { z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
   return dopasujPkt(naroza(x0, x1, y0, y1, z0, z1), V(0, .05, 1), ui);
@@ -534,7 +534,7 @@ function zPlastry() {
   Z.hint = () => { const q = rany.find(q => !q.ok); if (!q) return null; const w = swiat(q.b); return [w.clone().add(V(P.box.y1 * .12, P.box.y1 * .18, 0)), w]; };
   return Z;
 }
-const ORGANY_DO_ZGUBIENIA = { zyrafa: ['serce', 'watroba', 'nerki'], slon: ['mozg', 'watroba', 'pecherz'], tygrys: ['serce', 'watroba', 'nerki', 'mozg', 'pecherz'], pingwin: ['serce', 'mozg', 'watroba', 'nerki', 'pecherz'],
+const ORGANY_DO_ZGUBIENIA = { zyrafa: ['serce', 'watroba', 'nerki'], slon: ['mozg', 'watroba', 'pecherz'], tygrys: ['serce', 'watroba', 'nerki', 'mozg', 'pecherz'], lew: ['serce', 'watroba', 'nerki', 'mozg', 'pecherz'], pingwin: ['serce', 'mozg', 'watroba', 'nerki', 'pecherz'],
   doktor: ['serce', 'zoladek', 'pluca', 'mozg', 'watroba', 'nerki', 'pecherz'] };
 // Wizyta: 3 losowe zabiegi z rentgenem (układanka kości, połknięta rzecz, organ, złamana kość) + 1 losowy bez rentgena + plasterki na koniec
 function zabiegi(kind) {
@@ -569,7 +569,7 @@ function startWizyta(kind) {
   MENU_P.forEach(p => p.g.visible = false);
   P = klPacjent(kind); P.g.position.set(-11, 0, 6.1); P.droga = [[0, 6.1], [0, 0]];   // chodnikiem z lewej, potem do gabinetu (kamera idzie za nim)
   scene.add(P.g);
-  GAB.miska.position.set(P.box.x0 - 1.0, .06, 1.2);
+  GAB.miska.position.set(P.box.x1 + 1.0, .06, 1.2);   // przed pyszczkiem (po drugiej stronie niż kupka kości)
   czysc();                                                  // najpierw sprzątanie (czyści też listę podświetlonych), potem przygotowanie zabiegów
   zadania = zabiegi(kind); zi = -1; zadania.forEach(z => z.prep());
   $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('confetti').innerHTML = '';
@@ -583,7 +583,7 @@ function rentgen() {
   problemy = zadania.flatMap((z, i) => z.kotwice().map(f => ({ f, z, t: 0, found: false, el: null })));
   setTimeout(() => {
     const [X, Y] = toScreen(V(P.box.x1, P.box.y1 * .12, 0));          // lupa zaczyna przy łapach z przodu, nie na problemach
-    lupa.cc.set(clamp(X / innerWidth, .15, .85), clamp(1 - Y / innerHeight, .15, .85)); lupa.c.copy(lupa.cc); lupa.cel = pion() ? .13 : .2;
+    lupa.cc.set(clamp(X / innerWidth, .15, .85), clamp(1 - Y / innerHeight, .15, .85)); lupa.c.copy(lupa.cc); lupa.cel = .2;
     mow('Szukaj lupą! Co jest w środku?');
   }, 1300);
 }
@@ -669,8 +669,8 @@ function idzDroga(v) {
   if (d <= v) { P.g.position.x = cel[0]; P.g.position.z = cel[1]; P.droga.shift(); return !P.droga.length; }
   P.g.position.x += dx / d * v; P.g.position.z += dz / d * v; return false;
 }
-const STOPA = { zyrafa: 'krok', slon: 'krok_slon', tygrys: 'krok', doktor: 'krok', pingwin: 'czlap' };
-const GLOS = { zyrafa: 'mruk', slon: 'trab', tygrys: 'ryk', pingwin: 'pingwin' };
+const STOPA = { zyrafa: 'krok', slon: 'krok_slon', tygrys: 'krok', lew: 'krok', doktor: 'krok', pingwin: 'czlap' };
+const GLOS = { zyrafa: 'mruk', slon: 'trab', tygrys: 'ryk', lew: 'ryk_lew', pingwin: 'pingwin' };
 function animPacjent(p, dt, idzie) {
   klAnim(p, dt, idzie ? 1 : 0);
   for (const n in p.organy) anTik(p.organy[n].o, p.t);
