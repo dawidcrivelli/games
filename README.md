@@ -35,6 +35,7 @@ flowchart LR
 | plik | linie | gry | co zawiera |
 |---|---|---|---|
 | `lib/3d/comic.js` | 64 | bryki klinika | Styl „komiks”: kreskówkowe cieniowanie (toon) + czarny kontur odwróconą skorupą, bryły wyciągane z obrysu 2D. |
+| `lib/3d/guide-arrow.js` | 16 | taxi piraci | Strzałka „jak w Crazy Taxi” (Taxi, Piraci): płaska, z ciemnym obrysem, zawsze na wierzchu (bez testu głębi), nad pojazdem. |
 | `lib/3d/icons.js` | 27 | klinika | Ikony z prawdziwych modeli 3D (zamiast emoji): osobny mały renderer z przezroczystym tłem, kamera dopasowana do bryły. |
 | `lib/3d/particles.js` | 28 | ciuchcia taxi zniwa | Cząsteczki (iskry, kurz, krople, plewy): jedna chmura punktów w scenie, bufor cykliczny. |
 | `lib/3d/shapes.js` | 59 | ciuchcia taxi zniwa | Bryły „miasta” (Ciuchcia, Taxi, Żniwa): tex(w, h, rysuj) — tekstura z płótna, lam/pho — materiały, mesh/box/cylX/Y/Z/rbox/ell/cone |

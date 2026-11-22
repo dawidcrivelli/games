@@ -181,7 +181,7 @@ const TYPES={
   brig:{S:1,hp:60,guns:3,dmg:5,sp:12,turn:.95,masts:2},
   galleon:{S:1.28,hp:105,guns:4,dmg:6,sp:10.5,turn:.8,masts:3}
 };
-const KEY='piraci-v1',fresh=()=>({lvl:1,gold:0,up:{dmg:0,guns:0,hull:0,sail:0},wp:['wood'],wpSel:'wood',sp:['fish'],spSel:'fish',hero:['human'],heroSel:'human'});
+const KEY='piraci-v1',fresh=()=>({lvl:1,gold:0,up:{dmg:0,guns:0,hull:0,sail:0},wp:['wood'],wpSel:'wood',sp:['fish'],spSel:'fish',hero:['human'],heroSel:'human',pets:{}});
 let SAVE={kid:fresh(),dad:fresh()},kid=true,S=SAVE.kid;
 try{const d=JSON.parse(localStorage.getItem(KEY)||'null');if(d)for(const m of ['kid','dad'])if(d[m])SAVE[m]=Object.assign(fresh(),d[m],{up:Object.assign(fresh().up,d[m].up)});}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(SAVE));}catch(e){}}
@@ -280,10 +280,7 @@ function sinkShip(s){s.dead=true;s.sinkT=0;snd.boom();burst('fire',s.x,s.y+2,s.z
   msg('🫧 Zatopiony!','',1.6);if(s.el)s.el.hidden=true;}
 function disableFlag(s){s.disabled=true;s.flag.material.map=flagTex('#ffffff','');snd.boom();burst('fire',s.x,s.y+2,s.z,14,6,.9,.7);
   for(const o of ships)if(o.team===1&&o!==s&&!o.dead)o.flee=true;
-  // wybór: najpierw skarby (kapitan czeka, ⚔️ Abordaż w każdej chwili) albo od razu abordaż; do wyboru podpłynięcie nie zaczyna abordażu
-  s.ask=true;msg('🏳️ Okręt kapitana pokonany!','',3);
-  later(1.4,()=>{if(mode!=='sea'||P.dead)return;showOver('🏳️ Bitwa morska wygrana!',s.name+' '+capE(lvDef(cur).cap)+' czeka na swoim okręcie.<br>🗺️ Popłyniesz najpierw szukać skarbów na wyspach?<br>Na abordaż ⚔️ możesz ruszyć w każdej chwili.',
-    '🗺️ Szukaj skarbów',()=>{s.ask=false;startHunt();},()=>{s.ask=false;beginBoard();},'⚔️ Abordaż!');});}
+  msg('🏳️ Okręt kapitana pokonany!','',2);later(1.5,()=>{if(mode==='sea'&&!P.dead)startHunt();});}   // od razu skarby; abordaż przyciskiem przy okręcie
 function playerSunk(){P.dead=true;P.sinkT=0;snd.boom();snd.lose();burst('fire',P.x,P.y+2,P.z,16,6,.9,.7);
   later(2.6,()=>showOver('🫧 Statek zatonął!',lvDef(cur).name+' śmieje się na cały ocean. Spróbuj jeszcze raz!','⛵ Jeszcze raz',()=>startLevel()));}
 
@@ -295,31 +292,60 @@ function addLoot(kind,x,z,gold){const g=grp(worldG,x,0,z);
 function chestMesh(g){box(M(0x8a5a2b),g,0,.35,0,1.5,.8,1);box(M(0xffc93c),g,0,.5,0,1.56,.14,1.06);ball(M(0xffc93c),g,0,.35,.52,.13);const l=mesh(cg(.5,.5,1.5,10,1),M(0x6e4220),g,0,.75,0);l.rotation.z=PI/2;l.scale.y=1;}
 function gainGold(n,x,y,z){S.gold+=n;save();snd.coin();floatAt('+'+n+' 🪙',x,y,z,'big');$('goldN').textContent=S.gold;}
 
-/* ---------- szukanie skarbów po bitwie: bez wrogów, złota strzałka nad statkiem prowadzi do wyspy z ❌ (bez końca, 🏝️ Port kończy) ---------- */
+/* ---------- po wygranej bitwie morskiej: skarby i zwierzaki na wyspach (bez wrogów, bez końca) ----------
+   strzałka jak w Taxi (lib/3d/guide-arrow.js) prowadzi do wyspy z ❌; zwierzak z wyspy wskakuje na pokład, gdy podpłyniesz;
+   okręt kapitana (biała flaga) czeka — przy nim pojawia się przycisk ⚔️ Abordaż */
 let hunt=null;
-const hArrow=grp(scene),beamM=new T.MeshBasicMaterial({color:0xffe066,transparent:true,opacity:.35,depthWrite:false,side:T.DoubleSide});
-{const m=new T.MeshLambertMaterial({color:0xffc93c,emissive:0x6a4200,depthTest:false}),c=new T.Mesh(G.cone,m),b=new T.Mesh(G.box,m);   // zawsze na wierzchu (nie chowa się za żaglami)
-  c.scale.set(1.5,2.2,1.5);c.rotation.x=PI/2;c.position.z=1.7;b.scale.set(1,.8,2.6);b.position.z=-.5;c.renderOrder=b.renderOrder=9;hArrow.add(c,b);hArrow.scale.setScalar(1.3);hArrow.rotation.order='YXZ';hArrow.rotation.x=-.6;hArrow.visible=false;}
-function huntUI(on){$('bL').hidden=$('bR').hidden=on;$('huntP').hidden=$('bBoard').hidden=!on;if(!on)hArrow.visible=false;}
+const gArrow=guideArrow(0xffd21f);scene.add(gArrow);
+const beamM=new T.MeshBasicMaterial({color:0xffe066,transparent:true,opacity:.35,depthWrite:false,side:T.DoubleSide});
+const PETS=[{t:'penguin',e:'🐧',n:'Pingwin',h:1.2},{t:'panda',e:'🐼',n:'Panda',h:1.3},{t:'kangaroo',e:'🦘',n:'Kangur',h:1.6},{t:'zebra',e:'🦓',n:'Zebra',h:1.7},
+  {t:'giraffe',e:'🦒',n:'Żyrafa',h:2.8},{t:'lion',e:'🦁',n:'Lew',h:1.3},{t:'tiger',e:'🐯',n:'Tygrys',h:1.2},{t:'elephant',e:'🐘',n:'Słoń',h:2},
+  {t:'hippo',e:'🦛',n:'Hipopotam',h:1.2},{t:'crocodile',e:'🐊',n:'Krokodyl',h:.7},{t:'crab',e:'🦀',n:'Krab',s:3.2,sea:'makeCrab'},{t:'turtle',e:'🐢',n:'Żółw',s:2,sea:'makeTurtle'}];
+const DECK=[[-1.1,3],[1.1,3],[-1.1,.4],[1.1,.4],[-1.1,-2.1],[1.1,-2.1]];   // miejsca na pokładzie (x, z w statku)
+const PET_ISL=2.2,PET_DECK=1.6;   // powiększenie zwierzaków: na wyspie (widać z daleka) i na pokładzie
+function petModel(k){if(k.sea){const o=MORZE[k.sea]();o.g.scale.setScalar(k.s);return {g:o.g,upd:(dt,mv)=>{if(o.walk&&mv)o.walk(time*12);}};}
+  const f=ZOO.fit(k.t,k.h);return {g:f.g,upd:(dt,mv)=>{f.a.moving=mv;ZOO.anim(f.a,dt);}};}
+const beachY=i=>-.4+.139*i.r/.92;                // wysokość piasku 72% promienia od środka wyspy
+function huntUI(on){$('bL').hidden=$('bR').hidden=on;$('huntP').hidden=!on;if(!on){gArrow.visible=false;$('bBoard').hidden=true;}}
 function huntNext(){if(hunt.g)worldG.remove(hunt.g);
   const oth=islands.filter(i=>i!==hunt.isl),far=oth.filter(i=>Math.hypot(i.x-P.x,i.z-P.z)>70),i=pick(far.length?far:oth),r=i.r/.92,a=rnd(TAU),cx=Math.cos(a)*r*.72,cz=Math.sin(a)*r*.72;
-  const g=grp(worldG,i.x+cx,-.4+.139*r,i.z+cz),ch=grp(g);chestMesh(ch);ch.scale.setScalar(1.6);ch.rotation.y=-a+PI/2;
+  const g=grp(worldG,i.x+cx,beachY(i),i.z+cz),ch=grp(g);chestMesh(ch);ch.scale.setScalar(1.6);ch.rotation.y=-a+PI/2;
   for(const s of [1,-1])box(M(0xe2483d),g,0,.08,0,3.2,.12,.5).rotation.y=s*PI/4;
   const bm=new T.Mesh(new T.CylinderGeometry(1.3,1.3,44,12,1,true),beamM);bm.position.y=22;g.add(bm);
-  Object.assign(hunt,{isl:i,g,ch,tx:i.x+cx,tz:i.z+cz});}
-// po wygranej bitwie morskiej: eskorta odpływa, okręt kapitana (biała flaga) czeka w miejscu na abordaż
+  Object.assign(hunt,{isl:i,g,ch,ca:a,tx:i.x+cx,tz:i.z+cz});}
+// zwierzak czeka na plaży wyspy bez zwierzaka (po przeciwnej stronie niż skrzynia, gdy to ta sama wyspa)
+function petSpawn(){const free=islands.filter(i=>!hunt.pets.some(q=>q.isl===i));if(!free.length)return;const i=pick(free),k=pick(PETS),m=petModel(k);
+  const a=i===hunt.isl?hunt.ca+PI:rnd(TAU),r=i.r/.92;m.g.position.set(i.x+Math.cos(a)*r*.72,beachY(i),i.z+Math.sin(a)*r*.72);m.g.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));m.g.scale.multiplyScalar(PET_ISL);m.base=m.g.scale.x/PET_ISL;worldG.add(m.g);
+  hunt.pets.push({isl:i,k,m,ph:rnd(9)});}
 function startHunt(){mode='hunt';paused=false;
-  for(const s of ships)if(s!==P&&s!==flagship){scene.remove(s.g);if(s.el)s.el.remove();}ships=ships.filter(s=>s===P||s===flagship);if(flagship.el)flagship.el.hidden=true;
+  for(const s of ships)if(s!==P&&s!==flagship){scene.remove(s.g);if(s.el)s.el.remove();}ships=ships.filter(s=>s===P||s===flagship);if(flagship&&flagship.el)flagship.el.hidden=true;
   for(const b of balls){scene.remove(b.m);ballPool.push(b.m);}balls=[];timers=[];
-  P.hp=P.max;$('hpP').style.width='100%';$('hpP').style.background='';$('arrow').hidden=true;$('huntN').textContent=0;
-  hunt={n:0,isl:null,g:null};huntNext();huntUI(true);
-  msg('🗺️ Szukamy skarbów!','Płyń za złotą strzałką do wyspy z ❌<br>Bez wrogów — żegluj, ile chcesz! ⚔️ Abordaż, gdy zechcesz walczyć.',5);}
-function huntUpdate(dt){const h=hunt;if(!h||!h.isl)return;const dx=h.tx-P.x,dz=h.tz-P.z,d=Math.hypot(dx,dz),i=h.isl;
-  hArrow.visible=true;hArrow.position.set(P.x,P.y+13+Math.sin(time*3)*.4,P.z);hArrow.rotation.y=Math.atan2(dx,dz);
+  P.hp=P.max;$('hpP').style.width='100%';$('hpP').style.background='';$('huntN').textContent=$('petN').textContent=0;
+  hunt={n:0,isl:null,g:null,pets:[],fly:[],deck:[],caught:0,near:false};huntNext();for(let i=0;i<3;i++)petSpawn();huntUI(true);
+  msg('🏳️ Bitwa wygrana!','🗺️ Strzałka prowadzi do skarbów · 🐾 łap zwierzaki<br>⚔️ Abordaż: podpłyń do okrętu kapitana',6);}
+const _dv=new T.Vector3();
+function huntUpdate(dt){const h=hunt;if(!h||!h.isl)return;const dx=h.tx-P.x,dz=h.tz-P.z,d=Math.hypot(dx,dz),i=h.isl,dock=j=>Math.hypot(P.x-j.x,P.z-j.z)<j.r+P.W*.6+5;
+  gArrow.visible=d>12;if(gArrow.visible)guideArrowAim(gArrow,P.x+Math.sin(P.hd)*3,P.y+9+Math.sin(time*5)*.15,P.z+Math.cos(P.hd)*3,cam.hd,h.tx,h.tz,-.9,1.15);
   h.ch.position.y=.2+Math.abs(Math.sin(time*2.4))*.5;beamM.opacity=.25+Math.sin(time*3)*.1;$('huntD').textContent=Math.round(d)+' m';
-  if(!P.dead&&Math.hypot(P.x-i.x,P.z-i.z)<i.r+P.W*.6+5){const g=10+Math.round(Math.random()*15);h.n++;$('huntN').textContent=h.n;
-    burst('spark',h.tx,2,h.tz,16,6,.25,.6);gainGold(g,h.tx,3,h.tz);snd.ready();msg('💰 Skarb nr '+h.n+'!','+'+g+' 🪙 · strzałka pokazuje następną wyspę',2.6);huntNext();}}
-$('bBoard').addEventListener('click',()=>{initAudio();if(mode==='hunt'&&!paused)beginBoard();});
+  if(dock(i)){const g=10+Math.round(Math.random()*15);h.n++;$('huntN').textContent=h.n;
+    burst('spark',h.tx,2,h.tz,16,6,.25,.6);gainGold(g,h.tx,3,h.tz);snd.ready();msg('💰 Skarb nr '+h.n+'!','+'+g+' 🪙 · strzałka pokazuje następną wyspę',2.6);huntNext();}
+  // zwierzaki: na plaży podskakują, po podpłynięciu skaczą łukiem na pokład
+  for(let j=h.pets.length-1;j>=0;j--){const q=h.pets[j];q.m.upd(dt,false);q.m.g.children[0].position.y=Math.max(0,Math.sin(time*4+q.ph))*.35;
+    if(dock(q.isl)){h.pets.splice(j,1);worldG.remove(q.m.g);scene.add(q.m.g);q.m.g.children[0].position.y=0;
+      if(h.deck.length+h.fly.length>=DECK.length){const o=h.deck.shift();P.tilt.remove(o.m.g);}
+      const used=h.deck.concat(h.fly).map(o=>o.spot),spot=DECK.findIndex((_,k)=>!used.includes(k));
+      h.fly.push({...q,spot,t:0,from:q.m.g.position.clone()});snd.boing();h.caught++;$('petN').textContent=h.caught;
+      S.pets[q.k.t]=(S.pets[q.k.t]||0)+1;save();msg(q.k.e+' '+q.k.n+' na pokładzie!','Złapane zwierzaki: '+h.caught+' 🐾',2.4);later(1.5,petSpawn);}}
+  for(let j=h.fly.length-1;j>=0;j--){const f=h.fly[j],sp=DECK[f.spot];f.t+=dt/.9;f.m.upd(dt,true);
+    _dv.set(sp[0],SH.H,sp[1]);P.tilt.localToWorld(_dv);const k=Math.min(1,f.t);
+    f.m.g.position.set(lerp(f.from.x,_dv.x,k),lerp(f.from.y,_dv.y,k)+Math.sin(k*PI)*7,lerp(f.from.z,_dv.z,k));f.m.g.scale.setScalar(f.m.base*lerp(PET_ISL,PET_DECK,k));
+    if(k>=1){h.fly.splice(j,1);scene.remove(f.m.g);P.tilt.add(f.m.g);f.m.g.position.set(sp[0],SH.H,sp[1]);f.m.g.rotation.set(0,sp[0]>0?.5:-.5,0);h.deck.push(f);splash(_dv.x,_dv.z,.4);}}
+  for(const o of h.deck){o.m.upd(dt,false);o.m.g.position.y=SH.H+Math.max(0,Math.sin(time*5+o.ph))*.12;}
+  // okręt kapitana: przycisk abordażu, gdy blisko; znacznik ⚔️ na brzegu ekranu, gdy poza ekranem
+  if(flagship){const fd=Math.hypot(P.x-flagship.x,P.z-flagship.z),near=fd<flagship.L*.5+P.L*.5+22;$('bBoard').hidden=!near;
+    if(near&&!h.near)msg('⚔️ Okręt kapitana!','Stuknij ⚔️ Abordaż, żeby walczyć na szable',2.5);h.near=near;edgeMark(flagship);}}
+function doBoard(){if(mode==='hunt'&&!paused&&hunt&&hunt.near)beginBoard();}
+press('bBoard',doBoard);
 
 /* ---------- zwierzęta morskie w tle ---------- */
 const seaLife=[];
@@ -364,7 +390,7 @@ function showSea(v){for(const s of ships)s.g.visible=v&&!s.gone;worldG.visible=v
 /* ---------- sterowanie ---------- */
 const keys={},inp={jx:0,jy:0,jid:null,jx0:0,jy0:0,block:false};
 addEventListener('keydown',e=>{if(e.repeat)return;keys[e.code]=1;
-  if(mode==='hunt'&&!paused&&(e.code==='Space'||e.code==='ShiftLeft'))doBoost();
+  if(mode==='hunt'&&!paused){if(e.code==='Space'||e.code==='ShiftLeft')doBoost();if(e.code==='Enter'||e.code==='KeyB')doBoard();}
   if(mode==='sea'&&!paused){if(e.code==='KeyQ'||e.code==='KeyZ')doFire(1);if(e.code==='KeyE'||e.code==='KeyX'||e.code==='KeyC')doFire(-1);if(e.code==='Space'||e.code==='ShiftLeft')doBoost();}
   if(mode==='duel'&&!paused){if(e.code==='ArrowUp'||e.code==='KeyJ')pAttack('punch');if(e.code==='ArrowDown'||e.code==='KeyK')pAttack('kick');if(e.code==='ArrowRight'||e.code==='KeyL')pAttack('weapon');if(e.code==='Enter'||e.code==='KeyF')pSpecial();if(e.code==='Tab'){e.preventDefault();swapSpecial();}}
   if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();});
@@ -428,9 +454,7 @@ function seaUpdate(dt){
     if(P&&!P.dead&&!menu&&Math.hypot(P.x-l.x,P.z-l.z)<P.L*.5+1.5){worldG.remove(l.g);loot.splice(i,1);
       if(l.kind==='chest')gainGold(l.gold||20,l.x,3,l.z);else{const h=Math.round(P.max*.3);P.hp=Math.min(P.max,P.hp+h);snd.ready();floatAt('+'+h+' ❤️',l.x,3,l.z,'big');}}}
   if(menu||!P)return;
-  if(mode==='hunt'){huntUpdate(dt);if(flagship&&Math.hypot(P.x-flagship.x,P.z-flagship.z)<flagship.L*.5+P.L*.5+3)beginBoard();return;}
-  // abordaż
-  if(flagship&&flagship.disabled&&!flagship.ask&&!P.dead&&Math.hypot(P.x-flagship.x,P.z-flagship.z)<flagship.L*.5+P.L*.5+3){beginBoard();return;}
+  if(mode==='hunt'){huntUpdate(dt);return;}
   // HUD
   $('hpP').style.width=clamp(P.hp/P.max*100,0,100)+'%';$('hpP').style.background=P.hp/P.max<.3?'linear-gradient(#ff9a8a,#e03a2a)':'';
   const hot=[false,false];
@@ -441,10 +465,12 @@ function seaUpdate(dt){
   $('bBoost').lastElementChild.style.height=clamp(P.boostCd/6*100,0,100)+'%';
   // strzałka do celu
   let tg=flagship&&!flagship.dead?flagship:null;if(tg&&!tg.disabled){let bd=1e9;for(const e of ships)if(e.team===1&&!e.dead&&!e.flee){const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;tg=e;}}}
-  const ar=$('arrow');if(tg){const sc=toScreen(tg.x,tg.y+4,tg.z),on=sc&&sc[0]>30&&sc[0]<W-30&&sc[1]>30&&sc[1]<H-30;ar.hidden=!!on;
-    if(!on){const a=angd(Math.atan2(tg.x-P.x,tg.z-P.z),cam.hd),sx=-Math.sin(a),sy=-Math.cos(a),k=Math.min((W/2-40)/Math.abs(sx||1e-6),(H/2-60)/Math.abs(sy||1e-6));
-      ar.style.left=W/2+sx*k+'px';ar.style.top=H/2+sy*k+'px';ar.style.transform=`rotate(${Math.atan2(sy,sx)}rad)`;ar.textContent=tg.disabled?'⚔️':'➤';if(tg.disabled)ar.style.transform='';}}else ar.hidden=true;
+  edgeMark(tg);
 }
+// znacznik celu na brzegu ekranu, gdy cel poza ekranem (➤ wróg, ⚔️ okręt kapitana z białą flagą)
+function edgeMark(tg){const ar=$('arrow');if(tg){const sc=toScreen(tg.x,tg.y+4,tg.z),on=sc&&sc[0]>30&&sc[0]<W-30&&sc[1]>30&&sc[1]<H-30;ar.hidden=!!on;
+    if(!on){const a=angd(Math.atan2(tg.x-P.x,tg.z-P.z),cam.hd),sx=-Math.sin(a),sy=-Math.cos(a),k=Math.min((W/2-40)/Math.abs(sx||1e-6),(H/2-60)/Math.abs(sy||1e-6));
+      ar.style.left=W/2+sx*k+'px';ar.style.top=H/2+sy*k+'px';ar.style.transform=`rotate(${Math.atan2(sy,sx)}rad)`;ar.textContent=tg.disabled?'⚔️':'➤';if(tg.disabled)ar.style.transform='';}}else ar.hidden=true;}
 function seaCamera(dt){if(!P)return;const menu=mode==='menu';
   cam.hd+=angd(P.hd,cam.hd)*Math.min(1,dt*2.2);const hd=menu?time*.12:cam.hd,back=menu?30:28,up=menu?9:16,fx=Math.sin(hd),fz=Math.cos(hd);
   const tx=P.x-fx*back,tz=P.z-fz*back,k=Math.min(1,dt*5);cam.x+=(tx-cam.x)*k;cam.z+=(tz-cam.z)*k;cam.y+=(up+P.y*.5-cam.y)*k;
@@ -625,7 +651,9 @@ function showOver(t,p,a,fa,fb,bt){paused=true;$('ovT').innerHTML=t;$('ovP').inne
   const b=$('ovB');b.hidden=fb===null;b.innerHTML=bt||'🏝️ Port';b.onclick=()=>{$('over').hidden=true;paused=false;(fb||openShop)();};$('over').hidden=false;}
 function openShop(){paused=true;mode='menu';duelG.visible=false;D=null;$('duel').hidden=true;$('ui').hidden=true;$('tele').hidden=true;clearLevel();P=mkPlayer();setTheme(lvDef(cur).th);showSea(true);
   camera.fov=50;camera.updateProjectionMatrix();renderShop();$('shop').hidden=false;}
-function renderShop(){$('shopGold').textContent=S.gold;$('shopLvl').textContent=cur;$('sLvM').hidden=$('sLvP').hidden=S.lvl<2;$('sLvM').disabled=cur<=1;$('sLvP').disabled=cur>=S.lvl;const g=$('shopG');let h='<h3>🏴‍☠️ Kim grasz?</h3><div class="heroes">'+heroCards()+'</div><h3>⛵ Statek</h3>';
+function renderShop(){$('shopGold').textContent=S.gold;$('shopLvl').textContent=cur;$('sLvM').hidden=$('sLvP').hidden=S.lvl<2;$('sLvM').disabled=cur<=1;$('sLvP').disabled=cur>=S.lvl;const g=$('shopG');let h='<h3>🏴‍☠️ Kim grasz?</h3><div class="heroes">'+heroCards()+'</div>';
+  const pets=PETS.filter(k=>S.pets[k.t]);if(pets.length)h+='<h3>🐾 Złapane zwierzaki</h3><div class="pets">'+pets.map(k=>'<span title="'+k.n+'">'+k.e+'<small>×'+S.pets[k.t]+'</small></span>').join('')+'</div>';
+  h+='<h3>⛵ Statek</h3>';
   for(const u of UPS){const l=S.up[u.k],mx=l>=u.max,c=u.c*(l+1);h+=`<button class="it ${mx?'max':S.gold<c?'no':''}" data-t="up" data-id="${u.k}"><big>${u.e}</big>${u.n}<small>poziom ${l}/${u.max}</small><u>${mx?'MAX':c+' 🪙'}</u></button>`;}
   const sec=(title,list,own,sel,t)=>{h+='<h3>'+title+'</h3>';for(const w of list){const o=S[own].includes(w.id),s=S[sel]===w.id;
     h+=`<button class="it ${s?'sel':!o&&S.gold<w.cost?'no':''}" data-t="${t}" data-id="${w.id}"><big>${w.e}</big>${w.n}${w.dmg?'<small>siła '+w.dmg+(w.tip?' · '+w.tip:'')+'</small>':''}<u>${s?'✔ wybrane':o?'wybierz':w.cost+' 🪙'}</u></button>`;}};

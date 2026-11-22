@@ -30,6 +30,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .fb:active,.fb.dn{transform:translateY(4px);box-shadow:0 2px 0 var(--edge)}
 .fb .cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(74,44,18,.45);pointer-events:none}
 .fb.hot{background:var(--gold);animation:pulse .3s infinite alternate}
+#bBoard{grid-column:1/3;width:104px;height:104px;font-size:17px}#bBoard big{font-size:44px}
 #bBoost{grid-column:1/3;width:66px;height:66px}#bBoost big{font-size:28px}
 .eb{position:absolute;transform:translate(-50%,-100%);text-align:center;font-size:13px;color:#fff;text-shadow:0 1px 0 #000,0 0 4px #000;white-space:nowrap;line-height:1.1}
 .eb .bar{width:74px;height:9px;margin:1px auto 0;border:1px solid #2e1a09}.eb .bar i{background:linear-gradient(#ff9a8a,#e03a2a)}
@@ -66,6 +67,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #shopG h3{grid-column:1/-1;margin:4px 0 -2px;font-size:17px;text-align:left}
 .it{background:#fff;border-radius:16px;box-shadow:0 4px 0 #d9c9a6;padding:5px 4px 6px;font-size:13px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:1px;touch-action:pan-y}
 .it big{font-size:30px;line-height:1.1}.it small{opacity:.7;font-size:12px}.it u{text-decoration:none;background:var(--gold);border-radius:99px;padding:2px 10px 0;margin-top:2px;font-size:14px}
+.pets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:32px;line-height:1}.pets small{font-size:15px;margin-left:2px}
 .heroes{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:4px 0}.it.he{font-size:13px;touch-action:manipulation}.it.he big{font-size:38px}
 #pick .card{max-width:760px}
 .it.sel{background:#d8f7d0;box-shadow:0 4px 0 #6fbf5f}.it.no u{background:#ddd;opacity:.7}.it.max u{background:#cfe9ff}
@@ -101,8 +103,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
     <div class="pill"><span>❤️</span><div class="bar"><i id="hpP"></i></div></div>
     <div class="pill"><span>🪙</span><b id="goldN">0</b></div>
     <div class="pill"><span>🏴‍☠️</span><b id="lvlN">1</b></div>
-    <div class="pill" id="huntP" hidden><span>🗺️</span><b id="huntN">0</b><span id="huntD"></span></div>
-    <button class="pill pb" id="bBoard" hidden>⚔️ Abordaż</button>
+    <div class="pill" id="huntP" hidden><span>🗺️</span><b id="huntN">0</b><span id="huntD"></span><span>🐾</span><b id="petN">0</b></div>
     <div class="sp"></div>
     <button class="rb" id="bHelp" aria-label="Pomoc">❓</button>
     <button class="rb" id="bMus" aria-label="Dźwięk">🔊</button>
@@ -111,6 +112,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
   <div id="ebs"></div>
   <div id="arrow" hidden>➤</div>
   <div id="fire">
+    <button class="fb hot" id="bBoard" hidden aria-label="Abordaż"><big>⚔️</big>Abordaż</button>
     <button class="fb" id="bBoost" aria-label="Wiatr w żagle"><big>💨</big><div class="cd"></div></button>
     <button class="fb" id="bL" aria-label="Lewa burta"><big>💥</big>◀ lewa<div class="cd"></div></button>
     <button class="fb" id="bR" aria-label="Prawa burta"><big>💥</big>prawa ▶<div class="cd"></div></button>
@@ -140,7 +142,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 <div class="ov" id="help" hidden><div class="card" style="text-align:left">
   <h2>Piraci! Bitwa morska</h2>
   <p><b>Na morzu:</b> lewy kciuk – joystick ⛵ (do przodu = pełne żagle, w bok = skręt). Prawy kciuk – 💥 salwa z lewej albo prawej burty. Ustaw się bokiem do wroga! Przycisk świeci na żółto, gdy wróg jest na celowniku. 💨 – wiatr w żagle (szybki zryw, taranowanie boli wroga). Beczki 🛢️ naprawiają statek, skrzynie dają złoto.</p>
-  <p><b>Skarby:</b> po wygranej bitwie morskiej możesz najpierw popłynąć na poszukiwanie skarbów — bez wrogów, kapitan czeka na swoim okręcie. Złota strzałka nad statkiem pokazuje wyspę z ❌; dopłyń do niej po skrzynię. Przycisk ⚔️ Abordaż (albo podpłynięcie do okrętu z białą flagą) zaczyna pojedynek.</p>
+  <p><b>Skarby:</b> po wygranej bitwie morskiej płyniesz na poszukiwanie skarbów — bez wrogów, kapitan czeka na swoim okręcie. Pływaj, ile chcesz. Złota strzałka nad statkiem pokazuje wyspę z ❌; dopłyń do niej po skrzynię. Na wyspach czekają zwierzaki 🐾 — podpłyń, a wskoczą na pokład. Gdy podpłyniesz do okrętu z białą flagą, pojawi się przycisk ⚔️ Abordaż (pojedynek).</p>
   <p><b>Poziom:</b> na ekranie startowym i w porcie strzałkami ◀ ▶ wybierzesz dowolny odblokowany poziom (np. łatwiejszy dla młodszego pirata).</p>
   <p><b>Abordaż:</b> gdy okręt kapitana ☠️ dymi, podpłyń do niego. Pojedynek: 👊 Cios (szybki), 🦶 Kop (mocniejszy, przełamuje gardę), ⚔️ Broń (najmocniejsza, chwilę się odnawia). Każde trafienie ładuje przycisk Super — gdy się zapełni, rzucasz morskim zwierzakiem. Seria trafień bez oberwania to COMBO (mocniejsze ciosy).</p>
   <p><b>Obrona:</b> ❗ nad wrogiem znaczy, że zaraz uderzy — przytrzymaj 🛡️ Blok. Wciśnięty w ostatniej chwili daje PARADĘ (wróg ogłuszony). Gdy wróg stoi za tarczą 🛡️, zwykłe ciosy się odbijają — kopnij go.</p>
@@ -166,6 +168,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="../lib/3d/three.js"></script>
+<script src="../lib/3d/guide-arrow.js"></script>
 <script src="../lib/common/dom.js"></script>
 <script src="../lib/common/math.js"></script>
 <script src="../lib/audio/music.js"></script>

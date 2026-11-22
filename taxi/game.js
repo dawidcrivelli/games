@@ -881,15 +881,12 @@ for (let k = 0; k < 4; k++) { const g = new T.Group(), body = pedMats(PEDC[k]); 
   const mk = mesh(new T.ConeGeometry(.9, 1.7, 4), mm, 0, 4.2, 0, g); mk.rotation.x = Math.PI;
   const zone = new T.Group(); const ring = mesh(new T.RingGeometry(3, 3.7, 28), mm, 0, .14, 0, zone); ring.rotation.x = -Math.PI/2; const beam = mesh(new T.CylinderGeometry(3.3, 3.3, 14, 18, 1, true), bm, 0, 7, 0, zone); beam.renderOrder = 3; g.add(zone);
   g.visible = false; scene.add(g); custs.push({ g, body, mk, zone, mm, bm, on:false, poi:null, dest:null, val:1, dist:0, hop:0 }); }
-const beacon = new T.Group(), outP = pedMats(0xf08a2a), arrow = new T.Group();
+const beacon = new T.Group(), outP = pedMats(0xf08a2a), arrow = guideArrow(0x35e04a);   // lib/3d/guide-arrow.js
 { const mm = new T.MeshBasicMaterial({ color:0xffd21f, fog:false }), bm = new T.MeshBasicMaterial({ color:0xffd21f, transparent:true, opacity:.24, depthWrite:false, fog:false });
   const ring = mesh(new T.RingGeometry(3.4, 4.3, 30), mm, 0, .14, 0, beacon); ring.rotation.x = -Math.PI/2; const col = mesh(new T.CylinderGeometry(3.8, 3.8, 22, 20, 1, true), bm, 0, 11, 0, beacon); col.renderOrder = 3;
   const tip = mesh(new T.ConeGeometry(1.7, 3.2, 4), mm, 0, 16, 0, beacon); tip.rotation.x = Math.PI; beacon.userData.tip = tip; beacon.visible = false; scene.add(beacon);
   outP.scale.setScalar(1.45); outP.visible = false; scene.add(outP);
-  const s = new T.Shape(); [[0, 2.5], [1.5, .5], [.55, .5], [.55, -1.9], [-.55, -1.9], [-.55, .5], [-1.5, .5]].forEach((p, i) => { if (i) s.lineTo(p[0], p[1]); else s.moveTo(p[0], p[1]); });
-  const geo = new T.ExtrudeGeometry(s, { depth:.4, bevelEnabled:false }); geo.rotateX(Math.PI/2);
-  arrow.userData.m = new T.MeshBasicMaterial({ color:0x35e04a, fog:false, depthTest:false, transparent:true }); const edge = new T.MeshBasicMaterial({ color:0x1c1c1e, fog:false, depthTest:false, transparent:true });
-  const dial = new T.Group(), e = new T.Mesh(geo, edge); e.scale.set(1.2, 1, 1.12); e.position.y = -.14; e.renderOrder = 9; dial.add(e); const a = new T.Mesh(geo, arrow.userData.m); a.renderOrder = 10; dial.add(a); arrow.add(dial); arrow.userData.dial = dial; arrow.rotation.order = 'YXZ'; arrow.visible = false; scene.add(arrow); }
+  scene.add(arrow); }
 // zwierzęta z Pralni (models/animals.js), dopasowane wysokością; ruch przez anims
 const zoo = (type, h) => { const { g, a } = ZOO.fit(type, h); let last = 0; anims.push(t => { ZOO.anim(a, Math.min(.1, t - last)); last = t; }); return g; };
 const ZOOA = [{ name:'Żyrafa', ico:'🦒', g:zoo('giraffe', 6.2), s:.8, rs:.4, top:5.6, snd:'hum' }, { name:'Słoń', ico:'🐘', g:zoo('elephant', 3.15), s:.75, rs:.36, top:3.4, snd:'trumpet' }, { name:'Lew', ico:'🦁', g:zoo('lion', 1.4), s:1.15, rs:.62, top:2.2, snd:'roar' },
