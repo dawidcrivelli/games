@@ -75,6 +75,11 @@ function budujIkony() {
   IKONA.drzazga = ikonaModelu(anDrzazga(1), { rx: .4, ry: -1.1 }); IKONA.pchla = ikonaModelu(anPchla(1), { rx: -.5 }); IKONA.bandaz = ikonaModelu(anBandaz(.3, .7), { rx: .3 });
   IKONA.stetoskop = ikonaModelu(anStetoskop()); IKONA.termometr = ikonaModelu(anTermometr(), { rz: -.5 });
   [0xff7eb6, 0x5cc6ff, 0x7ed957].forEach((c, i) => { IKONA['syrop' + i] = ikonaModelu(anSyrop(c), { rx: .2 }); });
+  IKONA.szczotka = ikonaModelu(anSzczoteczka(), { rz: .5 });
+  const mu = new T.Group(), kula = { os: 'y', sl: [...Array(9)].map((_, i) => { const u = -1 + i * .25, r = Math.sqrt(Math.max(.08, 1 - u * u)) * .62; return { u, cp: 0, cq: 0, rp: r, rq: r }; }) };
+  const ow = anOwijka(kula, -.95, .95, 6); ow.userData.pokaz(1); mu.add(ow);
+  for (const s of [-1, 1]) { brPart(mu, new T.SphereGeometry(.17, 12, 8), 0xffffff, s * .2, .35, .55, { ol: .03 }); brPart(mu, new T.SphereGeometry(.08, 8, 6), 0x1d1d24, s * .2, .35, .7, { ol: 0 }); }
+  IKONA.mumia = ikonaModelu(mu);
   $('bRtg').innerHTML = img('lupa'); $('bLizak').innerHTML = img('lizak'); $('bDom').innerHTML = SVG_IKONY.dom;
   $('bNext').innerHTML = SVG_IKONY.dalej + 'Następny pacjent'; $('bHome').innerHTML = SVG_IKONY.dom + 'Menu';
 }
@@ -545,7 +550,8 @@ function zabiegi(kind) {
   pula.push({ t: 'polkniete', f: () => zPolkniete(rz, tryb) }, { t: 'organ', f: () => zOrgan(organy) });
   if (P.kosc) pula.push({ t: 'kosc', f: () => zKosc() });
   const wybor = test ? pula.filter(p => test.split(',').includes(p.t)) : pula.map((p, i) => ({ ...p, i, r: Math.random() })).sort((a, b) => a.r - b.r).slice(0, 3).sort((a, b) => a.i - b.i);
-  const nowy = test ? NOWE_ZABIEGI.filter(n => test.split(',').includes(n.t)) : [pick(NOWE_ZABIEGI)];   // jeden zabieg bez rentgena (zabiegi3d.js)
+  const dla = NOWE_ZABIEGI.filter(n => (!n.dla || n.dla.includes(kind)) && !(n.bez && n.bez.includes(kind)));
+  const nowy = test ? dla.filter(n => test.split(',').includes(n.t)) : [pick(dla)];   // jeden zabieg bez rentgena (zabiegi3d.js)
   return [...wybor.map(w => w.f()), ...nowy.map(n => n.f()), zPlastry()];
 }
 
@@ -706,7 +712,7 @@ function step(dt) {
       }
       break;
     case 'objaw':
-      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: 'BRZUCH!', organ: 'OJ, OJ!', ukladanka: 'OJ!', kosc: 'AUĆ!', plastry: 'AUĆ!', drzazga: 'KŁUJE!', stetoskop: 'BUM BUM!', termometr: 'GORĄCO!', pchly: 'SWĘDZI!', bandaz: 'AŁA!' }[z.typ], glowaW(), 'small'); }
+      if (stT % 2.4 < dt && stT > .5) { const z = zadania[Math.floor(stT / 2.4) % zadania.length]; dymek({ polkniete: 'BRZUCH!', organ: 'OJ, OJ!', ukladanka: 'OJ!', kosc: 'AUĆ!', plastry: 'AUĆ!', drzazga: 'KŁUJE!', stetoskop: 'BUM BUM!', termometr: 'GORĄCO!', pchly: 'SWĘDZI!', bandaz: 'AŁA!', szyja: 'SZYJA!', mumia: 'AUA!', kly: 'KŁY!' }[z.typ], glowaW(), 'small'); }
       break;
     case 'skan': {
       if (lupa.cel <= 0) break;

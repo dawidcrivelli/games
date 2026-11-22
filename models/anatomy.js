@@ -6,6 +6,7 @@
 // Rzeczy: anRzecz('kaczka'|'budzik'|'skarpetka'|'klucz'|'rybka'|'pilka'|'klocek'|'lod', s) · anGips(L, r, kolor) · anDuch(obiekt)
 // anZadrapanie(r) · anPlaster(r, kolor) — zadrapania do zaklejania na skórze · anLizak(s) — nagroda · anLupa() · anGwiazda() — ikony
 // anDrzazga(L) · anPchla(s) · anBandaz(r, h) · anStetoskop() · anTermometr() · anSyrop(kolor) — narzędzia i kłopoty do zabiegów bez rentgena
+// anOwijka(przekroje, u0, u1, zwoje) — bandaż z gazy owijany spiralą wokół części ciała · anSzczoteczka() — do mycia kłów
 // anTik(obiekt, t) — bicie serca, oddech płuc, bulgot żołądka (gdy organ jest na swoim miejscu: userData.zywy)
 // wymaga: lib/3d/comic.js, lib/ui/comic.js (brPart, brExt, brCyl, brMat), THREE
 
@@ -295,6 +296,42 @@ function anSyrop(col) {
   brPart(g, brCyl(.13, .18, .16, 14), col, 0, .73, 0, { ol: .025 });
   brPart(g, brCyl(.15, .15, .14, 14), 0xffffff, 0, .86, 0, { ol: .025 });
   brPart(g, brCyl(.305, .305, .3, 18), 0xfffdf2, 0, .33, 0, { ol: 0 });
+  return g;
+}
+// Opaska z gazy owinięta spiralą wokół części ciała. prof = { os: 'x'|'y', sl: [{ u, cp, cq, rp, rq }, …] } — przekroje wzdłuż osi
+// (u = położenie na osi, cp/cq = środek, rp/rq = promienie w dwóch pozostałych osiach, rosnąco po u), u0..u1 = owijany odcinek,
+// n = liczba zwojów. Zwoje zachodzą na siebie (każdy trochę wyżej), lekko krzywo jak owinięte ręką; brzeg podkreślony kreską.
+// Zwraca grupę z userData.pokaz(f) — owinięte f = 0..1 (do animacji owijania palcem i odwijania).
+function anOwijka(prof, u0, u1, n) {
+  const sl = prof.sl, M = Math.max(24, Math.round(n * 44)), w = (u1 - u0) / n * 1.45, pos = [], uv = [], idx = [], brzeg = [];
+  const przekroj = u => { let i = 0; while (i < sl.length - 2 && sl[i + 1].u < u) i++; const a = sl[i], b = sl[i + 1] || a, k = b.u === a.u ? 0 : Math.max(0, Math.min(1, (u - a.u) / (b.u - a.u)));
+    return { cp: a.cp + (b.cp - a.cp) * k, cq: a.cq + (b.cq - a.cq) * k, rp: a.rp + (b.rp - a.rp) * k, rq: a.rq + (b.rq - a.rq) * k }; };
+  const pkt = (u, th, f) => { const s = przekroj(u), p = s.cp + Math.cos(th) * s.rp * f, q = s.cq + Math.sin(th) * s.rq * f; return prof.os === 'x' ? [u, p, q] : [p, u, q]; };
+  for (let i = 0; i <= M; i++) {
+    const t = i / M, th = t * n * Math.PI * 2, uc = u0 + w / 2 + (u1 - u0 - w) * t, f = 1.07 + .018 * n * t, kr = Math.sin(th * .5 + 1) * w * .08;
+    for (const e of [-.5, .5]) { pos.push(...pkt(uc + e * w + kr, th, f + (e > 0 ? .01 : 0))); uv.push(t * n * 3, e + .5); }
+    brzeg.push(new THREE.Vector3(...pkt(uc - .5 * w + kr, th, f + .012)));
+    if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const tex = anOwijka.tex || (anOwijka.tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+    x.fillStyle = '#f7f1df'; x.fillRect(0, 0, 64, 64); x.strokeStyle = 'rgba(185,170,135,.35)'; x.lineWidth = 1.5;
+    for (let k = 0; k < 64; k += 8) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, 64); x.moveTo(0, k); x.lineTo(64, k); x.stroke(); }
+    x.fillStyle = 'rgba(160,140,100,.25)'; x.fillRect(0, 0, 64, 4); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })());
+  const grp = new THREE.Group(), m = new THREE.Mesh(g, new THREE.MeshToonMaterial({ color: 0xffffff, map: tex, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }));
+  const kr = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(brzeg), M, w * .035, 5), brMat(0xb9aa86));
+  grp.add(m, kr); m.castShadow = true;
+  grp.userData.pokaz = f => { f = Math.max(0, Math.min(1, f)); const k = Math.floor(f * M); m.geometry.setDrawRange(0, k * 6); kr.geometry.setDrawRange(0, k * 5 * 6); grp.visible = k > 0; };
+  grp.userData.pokaz(0); return grp;
+}
+// Szczoteczka do zębów: rączka w paski, główka z białym włosiem (wzdłuż +x), długość ~1
+function anSzczoteczka() {
+  const g = new THREE.Group();
+  brPart(g, brCyl(.07, .09, .8, 10, 'x'), 0x3ab0ff, -.1, 0, 0, { ol: .025 });
+  brPart(g, brCyl(.075, .075, .12, 10, 'x'), 0xffffff, -.2, 0, 0, { ol: 0 });
+  brPart(g, brBox(.32, .06, .14), 0x3ab0ff, .4, .02, 0, { ol: .02 });
+  for (let i = 0; i < 4; i++) brPart(g, brBox(.05, .14, .12), 0xffffff, .3 + i * .07, .12, 0, { ol: .01 });
+  brPart(g, new THREE.SphereGeometry(.09, 10, 8), brMat(0x9be8ff, 'glow'), .38, .26, 0, { ol: .015 });
   return g;
 }
 // Złota gwiazdka-naklejka
