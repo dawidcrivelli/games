@@ -30,6 +30,7 @@ function snd(name) {
     case 'mruk': T(140, 110, .5, 'sine', .3, 0, [5, 6]); T(280, 220, .5, 'triangle', .08); break;                       // żyrafa mruczy
     case 'pingwin': for (const d of [0, .22]) T(620, 880, .16, 'sawtooth', .14, d, [28, 50]); T(900, 500, .3, 'sawtooth', .12, .45, [20, 40]); break;   // kwaa-kwaa-kwaaa
     case 'ryk': T(170, 120, .55, 'sawtooth', .22, 0, [9, 14]); T(85, 60, .55, 'square', .1, 0, [9, 10]); N(.5, .2, 900, 300, 1, 0, 'lowpass'); T(260, 180, .25, 'sawtooth', .12, .45, [12, 20]); break;   // tygrys: rrrau!
+    case 'ryk_lew': T(120, 80, .9, 'sawtooth', .26, 0, [7, 18]); T(60, 42, .9, 'square', .12, 0, [7, 12]); N(.8, .25, 700, 200, 1, 0, 'lowpass'); break;   // lew: ROOAAR!
     case 'skok': T(900, 1800, .07, 'sine', .14); break;                                                                    // pchła skacze
     case 'zlap': T(1200, 600, .08, 'square', .12); T(1500, 2000, .1, 'sine', .2, .06); break;                            // złapana pchła
     case 'syrop': for (let i = 0; i < 3; i++) T(400 + i * 120, 250 + i * 100, .12, 'sine', .2, i * .12); break;          // glu-glu-glu

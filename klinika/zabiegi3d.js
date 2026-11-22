@@ -6,7 +6,7 @@
 // Każdy zabieg: { typ, ic, w3d: true, objaw, prep(), kotwice(), widok(), start(), down/move/up(x, y) — piksele ekranu, step(dt), hint(), done }
 // hint() → [świat, świat] albo { ekran: true, a: [x, y], b: [x, y] } (rączka-podpowiedź).
 // wymaga z gry (klinika/game.js): P, scene, camGo, widok3D, dopasujPkt, naroza, wPozie, rozmiar, toScreen, swiat, glowaW, dymek, img, IKONA,
-//   NAZWY, KINDS, LICZ, czas, idleT, UI3D, KIER3D, naWierzch, lupa, pion; klinika/dzwieki.js (snd, mow); models/anatomy.js; lib/3d/three.js (T, V, rnd, pick)
+//   NAZWY, KINDS, LICZ, czas, idleT, UI3D, KIER3D, naWierzch, lupa; klinika/dzwieki.js (snd, mow); models/anatomy.js; lib/3d/three.js (T, V, rnd, pick)
 
 /* --- pomocnicze --- */
 // Pudło obiektu w jego własnym układzie (tylko widoczne siatki skóry, bez konturów, kości i rentgena)
@@ -32,12 +32,12 @@ function skora(n, ms, b, odstep, fn) {
   });
   return out;
 }
-// Kadr 3D na obszar (środek c, promień R), nie ciaśniej niż ~ 1/3 pacjenta; w pionie cały pacjent (wąski ekran)
-function widokNa(c, R) { if (pion()) return widok3D(); R = Math.max(R, rozmiar() * .3); return dopasujPkt(naroza(c.x - R, c.x + R, c.y - R, c.y + R, c.z - R, c.z + R), KIER3D, UI3D(), .05); }
+// Kadr 3D na obszar (środek c, promień R), nie ciaśniej niż ~ 1/3 pacjenta
+function widokNa(c, R) { R = Math.max(R, rozmiar() * .3); return dopasujPkt(naroza(c.x - R, c.x + R, c.y - R, c.y + R, c.z - R, c.z + R), KIER3D, UI3D(), .05); }
 const konczynaW = () => { const b = pudloLok(P.konczyna), h = b.max.y - b.min.y; return { b, c: P.konczyna.localToWorld(V((b.min.x + b.max.x) / 2, b.min.y + h * .35, (b.min.z + b.max.z) / 2)), R: b.getSize(V()).length() / 2 * P.k }; };
 // Narzędzie (obrazek DOM) przesuwane palcem
 const NARZ = { el: () => $('narz'), pokaz(ic, x, y) { const e = this.el(); e.innerHTML = img(ic); e.hidden = false; this.at(x, y); }, at(x, y) { const e = this.el(); e.style.left = x + 'px'; e.style.top = y + 'px'; }, schowaj() { this.el().hidden = true; } };
-const DOP = { zyrafa: 'żyrafy', slon: 'słonia', pingwin: 'pingwina', doktor: 'doktora', tygrys: 'tygrysa' };
+const DOP = { zyrafa: 'żyrafy', slon: 'słonia', pingwin: 'pingwina', doktor: 'doktora', tygrys: 'tygrysa', lew: 'lwa' };
 
 /* --- drzazgi w łapie: chwyć i pociągnij (110 px) --- */
 function zDrzazga() {
