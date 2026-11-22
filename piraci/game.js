@@ -280,7 +280,10 @@ function sinkShip(s){s.dead=true;s.sinkT=0;snd.boom();burst('fire',s.x,s.y+2,s.z
   msg('🫧 Zatopiony!','',1.6);if(s.el)s.el.hidden=true;}
 function disableFlag(s){s.disabled=true;s.flag.material.map=flagTex('#ffffff','');snd.boom();burst('fire',s.x,s.y+2,s.z,14,6,.9,.7);
   for(const o of ships)if(o.team===1&&o!==s&&!o.dead)o.flee=true;
-  msg('🏳️ Okręt kapitana pokonany!','Podpłyń do niego — ABORDAŻ! ⚔️',6);}
+  // wybór: najpierw skarby (kapitan czeka, ⚔️ Abordaż w każdej chwili) albo od razu abordaż; do wyboru podpłynięcie nie zaczyna abordażu
+  s.ask=true;msg('🏳️ Okręt kapitana pokonany!','',3);
+  later(1.4,()=>{if(mode!=='sea'||P.dead)return;showOver('🏳️ Bitwa morska wygrana!',s.name+' '+capE(lvDef(cur).cap)+' czeka na swoim okręcie.<br>🗺️ Popłyniesz najpierw szukać skarbów na wyspach?<br>Na abordaż ⚔️ możesz ruszyć w każdej chwili.',
+    '🗺️ Szukaj skarbów',()=>{s.ask=false;startHunt();},()=>{s.ask=false;beginBoard();},'⚔️ Abordaż!');});}
 function playerSunk(){P.dead=true;P.sinkT=0;snd.boom();snd.lose();burst('fire',P.x,P.y+2,P.z,16,6,.9,.7);
   later(2.6,()=>showOver('🫧 Statek zatonął!',lvDef(cur).name+' śmieje się na cały ocean. Spróbuj jeszcze raz!','⛵ Jeszcze raz',()=>startLevel()));}
 
@@ -297,24 +300,26 @@ let hunt=null;
 const hArrow=grp(scene),beamM=new T.MeshBasicMaterial({color:0xffe066,transparent:true,opacity:.35,depthWrite:false,side:T.DoubleSide});
 {const m=new T.MeshLambertMaterial({color:0xffc93c,emissive:0x6a4200,depthTest:false}),c=new T.Mesh(G.cone,m),b=new T.Mesh(G.box,m);   // zawsze na wierzchu (nie chowa się za żaglami)
   c.scale.set(1.5,2.2,1.5);c.rotation.x=PI/2;c.position.z=1.7;b.scale.set(1,.8,2.6);b.position.z=-.5;c.renderOrder=b.renderOrder=9;hArrow.add(c,b);hArrow.scale.setScalar(1.3);hArrow.rotation.order='YXZ';hArrow.rotation.x=-.6;hArrow.visible=false;}
-function huntUI(on){$('bL').hidden=$('bR').hidden=on;$('huntP').hidden=$('bPort').hidden=!on;if(!on)hArrow.visible=false;}
+function huntUI(on){$('bL').hidden=$('bR').hidden=on;$('huntP').hidden=$('bBoard').hidden=!on;if(!on)hArrow.visible=false;}
 function huntNext(){if(hunt.g)worldG.remove(hunt.g);
   const oth=islands.filter(i=>i!==hunt.isl),far=oth.filter(i=>Math.hypot(i.x-P.x,i.z-P.z)>70),i=pick(far.length?far:oth),r=i.r/.92,a=rnd(TAU),cx=Math.cos(a)*r*.72,cz=Math.sin(a)*r*.72;
   const g=grp(worldG,i.x+cx,-.4+.139*r,i.z+cz),ch=grp(g);chestMesh(ch);ch.scale.setScalar(1.6);ch.rotation.y=-a+PI/2;
   for(const s of [1,-1])box(M(0xe2483d),g,0,.08,0,3.2,.12,.5).rotation.y=s*PI/4;
   const bm=new T.Mesh(new T.CylinderGeometry(1.3,1.3,44,12,1,true),beamM);bm.position.y=22;g.add(bm);
   Object.assign(hunt,{isl:i,g,ch,tx:i.x+cx,tz:i.z+cz});}
-function startHunt(){fadeTo(()=>{mode='hunt';paused=false;duelG.visible=false;D=null;$('duel').hidden=true;$('tele').hidden=true;
-  for(const s of ships)if(s!==P){scene.remove(s.g);if(s.el)s.el.remove();}ships=[P];flagship=null;for(const b of balls){scene.remove(b.m);ballPool.push(b.m);}balls=[];timers=[];
-  P.hp=P.max;$('hpP').style.width='100%';$('hpP').style.background='';$('goldN').textContent=S.gold;$('huntN').textContent=0;
-  hunt={n:0,isl:null,g:null};huntNext();showSea(true);$('ui').hidden=false;huntUI(true);camera.fov=60;camera.updateProjectionMatrix();
-  msg('🗺️ Szukamy skarbów!','Płyń za złotą strzałką do wyspy z ❌<br>Bez wrogów — żegluj, ile chcesz!',5);});}
+// po wygranej bitwie morskiej: eskorta odpływa, okręt kapitana (biała flaga) czeka w miejscu na abordaż
+function startHunt(){mode='hunt';paused=false;
+  for(const s of ships)if(s!==P&&s!==flagship){scene.remove(s.g);if(s.el)s.el.remove();}ships=ships.filter(s=>s===P||s===flagship);if(flagship.el)flagship.el.hidden=true;
+  for(const b of balls){scene.remove(b.m);ballPool.push(b.m);}balls=[];timers=[];
+  P.hp=P.max;$('hpP').style.width='100%';$('hpP').style.background='';$('arrow').hidden=true;$('huntN').textContent=0;
+  hunt={n:0,isl:null,g:null};huntNext();huntUI(true);
+  msg('🗺️ Szukamy skarbów!','Płyń za złotą strzałką do wyspy z ❌<br>Bez wrogów — żegluj, ile chcesz! ⚔️ Abordaż, gdy zechcesz walczyć.',5);}
 function huntUpdate(dt){const h=hunt;if(!h||!h.isl)return;const dx=h.tx-P.x,dz=h.tz-P.z,d=Math.hypot(dx,dz),i=h.isl;
   hArrow.visible=true;hArrow.position.set(P.x,P.y+13+Math.sin(time*3)*.4,P.z);hArrow.rotation.y=Math.atan2(dx,dz);
   h.ch.position.y=.2+Math.abs(Math.sin(time*2.4))*.5;beamM.opacity=.25+Math.sin(time*3)*.1;$('huntD').textContent=Math.round(d)+' m';
   if(!P.dead&&Math.hypot(P.x-i.x,P.z-i.z)<i.r+P.W*.6+5){const g=10+Math.round(Math.random()*15);h.n++;$('huntN').textContent=h.n;
     burst('spark',h.tx,2,h.tz,16,6,.25,.6);gainGold(g,h.tx,3,h.tz);snd.ready();msg('💰 Skarb nr '+h.n+'!','+'+g+' 🪙 · strzałka pokazuje następną wyspę',2.6);huntNext();}}
-$('bPort').addEventListener('click',()=>{initAudio();if(mode==='hunt')fadeTo(openShop);});
+$('bBoard').addEventListener('click',()=>{initAudio();if(mode==='hunt'&&!paused)beginBoard();});
 
 /* ---------- zwierzęta morskie w tle ---------- */
 const seaLife=[];
@@ -423,9 +428,9 @@ function seaUpdate(dt){
     if(P&&!P.dead&&!menu&&Math.hypot(P.x-l.x,P.z-l.z)<P.L*.5+1.5){worldG.remove(l.g);loot.splice(i,1);
       if(l.kind==='chest')gainGold(l.gold||20,l.x,3,l.z);else{const h=Math.round(P.max*.3);P.hp=Math.min(P.max,P.hp+h);snd.ready();floatAt('+'+h+' ❤️',l.x,3,l.z,'big');}}}
   if(menu||!P)return;
-  if(mode==='hunt'){huntUpdate(dt);return;}
+  if(mode==='hunt'){huntUpdate(dt);if(flagship&&Math.hypot(P.x-flagship.x,P.z-flagship.z)<flagship.L*.5+P.L*.5+3)beginBoard();return;}
   // abordaż
-  if(flagship&&flagship.disabled&&!P.dead&&Math.hypot(P.x-flagship.x,P.z-flagship.z)<flagship.L*.5+P.L*.5+3){beginBoard();return;}
+  if(flagship&&flagship.disabled&&!flagship.ask&&!P.dead&&Math.hypot(P.x-flagship.x,P.z-flagship.z)<flagship.L*.5+P.L*.5+3){beginBoard();return;}
   // HUD
   $('hpP').style.width=clamp(P.hp/P.max*100,0,100)+'%';$('hpP').style.background=P.hp/P.max<.3?'linear-gradient(#ff9a8a,#e03a2a)':'';
   const hot=[false,false];
@@ -448,7 +453,7 @@ function seaCamera(dt){if(!P)return;const menu=mode==='menu';
 
 /* ---------- pojedynek ---------- */
 let D=null;const duelG=grp(scene);duelG.visible=false;
-function beginBoard(){mode='board';snd.special();msg('⚔️ ABORDAŻ!','',2);fadeTo(startDuel);}
+function beginBoard(){mode='board';huntUI(false);snd.special();msg('⚔️ ABORDAŻ!','',2);fadeTo(startDuel);}
 function startDuel(){const n=cur,L_=lvDef(n);while(duelG.children.length)duelG.remove(duelG.children[0]);
   mode='duel';paused=false;showSea(false);$('ui').hidden=true;$('duel').hidden=false;$('msg').hidden=true;
   const fx=flagship?flagship.x:0,fz=flagship?flagship.z:0;duelG.position.set(fx,0,fz);duelG.visible=true;
@@ -502,7 +507,7 @@ function koFighter(f){D.over=true;fSet(f,'ko');f.vy=9;snd.boing();$('tele').hidd
   later(2.6,()=>endDuel(f===D.e));}
 function endDuel(win){const n=cur;
   if(win){const g=40+22*n;S.gold+=g;S.lvl=Math.max(S.lvl,n+1);cur=n+1;save();snd.win();const nx=lvDef(n+1);
-    showOver('🏆 Zwycięstwo!',D.name+' robi PLUSK! 💦<br>Łup: <b>+'+g+' 🪙</b><br>Następny: '+capE(nx.cap)+' '+nx.name+'<br>🗺️ Na wyspach czekają skarby — popłyniesz ich poszukać?','🗺️ Szukaj skarbów',startHunt);}
+    showOver('🏆 Zwycięstwo!',D.name+' robi PLUSK! 💦<br>Łup: <b>+'+g+' 🪙</b><br>Następny: '+capE(nx.cap)+' '+nx.name,'🏝️ Do portu',openShop,null);}
   else{snd.lose();showOver('💦 Plusk!',D.name+' wyrzucił cię za burtę. Rewanż?','⚔️ Rewanż!',()=>fadeTo(startDuel));}}
 function fUpdate(f,dt){f.t+=dt;const p=D.p,e=D.e,o=f===p?e:p;
   switch(f.st){
@@ -615,8 +620,9 @@ function duelUpdate(dt){const p=D.p,e=D.e;D.time+=dt;
   const wide=W/H,dist=wide>1.5?11.5:wide>1?15:24;_v.set(rnd(-shake,shake),SH.H*2.2+3+rnd(-shake,shake),dist).add(duelG.position);camera.position.copy(_v);camera.lookAt(duelG.position.x,SH.H*2.2+1.9,duelG.position.z+2);}
 
 /* ---------- port (sklep) i ekrany ---------- */
-function showOver(t,p,a,fa,fb){paused=true;$('ovT').innerHTML=t;$('ovP').innerHTML=p;$('ovA').innerHTML=a;$('ovA').onclick=()=>{$('over').hidden=true;paused=false;fa();};
-  const b=$('ovB');b.hidden=fb===null;b.onclick=()=>{$('over').hidden=true;openShop();};$('over').hidden=false;}
+// fb: null = bez drugiego przycisku, brak = 🏝️ Port, funkcja = własny drugi przycisk z napisem bt
+function showOver(t,p,a,fa,fb,bt){paused=true;$('ovT').innerHTML=t;$('ovP').innerHTML=p;$('ovA').innerHTML=a;$('ovA').onclick=()=>{$('over').hidden=true;paused=false;fa();};
+  const b=$('ovB');b.hidden=fb===null;b.innerHTML=bt||'🏝️ Port';b.onclick=()=>{$('over').hidden=true;paused=false;(fb||openShop)();};$('over').hidden=false;}
 function openShop(){paused=true;mode='menu';duelG.visible=false;D=null;$('duel').hidden=true;$('ui').hidden=true;$('tele').hidden=true;clearLevel();P=mkPlayer();setTheme(lvDef(cur).th);showSea(true);
   camera.fov=50;camera.updateProjectionMatrix();renderShop();$('shop').hidden=false;}
 function renderShop(){$('shopGold').textContent=S.gold;$('shopLvl').textContent=cur;$('sLvM').hidden=$('sLvP').hidden=S.lvl<2;$('sLvM').disabled=cur<=1;$('sLvP').disabled=cur>=S.lvl;const g=$('shopG');let h='<h3>🏴‍☠️ Kim grasz?</h3><div class="heroes">'+heroCards()+'</div><h3>⛵ Statek</h3>';
