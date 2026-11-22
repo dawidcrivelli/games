@@ -80,7 +80,9 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 #streak.hot i{box-shadow:0 0 10px 2px #ffb020}
 #streak.max i{animation:pulse .2s infinite alternate;box-shadow:0 0 16px 5px #ff7a1a}
 @keyframes flame{to{transform:translateY(-66%) scale(1.35) rotate(8deg)}}
-body.inf #left{top:auto;flex-direction:row;align-items:flex-end;--k:clamp(58px,17vmin,86px);gap:var(--k)}   /* jak w kombajnie (Żniwa) */
+/* ⬅️ ➡️ dokładnie jak pad kombajnu (Żniwa #pad): siatka 3×3 po k, odstęp 6 px, od lewej 12 px i od dołu 16 px — strzałki w środkowym rzędzie */
+body.inf #left{top:auto;flex-direction:row;align-items:flex-end;--k:clamp(58px,17vmin,86px);gap:calc(var(--k) + 12px);
+  left:calc(12px + var(--sl));bottom:calc(16px + var(--sb) + var(--k) + 6px)}
 body.inf #left .gb{width:var(--k);height:var(--k);flex:none;max-height:none;font-size:calc(var(--k) * .5);border-radius:20px;background:rgba(255,243,214,.8)}
 #wynik{display:flex;flex-direction:column;align-items:center;background:var(--plate);border-radius:22px;box-shadow:0 5px 0 var(--plate-edge);padding:8px 26px 12px;line-height:1.1}
 #wynik img{width:150px;margin:-8px 0 -4px}#wynik b{font-size:44px}#wynik small{font-size:18px;opacity:.75}#wynik span{font-size:20px}
