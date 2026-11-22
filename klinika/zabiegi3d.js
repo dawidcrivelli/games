@@ -2,7 +2,7 @@
 // Klinika Zoo — zabiegi bez rentgena (w 3D, kamera z ukosa); na wizycie jeden losowy, przed plasterkami:
 //   drzazga (chwyć i pociągnij) · stetoskop (szukaj serca: im bliżej, tym szybciej bije; potem stukaj w rytm) ·
 //   termometr i syrop (zanieś termometr do pyszczka, wybierz syrop z obrazkiem pacjenta) · pchły (złap 5, liczymy) ·
-//   bandaż (kręć palcem w kółko: łapa, szyja żyrafy, cała mumia) · mycie kłów (słoń; tygrys i lew dostają kły na ten zabieg).
+//   bandaż (kręć palcem w kółko: łapa, szyja żyrafy, cała mumia) · mycie kłów / zębów / dzioba (słoń — kły, tygrys i lew — dorobione kły, żyrafa i doktor — zęby, pingwin — dziób).
 // Każdy zabieg: { typ, ic, w3d: true, objaw, prep(), kotwice(), widok(), start(), down/move/up(x, y) — piksele ekranu, step(dt), hint(), done }
 // hint() → [świat, świat] albo { ekran: true, a: [x, y], b: [x, y] } (rączka-podpowiedź).
 // wymaga z gry (klinika/game.js):  P, scene, camGo, widok3D, dopasujPkt, naroza, wPozie, rozmiar, toScreen, swiat, glowaW, dymek, img, IKONA,
@@ -312,28 +312,36 @@ function oczyMumii() {
   return out;
 }
 
-/* --- mycie kłów: brud na kłach, szoruj szczoteczką („mycie kłów trwa godzinę… żart!”) --- */
-// Kły: słoń ma swoje (siatki kłów w głowie), tygrys i lew dostają na ten zabieg dwa kreskówkowe kły pod nosem
+/* --- mycie kłów / zębów / dzioba: brud, szoruj szczoteczką („mycie trwa godzinę… żart!”) --- */
+// Co myjemy: słoń — swoje kły; tygrys i lew — kreskówkowe kły pod nosem; żyrafa — dwa wielkie przednie zęby; doktor — biały uśmiech;
+// pingwin — dziób (nie ma zębów!). Dorobione części zostają do końca wizyty.
+const MYCIE = { slon: ['kły', 'kłów'], tygrys: ['kły', 'kłów'], lew: ['kły', 'kłów'], zyrafa: ['zęby', 'zębów'], doktor: ['zęby', 'zębów'], pingwin: ['dziób', 'dzioba'] };
 function klyPacjenta() {
-  const h = P.a.head;
-  if (P.kind === 'slon') return h.children.filter(m => m.isMesh && (m.layers.mask & 1) && Math.abs(m.position.x - .62) < .02 && Math.abs(m.position.y + .5) < .02);
-  const x = P.kind === 'lew' ? .7 : .66, o = [];
-  for (const s of [1, -1]) o.push(brPart(h, new T.ConeGeometry(.055, .26, 10).rotateX(Math.PI), 0xfffbe8, x, -.4, s * .1, { ol: .015 }));
-  return o;
+  const h = P.a.head, zab = (geo, x, y, z) => brPart(h, geo, 0xfffbe8, x, y, z, { ol: .012 });
+  switch (P.kind) {
+    case 'slon': return h.children.filter(m => m.isMesh && (m.layers.mask & 1) && Math.abs(m.position.x - .62) < .02 && Math.abs(m.position.y + .5) < .02);
+    case 'tygrys': case 'lew': { const x = P.kind === 'lew' ? .7 : .66; return [1, -1].map(s => zab(new T.ConeGeometry(.055, .26, 10).rotateX(Math.PI), x, -.4, s * .1)); }
+    case 'zyrafa': return [1, -1].map(s => zab(brBox(.05, .13, .075), .93, -.24, s * .042));
+    case 'doktor': return [zab(brBox(.03, .045, .13), .236, -.11, 0)];
+    case 'pingwin': return h.children.filter(m => m.isMesh && (m.layers.mask & 1) && m.material.side !== T.BackSide && (m.geometry.boundingBox || m.geometry.computeBoundingBox() || m.geometry.boundingBox).max.x > .7);
+  }
+  return [];
 }
 function zKly() {
   const plamy = []; let kly = [], poz = null, grab = false, last = null, szur = 0, pol = false, gotowe = false;
-  const Z = { typ: 'kly', ic: 'szczotka', w3d: true, done: false, objaw: 'kły mnie bolą', znalezione: '' };
-  const imie = { slon: 'słonia', tygrys: 'tygrysa', lew: 'lwa' }[P.kind];
+  const [co, czego] = MYCIE[P.kind], imie = { slon: 'słonia', tygrys: 'tygrysa', lew: 'lwa', zyrafa: 'żyrafy', doktor: 'doktora', pingwin: 'pingwina' }[P.kind];
+  const Z = { typ: 'kly', ic: 'szczotka', w3d: true, done: false, objaw: co === 'dziób' ? 'dziób mnie swędzi' : co + ' mnie bolą', znalezione: '' };
+  let bx = null;
   Z.prep = () => {
-    kly = klyPacjenta(); const b = new T.Box3(); wPozie(() => kly.forEach(k => b.expandByObject(k)));
-    const r = P.box.y1 * .024;
+    kly = klyPacjenta(); const b = new T.Box3(); wPozie(() => { kly.forEach(k => b.expandByObject(k)); bx = P.a.head.worldToLocal(b.getCenter(V())); });
+    const r = clamp(b.getSize(V()).length() * .07, P.box.y1 * .008, P.box.y1 * .024);
     skora(8, kly, b, r * 1.4, q => { const m = brPart(scene, new T.SphereGeometry(1, 10, 8), new T.MeshToonMaterial({ color: pick([0x9a7b3c, 0x7a8a3a, 0xb08a4a]), transparent: true }), 0, 0, 0, { ol: 0, s: [1, 1, .35] });
       m.scale.set(r * rnd(.8, 1.2), r * rnd(.8, 1.2), r * .35); m.position.copy(q.p); m.quaternion.setFromUnitVectors(V(0, 0, 1), q.n); q.o.attach(m); plamy.push({ m, brud: 1, s0: m.scale.clone() }); });
   };
   Z.kotwice = () => [];
-  Z.widok = () => { const c = P.a.head.localToWorld(V(.6, -.45, 0)), R = rozmiar() * .16; return dopasujPkt(naroza(c.x - R, c.x + R, c.y - R, c.y + R, c.z - R, c.z + R), KIER3D, UI3D(), .05); };   // blisko pyska
-  Z.start = () => { lupa.cel = 0; camGo(Z.widok(), 1.2); poz = [90, innerHeight - 140]; NARZ.pokaz('szczotka', ...poz); mow('Mycie kłów ' + imie + ' trwa około godziny. Powodzenia!'); if (!plamy.length) Z.done = true; };
+  const pysk = () => bx ? P.a.head.localToWorld(bx.clone()) : P.a.head.getWorldPosition(V());                  // środek tego, co myjemy
+  Z.widok = () => { const c = pysk(), R = rozmiar() * (P.kind === 'slon' ? .16 : .1); return dopasujPkt(naroza(c.x - R, c.x + R, c.y - R, c.y + R, c.z - R, c.z + R), KIER3D, UI3D(), .05); };   // zoom na kły / zęby / dziób
+  Z.start = () => { lupa.cel = 0; camGo(Z.widok(), 1.2); poz = [90, innerHeight - 140]; NARZ.pokaz('szczotka', ...poz); mow((co === 'dziób' ? 'Pingwin nie ma zębów! Umyjemy dziób. ' : '') + 'Mycie ' + czego + ' ' + imie + ' trwa około godziny. Powodzenia!'); if (!plamy.length) Z.done = true; };
   const szczota = () => [poz[0] + 30, poz[1] - 20];                     // główka szczoteczki
   Z.down = (x, y) => { grab = true; last = [x, y]; poz = [x - 20, y - 50]; NARZ.at(...poz); };
   Z.move = (x, y) => {
@@ -343,7 +351,7 @@ function zKly() {
     if (tarl && (szur += dl) > 90) { szur = 0; snd('szczotka'); piana(bx, by); }
     const zost = plamy.reduce((a, p) => a + p.brud, 0) / plamy.length;
     if (!pol && zost < .55) { pol = true; mow('Żartowałam, wcale nie godzinę! Szoruj dalej!'); }
-    if (zost <= 0 && !gotowe) { gotowe = true; NARZ.schowaj(); snd('gwiazda'); setTimeout(() => snd('sukces'), 300); dymek('BŁYSZCZY!', P.a.head.localToWorld(V(.5, -.4, 0)), 'big'); mow('Kły błyszczą jak nowe!'); setTimeout(() => { Z.done = true; }, 2200); }
+    if (zost <= 0 && !gotowe) { gotowe = true; NARZ.schowaj(); snd('gwiazda'); setTimeout(() => snd('sukces'), 300); dymek('BŁYSZCZY!', pysk(), 'big'); mow(co === 'dziób' ? 'Dziób błyszczy jak nowy!' : co[0].toUpperCase() + co.slice(1) + ' błyszczą jak nowe!'); setTimeout(() => { Z.done = true; }, 2200); }
   };
   Z.up = () => { grab = false; };
   Z.step = () => { for (const p of plamy) { if (p.brud <= 0 && p.m.parent) { p.m.parent.remove(p.m); continue; } p.m.material.opacity = .25 + .75 * p.brud; p.m.scale.set(p.s0.x * (.5 + .5 * p.brud), p.s0.y * (.5 + .5 * p.brud), p.s0.z); } };
@@ -358,4 +366,4 @@ function piana(x, y) {
 
 // Pula zabiegów bez rentgena (gra losuje jeden na wizytę; dla = tylko ci pacjenci, bez = wszyscy oprócz)
 const NOWE_ZABIEGI = [{ t: 'drzazga', f: zDrzazga }, { t: 'stetoskop', f: zStetoskop }, { t: 'termometr', f: zTermometr }, { t: 'pchly', f: zPchly },
-  { t: 'bandaz', f: zBandaz, bez: ['zyrafa'] }, { t: 'szyja', f: zSzyja, dla: ['zyrafa'] }, { t: 'mumia', f: zMumia }, { t: 'kly', f: zKly, dla: ['slon', 'tygrys', 'lew'] }];
+  { t: 'bandaz', f: zBandaz, bez: ['zyrafa'] }, { t: 'szyja', f: zSzyja, dla: ['zyrafa'] }, { t: 'mumia', f: zMumia }, { t: 'kly', f: zKly }];
