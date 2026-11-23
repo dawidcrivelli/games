@@ -1,6 +1,7 @@
 // Trasy Dzikich Bryk: motywy (niebo, ziemia, droga, rekwizyty), przeszkody na pasach, gwiazdki, rampa, pole turbo, meta.
 // Wszystko w tym samym kreskówkowym stylu co pojazdy. Początek modelu = środek podstawy na ziemi, przód toru = +x.
 // brykiTrasy() → motywy · brProp(nazwa) → Group · brObst(typ) → Group z userData { rodzaj, col }
+// pobocze: { blisko, dalej } — rekwizyty dla widoku zza auta (tryb Infinity): słupy/znaki tuż przy drodze, reszta dalej; tablice patrzą w −x
 // wymaga: lib/3d/comic.js, lib/ui/comic.js (brPart, brMat, brExt, brBox, brCyl, brGwiazdaPts), models/wild-cars.js (brRivets), THREE
 
 // rodzaje przeszkód: twarda = trafienie (mruganie), skrzynia = rozbija się i daje gwiazdkę, miekka = odbija się,
@@ -20,19 +21,23 @@ function brykiTrasy() {
     pustynia: { ic: '🏜️', sky: 0x8fd3f4, fog: 0xf6d9a8, ground: 0xe8b56a, road: 0x4b4747, curb: [0xd8342a, 0xf2efe6], line: 0xf2efe6,
       hemi: [0xffffff, 0xb08850, .75], sun: [0xffffff, .75], props: ['kaktus', 'kamien', 'opony', 'beczka', 'kaktus'], far: ['plaskowyz'],
       twarde: ['glaz', 'beczki'], miekkie: ['skrzynia', 'skrzynia'], slisko: 'olej', seed: 11,
-      ruchome: ['biegacz', 'glaz_tocz'], tunel: 0xc07a48, woda: 0x3aa0d0, luk: 0xd8342a },
+      ruchome: ['biegacz', 'glaz_tocz'], tunel: 0xc07a48, woda: 0x3aa0d0, luk: 0xd8342a,
+      pobocze: { blisko: ['slup', 'znak', 'slup'], dalej: ['kaktus', 'kamien', 'czaszka', 'krzak', 'kaktus', 'billboard', 'beczka', 'krzak', 'opony', 'kaktus'] } },
     zlomowisko: { ic: '🏭', sky: 0xa9c3d3, fog: 0xb8c2c6, ground: 0x7d7566, road: 0x3c3a3a, curb: [0xf2c12e, 0x2b2a2e], line: 0xf2c12e,
       hemi: [0xffffff, 0x6a6458, .75], sun: [0xfff2dd, .7], props: ['zlom', 'wrak', 'opony', 'beczka', 'zlom'], far: ['dzwig', 'fabryka'],
       twarde: ['wrak', 'opony'], miekkie: ['skrzynia', 'pacholki'], slisko: 'olej', seed: 23,
-      ruchome: ['beczka_tocz', 'kula_burzaca'], tunel: 0x8a8580, woda: 0x5f8a4a, luk: 0xf2c12e },
+      ruchome: ['beczka_tocz', 'kula_burzaca'], tunel: 0x8a8580, woda: 0x5f8a4a, luk: 0xf2c12e,
+      pobocze: { blisko: ['latarnia', 'plot', 'latarnia'], dalej: ['zlom', 'kontener', 'wrak', 'opony', 'beczka', 'billboard', 'zlom', 'kontener', 'plot'] } },
     wulkan: { ic: '🌋', sky: 0x4a2232, fog: 0x6a2e24, ground: 0x3a3030, road: 0x352d2d, curb: [0xff7a1a, 0x1e1a1a], line: 0xffb04a,
       hemi: [0xffd0b0, 0x5a2a20, .7], sun: [0xffb070, .8], props: ['skala', 'dym', 'skala', 'kamien'], far: ['wulkan'],
       twarde: ['glaz', 'beczki'], miekkie: ['skrzynia'], slisko: 'lawa', seed: 37,
-      ruchome: ['meteor', 'glaz_tocz'], tunel: 0x2a2222, woda: 0xff6a1a, lawa: 1, luk: 0x5a5560 },
+      ruchome: ['meteor', 'glaz_tocz'], tunel: 0x2a2222, woda: 0xff6a1a, lawa: 1, luk: 0x5a5560,
+      pobocze: { blisko: ['znak', 'slup'], dalej: ['skala', 'krysztal', 'iglica', 'dym', 'kamien', 'krysztal', 'skala', 'iglica'] } },
     lodowiec: { ic: '❄️', sky: 0xcfe9ff, fog: 0xe6f2fb, ground: 0xf4f8ff, road: 0x7f98ad, curb: [0x2f7fbf, 0xf2f6fa], line: 0xffffff,
       hemi: [0xffffff, 0x9fb8cc, .8], sun: [0xffffff, .65], props: ['sosna', 'balwan', 'lodblok', 'sosna'], far: ['gora'],
       twarde: ['bryla', 'glaz'], miekkie: ['balwan', 'skrzynia'], slisko: 'lod', seed: 51,
-      ruchome: ['pingwin', 'sniezka'], tunel: 0x9fd2ee, woda: 0x6ab8e8, luk: 0x2f7fbf },
+      ruchome: ['pingwin', 'sniezka'], tunel: 0x9fd2ee, woda: 0x6ab8e8, luk: 0x2f7fbf,
+      pobocze: { blisko: ['flaga', 'latarnia'], dalej: ['sosna', 'balwan', 'igloo', 'lodblok', 'sosna', 'lodkrysztal', 'sosna', 'billboard'] } },
   };
 }
 
@@ -87,6 +92,52 @@ function brProp(kind) {
   }
   if (kind === 'balwan') brBalwan(g);
   if (kind === 'lodblok') P(brBox(1.6, 1.2, 1.4), 0xbfe6ff, 0, .6, 0, { r: [0, .4, .1] });
+  // --- pobocze (tryb Infinity): słupy, znaki, tablice — płaskie strony patrzą w −x (do kamery za autem)
+  if (kind === 'slup') {                                      // drewniany słup telegraficzny
+    P(brCyl(.13, .17, 6.5, 7), 0x7a5232, 0, 3.25, 0); P(brBox(.18, .18, 2.2), 0x6b4628, 0, 5.8, 0);
+    for (const z of [-.8, .8]) P(brCyl(.07, .07, .2, 6), 0xe8e4d8, 0, 6, z, { ol: .01 });
+  }
+  if (kind === 'latarnia') {                                  // latarnia z ramieniem nad drogą (ramię w stronę −z; obrót robi gra)
+    P(brCyl(.12, .16, 6, 8), 0x6b7078, 0, 3, 0); P(brBox(.14, .14, 1.8), 0x6b7078, 0, 5.95, -.85);
+    P(brBox(.5, .2, .7), 0x3b3f45, 0, 5.8, -1.7); P(brBox(.4, .06, .55), brMat(0xfff2a0, 'glow'), 0, 5.67, -1.7, { ol: 0 });
+  }
+  if (kind === 'znak') {                                      // żółta tablica ze strzałkami „>>”
+    for (const z of [-.7, .7]) P(brCyl(.07, .07, 2.4, 6), 0x9aa1a8, 0, 1.2, z);
+    P(brBox(.1, 1.1, 2.2), 0xffd23f, 0, 2.2, 0, { ol: .04 });
+    for (const dz of [-.45, .35]) for (const sy of [-1, 1]) P(brBox(.04, .14, .55), 0x1e1a1a, -.07, 2.2 + sy * .18, dz, { r: [sy * .6, 0, 0], ol: 0 });
+  }
+  if (kind === 'billboard') {                                 // tablica reklamowa z gwiazdą
+    for (const z of [-2, 2]) P(brCyl(.14, .14, 4, 6), 0x6b4a2a, 0, 2, z);
+    P(brBox(.25, 2.8, 6), 0xf2efe6, 0, 4.6, 0, { ol: .06 }); P(brBox(.05, 2.4, 5.6), [0xd8342a, 0x2f7fbf, 0x3f9a34][Math.random() * 3 | 0], -.14, 4.6, 0, { ol: 0 });
+    P(brExt(brGwiazdaPts(1, .45), .05, 0), brMat(0xffd23f), -.2, 4.6, -1.4, { r: [0, -Math.PI / 2, 0], ol: .02 });
+    for (let i = 0; i < 3; i++) P(brBox(.05, .25, 2.4 - i * .5), 0xffffff, -.2, 5.2 - i * .5, 1.1, { ol: 0 });
+  }
+  if (kind === 'czaszka') {                                   // czaszka byka na pustyni
+    P(new THREE.SphereGeometry(.45, 10, 8), 0xf4ecd8, 0, .4, 0, { s: [.8, 1, 1.1] }); P(brBox(.4, .35, .5), 0xf4ecd8, -.25, .25, 0);
+    for (const z of [-1, 1]) P(new THREE.ConeGeometry(.1, .9, 6), 0xf4ecd8, 0, .65, z * .55, { r: [z * 1.2, 0, 0] });
+    for (const z of [-.18, .18]) P(new THREE.SphereGeometry(.08, 6, 4), 0x2b2724, -.35, .5, z, { ol: 0 });
+  }
+  if (kind === 'krzak') P(new THREE.IcosahedronGeometry(.7, 0), 0xa8844e, 0, .6, 0, { s: [1, .85, 1] });   // suchy krzak
+  if (kind === 'kontener') {                                  // kontener z żeberkami
+    const c = [0xd8342a, 0x2f7fbf, 0x3f9a34, 0xf2a124][Math.random() * 4 | 0];
+    P(brBox(2.4, 2.6, 6), c, 0, 1.3, 0, { ol: .05 });
+    for (let i = -2; i <= 2; i++) P(brBox(2.46, 2.3, .12), new THREE.Color(c).multiplyScalar(.8).getHex(), 0, 1.3, i * 1.15, { ol: 0 });
+  }
+  if (kind === 'plot') {                                      // kawałek płotu z siatki
+    for (const z of [-3, 0, 3]) P(brCyl(.07, .07, 2, 6), 0x8d949b, 0, 1, z);
+    for (const y of [.4, 1.9]) P(brBox(.06, .06, 6), 0x8d949b, 0, y, 0, { ol: 0 });
+    P(brBox(.02, 1.5, 6), brMat(0xb7bec6), 0, 1.15, 0, { ol: 0 });
+  }
+  if (kind === 'krysztal' || kind === 'lodkrysztal') {        // świecące kryształy (wulkan: pomarańczowe, lodowiec: niebieskie)
+    const c = kind === 'krysztal' ? 0xff7a2a : 0x7fd6ff;
+    for (let i = 0; i < 4; i++) P(new THREE.ConeGeometry(.3 + i * .08, 1.4 + i * .5, 5), brMat(c, 'glow'), (i % 2 - .5) * .6, .6 + i * .2, (i - 1.5) * .35, { r: [(i - 1.5) * .25, 0, (i % 2 - .5) * .5], ol: .03 });
+  }
+  if (kind === 'iglica') P(new THREE.ConeGeometry(1.3, 7, 6), 0x2a2222, 0, 3.5, 0, { r: [0, 0, .1], ol: .08 });   // skalna iglica
+  if (kind === 'igloo') {
+    P(new THREE.SphereGeometry(1.8, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0xf4f8ff, 0, 0, 0);
+    P(brCyl(.7, .7, 1.2, 12, 'x'), 0xf4f8ff, -1.7, .5, 0); P(new THREE.CircleGeometry(.5, 12), 0x2b3540, -2.31, .5, 0, { r: [0, -Math.PI / 2, 0], ol: 0 });
+  }
+  if (kind === 'flaga') { P(brCyl(.06, .06, 4, 6), 0x9aa1a8, 0, 2, 0); P(brBox(.04, .8, 1.3), 0xd8342a, 0, 3.5, .66, { ol: .02 }); }
   if (kind === 'gora') { P(new THREE.ConeGeometry(18, 22, 9), 0x8fa6bd, 0, 11, 0, { ol: .2 }); P(new THREE.ConeGeometry(7.5, 9, 9), 0xffffff, 0, 18.5, 0, { ol: 0 }); }
   return g;
 }
