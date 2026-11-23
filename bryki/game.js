@@ -20,9 +20,11 @@ const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT
 const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3 };
 const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3 };
 const INF_T = 60, INF_V = 20;                                // Infinity: czas [s], prędkość startowa [m/s]
-// Seria Infinity (czas bez uderzenia): [od ilu s, mnożnik punktów, ×prędkość]; ostatni poziom = 🔥 FIRE. Prędkość rośnie płynnie między
-// poziomami, po FIRE dalej do VTOP (×2,6 = 52 m/s po 50 s). Uderzenie zeruje serię.
-const TIERS = [[0, 1, 1], [5, 2, 1.25], [12, 5, 1.55], [22, 10, 1.9], [35, 20, 2.3]], VTOP = [50, 2.6], FIRE = TIERS.length - 1;
+// Infinity — prędkość: rośnie cały czas bez sufitu, przyspieszenie infAcc(v) = 1 + 30/v m/s² (mocne na starcie, potem słabsze):
+// czysta minuta 20 → 40 (10 s) → 71 (30 s) → ok. 110 m/s. Uderzenie: prędkość × ¼ i dalej rozpędzanie od tego miejsca (bez szybkiego powrotu).
+// Seria (czas bez uderzenia) → mnożnik punktów: [od ilu s, mnożnik]; ostatni poziom = 🔥 FIRE. Uderzenie: mnożnik o poziom niżej (połowa).
+const TIERS = [[0, 1], [5, 2], [12, 5], [22, 10], [35, 20]], FIRE = TIERS.length - 1, HIT_V = .25;
+const infAcc = v => 1 + 30 / Math.max(v, 5);
 const REACH = 7;                                            // zwykły atak: u wszystkich do przodu, ten sam zasięg [m]
 // Infinity: auto jest szybkie, a cios pada ok. 0,22 s po naciśnięciu — zasięg rośnie z prędkością, żeby przeszkoda w celowniku zawsze pękła
 const reachOf = c => REACH + (INF ? c.v * .35 : 0);
@@ -53,9 +55,12 @@ const cam = new T.PerspectiveCamera(32, 1, .5, 400), camBase = new T.Vector3(), 
 let camY = 0;
 const V3 = new T.Vector3();
 const INF_CAM = { fov: 58, hor: .2, py: .58, w: 1.3, follow: .4 };   // Infinity: kąt kamery, horyzont i auto (ułamek wysokości od góry), droga / szerokość ekranu, kamera za pasem gracza
-let camZ = 0;
+let camZ = 0, MENU = true;                                  // MENU: widać menu (w pionie: auta nad kartą)
+const menuPion = () => MENU && innerHeight > innerWidth;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h;
+  // menu w pionie: auta ciasno (menuCars), obraz przesunięty w górę nad kartę menu
+  if (menuPion()) cam.setViewOffset(w, h, 0, h * .3, w, h); else cam.clearViewOffset();
   if (INF) {
     // Infinity: kamera za autem, droga zbiega się w punkt na horyzoncie (INF_CAM.hor od góry ekranu); auto całe na wysokości INF_CAM.py,
     // droga przy aucie = INF_CAM.w × szerokość ekranu (na poziomym ekranie droga jak na pionowym, po bokach krajobraz)
@@ -68,7 +73,7 @@ function resize() {
   }
   cam.fov = 32;
   // kamera „3” z porównania: skos 8° (widać przody aut), nachylenie 38°, pasy 3,5 m
-  const d = Math.max(1, 2.1 / cam.aspect), pit = 38 * Math.PI / 180, yaw = 8 * Math.PI / 180, tz = .3;
+  const d = menuPion() ? 2.2 : Math.max(1, 2.1 / cam.aspect), pit = 38 * Math.PI / 180, yaw = 8 * Math.PI / 180, tz = .3;
   const D = .95 * 24.2 * d * (ROAD * Math.sin(pit) + 2.5 * Math.cos(pit)) / 8.47;
   camBase.set(D * Math.cos(pit) * Math.sin(yaw), D * Math.sin(pit), tz + D * Math.cos(pit) * Math.cos(yaw)); camLook.set(0, .2, tz); cam.position.copy(camBase); cam.lookAt(camLook); cam.updateProjectionMatrix();
 }
@@ -103,8 +108,8 @@ function updStrips() {
 }
 function setTheme(name) {
   TH = TRASY[name];
-  XW = INF ? 700 : 160; XOFF = INF ? XW / 2 - 25 : 0; VIEW = INF ? [-16, 230] : [-30, 45];
-  scene.fog.near = INF ? 90 : 45; scene.fog.far = INF ? 340 : 130;
+  XW = INF ? 700 : 160; XOFF = INF ? XW / 2 - 25 : 0; VIEW = INF ? [-16, 300] : [-30, 45];   // Infinity: przy 100 m/s widać ok. 3 s do przodu
+  scene.fog.near = INF ? 120 : 45; scene.fog.far = INF ? 400 : 130;
   if (world) scene.remove(world);
   world = new T.Group(); scene.add(world); deco = []; strips = [];
   scene.background = new T.Color(TH.sky); scene.fog.color.set(TH.fog);
@@ -120,9 +125,10 @@ function setTheme(name) {
   const curbM = TH.curb.map(c => lam(c));
   // dekoracja zawija się co w metrów; off: środek pętli przed kamerą (Infinity: daleko do przodu)
   const sc = (o, s0, f, w, road, off = 0) => { world.add(o); deco.push({ o, s0, f, w, road, off, y0: o.position.y }); };
-  const RW = INF ? 300 : 120, roff = INF ? RW / 2 - 25 : 0;
+  const RW = INF ? 340 : 120, roff = INF ? RW / 2 - 25 : 0;
   for (let x = 0; x < RW; x += 5) for (const z of [-PAS, 0, PAS]) { const m = new T.Mesh(dash, dashM); m.position.set(0, .03, z); sc(m, x, 1, RW, 1, roff); }
-  for (let x = 0, i = 0; x < RW; x += 2, i++) for (const z of [-ROAD / 2 - .25, ROAD / 2 + .25]) { const m = new T.Mesh(curb, curbM[i % 2]); m.position.set(0, .09, z); sc(m, x, 1, RW, 1, roff); }
+  const cst = INF ? 4 : 2, cg = INF ? new T.BoxGeometry(4, .18, .5) : curb;   // Infinity: dłuższe krawężniki (mniej brył na 340 m)
+  for (let x = 0, i = 0; x < RW; x += cst, i++) for (const z of [-ROAD / 2 - .25, ROAD / 2 + .25]) { const m = new T.Mesh(cg, curbM[i % 2]); m.position.set(0, .09, z); sc(m, x, 1, RW, 1, roff); }
   for (let i = 0; i < 24; i++) {                     // rekwizyty: za drogą i kilka małych z przodu
     const p = brProp(TH.props[i % TH.props.length]), front = i % 6 === 0;
     p.position.z = front ? ROAD / 2 + 4.5 + r() * 2 : -ROAD / 2 - 4 - r() * 22; p.rotation.y = r() * 6;
@@ -132,14 +138,14 @@ function setTheme(name) {
   if (INF) infSide(r, sc);
   for (let i = 0; i < 7; i++) { const p = brProp(TH.far[i % TH.far.length]); p.position.z = (INF && i % 2 ? 1 : -1) * (70 + r() * 40); p.rotation.y = r() * 6; sc(p, r() * 300, .15, 300, 0); }
 }
-// Infinity: pobocze z obu stron, pętla 300 m przed kamerą — słupy/znaki równo przy drodze (widać prędkość), rekwizyty motywu dalej,
+// Infinity: pobocze z obu stron, pętla 340 m przed kamerą — słupy/znaki równo przy drodze (widać prędkość), rekwizyty motywu dalej,
 // większe w głębi, plamy na ziemi (inny odcień gruntu), żeby pobocze nie było gołe
 function infSide(r, sc) {
-  const pb = TH.pobocze, W = 300, off = W / 2 - 25, flat = { billboard: 1, znak: 1, kontener: 1, plot: 1, igloo: 1 };
-  for (let i = 0; i < 24; i++) {                            // co 25 m, na zmianę lewa / prawa
+  const pb = TH.pobocze, W = 340, off = W / 2 - 25, flat = { billboard: 1, znak: 1, kontener: 1, plot: 1, igloo: 1 };
+  for (let i = 0; i < 28; i++) {                            // co ok. 24 m, na zmianę lewa / prawa
     const sd = i % 2 ? 1 : -1, k = pb.blisko[(i >> 1) % pb.blisko.length], p = brProp(k);
     p.position.z = sd * (ROAD / 2 + 1.7); p.rotation.y = k === 'latarnia' && sd < 0 ? Math.PI : k === 'plot' ? Math.PI / 2 : 0;
-    sc(p, i * 12.5, 1, W, 0, off);
+    sc(p, i * W / 28, 1, W, 0, off);
   }
   for (let i = 0; i < 70; i++) {                            // rekwizyty motywu: blisko (4–16 m od drogi) i w głębi (16–45 m, większe)
     const k = pb.dalej[Math.floor(r() * pb.dalej.length)], p = brProp(k), sd = i % 2 ? 1 : -1, far = i % 3 === 0;
@@ -215,7 +221,7 @@ const immune = c => c.blinkT > 0 || mocOn(c) || c.fin;
 
 function resetCar(c, i, lane) {
   Object.assign(c, { s: -c.len / 2 - [0, 3, 1.5, 4.5][i], lane, z: LANES[lane], y: 0, ya: 0, vy: 0, v: 0, hitT: 0, blinkT: 0, spinT: 0, spinD: SPIN_T, slipT: 0,
-    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, yaw: 0, bonkT: 0, streakT: 0, pts: 0, tier: 0,
+    turboT: 0, turboCd: 1.5, atakCd: 0, moc: 1, ghostT: 0, mocFill: 0, act: null, at: 0, done: false, lungeT: 0, eggT: 0, fin: false, finT: 0, player: c === P, tilt: 0, yaw: 0, bonkT: 0, streakT: 0, pts: 0, tier: 0, vInf: INF_V,
     ai: { t: rnd(.2, .6), gap: 0, gapT: 0 } });
 }
 function setLane(c, n) { n = clamp(n, 0, 3); if (n === c.lane) return false; c.lane = n; return true; }
@@ -441,7 +447,8 @@ function turbo(c) {
 // Atakujący dostaje gwiazdkę do mocy. Zderzenia aut nigdy nie karzą.
 function hit(o, by, how) {
   if (immune(o)) return false;
-  o.hitT = HIT_T; o.blinkT = BLINK_T; o.ghostT = GHOST_T; o.spinT = o.spinD = SPIN_T; o.v *= .3; o.slipT = 0; o.streakT = 0;   // seria Infinity od zera
+  o.hitT = HIT_T; o.blinkT = BLINK_T; o.ghostT = GHOST_T; o.spinT = o.spinD = SPIN_T; o.v *= .3; o.slipT = 0;
+  if (INF) { o.v = o.vInf = Math.max(INF_V / 2, o.vInf * HIT_V); const t = tierOf(o); o.streakT = TIERS[Math.max(0, t - 1)][0]; }   // Infinity: ¼ prędkości, mnożnik poziom niżej
   if (o.act === 'moc' || o.act === 'atak') o.act = null;
   if (how === 'pop') o.vy = Math.max(o.vy, 7);
   sparkle(o.s, 1.6 + o.y, o.z);
@@ -642,12 +649,7 @@ function aiThink(c) {
 
 /* ---------- ruch aut ---------- */
 const tierOf = c => { let i = 0; while (i < FIRE && c.streakT >= TIERS[i + 1][0]) i++; return i; };
-function spdOf(c) {                                        // ×prędkość z serii: płynnie między poziomami
-  const pts = [...TIERS.map(t => [t[0], t[2]]), VTOP], t = c.streakT;
-  for (let i = 1; i < pts.length; i++) if (t < pts[i][0]) return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * (t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]);
-  return VTOP[1];
-}
-const streakK = c => clamp((spdOf(c) - 1) / (VTOP[1] - 1), 0, 1);
+const speedK = c => clamp((c.v - INF_V) / 90, 0, 1);         // 0 na starcie, 1 przy ok. 110 m/s (kamera, płomienie)
 const place = c => 1 + cars.filter(o => o !== c && (o.fin && (!c.fin || o.finT < c.finT) || (!o.fin && !c.fin && o.s > c.s))).length;
 function stepCar(c, dt, racing) {
   for (const k of ['atakCd', 'turboCd', 'turboT', 'hitT', 'blinkT', 'spinT', 'slipT', 'lungeT', 'bonkT', 'ghostT']) c[k] -= dt;
@@ -660,22 +662,23 @@ function stepCar(c, dt, racing) {
   }
   let vt = 0;
   if (racing) {
-    vt = INF ? INF_V * spdOf(c) : CRUISE * (c.player ? 1 : DIFF[diff].cruise);
-    if (INF && !c.fin && c.hitT <= 0) c.streakT += dt;
+    if (INF && !c.fin && c.hitT <= 0) { c.streakT += dt; c.vInf += infAcc(c.vInf) * dt; }
+    vt = INF ? c.vInf : CRUISE * (c.player ? 1 : DIFF[diff].cruise);
     if (!c.player && !c.fin && c.s < LEN * .85) vt *= 1 + clamp((P.s + c.ai.gap - c.s) * DIFF[diff].band, -.3, .35);
     if (c.player && !c.fin && place(c) === 4) vt *= 1.1;                 // ostatni dostaje lekkie wsparcie
     if (c.fin) vt *= .7;
     if (c.turboT > 0) vt *= INF ? 1.25 : 1.5;
     if (mocOn(c)) vt *= MOC_V[c.kind];
-    if (c.hitT > 0) vt *= .4;
+    if (c.hitT > 0 && !INF) vt *= .4;                     // Infinity: spowolnienie już w vInf (× ¼)
     if (c.slipT > 0) vt *= .65;
     if (c.lungeT > 0) vt += 14;
   }
   const acc = vt > c.v ? (c.turboT > 0 || c.lungeT > 0 ? 16 : 7) : 18;
-  c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
+  const ps = c.s; c.v += clamp(vt - c.v, -acc * dt, acc * dt); c.s += c.v * dt;
   if (INF && c.player && state === 'race' && !c.fin) {      // Infinity: punkty = metry × mnożnik serii; nowy poziom — napis i dźwięk
     const t = tierOf(c); c.pts += c.v * dt * TIERS[t][1];
     if (t > c.tier) { snd(t === FIRE ? 'turbo' : 'moc'); bubble(t === FIRE ? '🔥 FIRE!' : `x${TIERS[t][1]}!`, c, 'big'); if (t === FIRE) shake = .3; }
+    if (t < c.tier) setTimeout(() => bubble(`x${TIERS[t][1]}`, c, 'small'), 350);   // po uderzeniu: nowy (połowiczny) mnożnik
     c.tier = t;
   }
   // zmiana pasa; gdy obok jedzie auto — tylko odbicie z powrotem, bez kary
@@ -711,7 +714,7 @@ function stepCar(c, dt, racing) {
   // przedmioty pod kołami
   if (racing && !under(c)) {
     const L = laneOf(c), hi = high(c);
-    for (const it of items) if (it.alive && it.rodzaj && (!hi || it.rodzaj === 'gwiazda') && it.move?.type !== 'swing' && it.move?.type !== 'fall' && it.lane === L && Math.abs(it.s - c.s) < (c.len + it.len) / 2 && Math.abs(c.z - (it.z ?? LANES[it.lane])) < 1.2
+    for (const it of items) if (it.alive && it.rodzaj && (!hi || it.rodzaj === 'gwiazda') && it.move?.type !== 'swing' && it.move?.type !== 'fall' && it.lane === L && (INF ? swept(it.s, ps, c.s, (c.len + it.len) / 2) : Math.abs(it.s - c.s) < (c.len + it.len) / 2) && Math.abs(c.z - (it.z ?? LANES[it.lane])) < 1.2
       && (it.rodzaj === 'gwiazda' ? Math.abs(c.y - it.y) < 1.5 : c.y < .9)) touch(c, it);
   }
 }
@@ -786,7 +789,7 @@ function hud() {
     const t = tierOf(P), left = Math.max(0, Math.ceil(INF_T - raceT)), st = $('streak');
     const k = t === FIRE ? 1 : (P.streakT - TIERS[t][0]) / (TIERS[t + 1][0] - TIERS[t][0]);   // pasek: do następnego poziomu
     $('infT').textContent = '⏱️' + left; $('infT').classList.toggle('last', left <= 10 && state === 'race');
-    $('infM').textContent = Math.round(P.pts);
+    $('infM').textContent = Math.round(P.pts); $('kmh').textContent = Math.round(P.v * 3.6) + ' km/h';
     $('mult').textContent = t === FIRE ? '🔥' : 'x' + TIERS[t][1]; $('mult').className = 't' + t;
     st.querySelector('i').style.width = k * 100 + '%'; st.classList.toggle('hot', t >= 2); st.classList.toggle('max', t === FIRE);
   }
@@ -810,8 +813,10 @@ function hud() {
 function clearRace() { ALL.forEach(c => { if (c.orbit) { scene.remove(c.orbit); c.orbit = null; } }); flyers.forEach(f => world.remove(f.g)); flyers.length = 0; SEGS = []; items = []; eggs.forEach(e => scene.remove(e.m)); eggs = []; shots.forEach(p => scene.remove(p.g)); shots = []; HILLS = []; finOrder = []; }
 function menuLayout() {
   clearRace(); setTheme(SET.trasa); camS = 0; lineup();
-  cars.forEach((c, i) => { resetCar(c, i, i); c.s = -14 + i * 3.6; });           // auta po lewej, karta menu po prawej
+  cars.forEach((c, i) => resetCar(c, i, i)); menuCars();
 }
+// auta po lewej, karta menu po prawej; w pionie auta ciasno na środku, karta na dole
+function menuCars() { cars.forEach((c, i) => { c.s = menuPion() ? -3.5 + i * 2.6 : -14 + i * 3.6; }); }
 const bestKey = k => k + (diff === 'inf' ? 'infpkt' : diff);   // Infinity: rekord w punktach
 function buildMenu() {
   $('pickCar').innerHTML = KINDS.map(k => `<button class="btn pick car" data-k="${k}">${img(k)}${NAZWY[k]}</button>`).join('');
@@ -827,18 +832,17 @@ function fitMenu() {
   c.style.transform = ''; const k = Math.min(1, (innerHeight - 14) / c.offsetHeight, (innerWidth - 20) / c.offsetWidth);
   c.style.transform = `scale(${k.toFixed(3)})`;
 }
-addEventListener('resize', () => setTimeout(fitMenu, 50));
+addEventListener('resize', () => { if (state === 'menu') menuCars(); setTimeout(fitMenu, 50); });
 function showMenu() {
-  state = 'menu'; INF = false; document.body.classList.remove('inf'); resize(); globalThis.obrotUstaw?.({}); ['hud', 'end', 'pause'].forEach(id => $(id).hidden = true); $('menu').hidden = false; $('confetti').innerHTML = '';
+  state = 'menu'; INF = false; MENU = true; document.body.classList.remove('inf'); resize(); globalThis.obrotUstaw?.({ oba: true }); ['hud', 'end', 'pause'].forEach(id => $(id).hidden = true); $('menu').hidden = false; $('confetti').innerHTML = '';
   menuLayout(); buildMenu(); fitMenu();
 }
 function startRace() {
   audInit(); snd('klik');
-  obrotPelny();
-  const wasInf = INF; INF = diff === 'inf';
+  const wasInf = INF; INF = diff === 'inf'; MENU = false;
+  obrotUstaw(INF ? { pion: true } : {}); obrotPelny();     // menu działa w obu orientacjach; wyścig chce poziomu, Infinity pionu
   document.body.classList.toggle('inf', INF); $('bUp').textContent = INF ? '⬅️' : '⬆️'; $('bDn').textContent = INF ? '➡️' : '⬇️';
   $('place').hidden = $('prog').hidden = INF; $('infTop').hidden = !INF;
-  if (INF) obrotUstaw({ pion: true }); else if (wasInf) obrotUstaw({});
   resize();
   clearRace(); setTheme(SET.trasa); if (P.kind !== SET.car || INF !== wasInf || INF) lineup();
   const lanes = [1, 0, 2]; let li = 0;
@@ -928,6 +932,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 let prev = performance.now(), menuT = 0;
 function step(dt) {
   if (state === 'pause') return;
+  if ((state === 'count' || state === 'race') && obrotZly()) return;   // plansza „Obróć telefon”: odliczanie i jazda czekają
   const racing = state === 'race' || state === 'end' || state === 'done';
   if (state === 'count') {
     const n = Math.ceil(countT - .2); countT -= dt; raceT += dt;
@@ -960,7 +965,7 @@ function step(dt) {
   camZ += ((INF ? P.z * INF_CAM.follow : 0) - camZ) * Math.min(1, dt * 6);   // Infinity: droga szersza od ekranu, kamera przesuwa się za autem
   cam.position.copy(camBase).add(V3.set(rnd(-1, 1) * shake * .5, camY + rnd(-1, 1) * shake * .5, camZ));
   if (INF) {                                               // Infinity: im dłuższa seria (i turbo), tym szerszy kąt kamery — poczucie prędkości
-    const f = INF_CAM.fov + 8 * streakK(P) + (P.turboT > 0 ? 5 : 0); cam.fov += (f - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix();
+    const f = INF_CAM.fov + 12 * speedK(P) + (P.turboT > 0 ? 5 : 0); cam.fov += (f - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix();
   }
   if (state !== 'menu' && state !== 'done') hud();
   engines();
