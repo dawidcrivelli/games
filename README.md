@@ -100,7 +100,7 @@ flowchart LR
 | `models/trains.js` | 166 | ciuchcia taxi | Pociągi: parowóz z tendrem, wagony osobowe i towarowe, EU07, Pendolino; koła szynowe, sprzęgi, zderzaki. |
 | `models/vehicle-parts.js` | 27 | ciuchcia taxi zniwa ogrodek | Części pojazdów: makeWheel (koło z felgą i bieżnikiem), makeSteeringWheel (kierownica), gaugeNeedle (wskazówka zegara). |
 | `models/weapons.js` | 39 | piraci | Broń biała i pociski (Piraci): bladeGeo, mkWeapon(rodzaj) — szabla, miecz, rapier, katana, topór, łuk, kotwica, trójząb…, |
-| `models/wild-cars.js` | 442 | bryki | Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku. |
+| `models/wild-cars.js` | 547 | bryki | Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku. |
 <!-- /KATALOG -->
 
 ## Narzędzia
