@@ -62,6 +62,7 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
 #daySun{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff7b0,#ffd23f 60%,#f0a020);border:2px solid #3b2a17;box-shadow:0 0 10px #ffe680}
 #daySun.late{background:radial-gradient(circle at 40% 35%,#ffd0a0,#ff7a50 60%,#c04020)}
 #bPause{width:clamp(48px,11vh,60px);height:clamp(48px,11vh,60px);display:grid;place-items:center}
+#sub{position:absolute;left:50%;bottom:calc(22px + var(--sb));transform:translateX(-50%);max-width:min(720px,80vw);background:rgba(40,25,10,.72);color:#fff;font:600 clamp(13px,3.6vh,17px)/1.25 var(--font);padding:4px 14px;border-radius:12px;text-align:center;pointer-events:none}
 #fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .fly{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;transition:transform .7s cubic-bezier(.5,-0.4,.7,1),opacity .7s;pointer-events:none;will-change:transform}
 #finger{position:absolute;width:74px;height:74px;margin:-6px 0 0 -18px;pointer-events:none;animation:tapf .9s infinite;filter:drop-shadow(0 4px 4px rgba(0,0,0,.35));z-index:5}
@@ -72,9 +73,9 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
 /* ---------- menu, pauza, koniec dnia ---------- */
 .scr{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,rgba(255,250,230,.25),rgba(40,25,10,.55))}
 .scr .in{display:flex;flex-direction:column;align-items:center;gap:clamp(8px,2.5vh,18px);padding:16px}
-.title{font:400 clamp(44px,13vh,92px)/.95 Bangers,var(--font);letter-spacing:3px;color:#ffd23f;-webkit-text-stroke:5px #3b2a17;paint-order:stroke fill;text-shadow:0 7px 0 #3b2a17;text-align:center}
+.title{font:400 clamp(38px,12vh,84px)/.95 Bangers,var(--font);letter-spacing:3px;color:#ffd23f;-webkit-text-stroke:5px #3b2a17;paint-order:stroke fill;text-shadow:0 7px 0 #3b2a17;text-align:center}
 .crew{display:flex;gap:4px;align-items:flex-end;justify-content:center}
-.crew img{height:clamp(70px,22vh,150px);width:auto;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
+.crew img{height:clamp(54px,17vh,120px);width:auto;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
 .big{width:clamp(96px,24vh,140px);height:clamp(96px,24vh,140px);border-radius:50%;background:radial-gradient(circle at 40% 35%,#ff7a5a,#d9432a 60%,#9c2a18);box-shadow:0 7px 0 #7a1e10,0 12px 20px rgba(0,0,0,.35);display:grid;place-items:center;border:4px solid #fff3d6}
 .big:active{transform:translateY(5px);box-shadow:0 2px 0 #7a1e10}
 .big svg{width:52%;height:52%}
@@ -92,6 +93,20 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
 #endBasket b{font:400 clamp(44px,12vh,72px)/1 Bangers,var(--font);color:#fff;-webkit-text-stroke:4px #3b2a17;paint-order:stroke fill}
 /* dymki z lib/ui/comic.css — mniejsze na telefonie */
 .bub b{font-size:clamp(18px,5vh,28px)}.bub i{inset:-16px -22px}.bub.small b{font-size:clamp(14px,4vh,20px)}.bub.small i{inset:-10px -14px}.bub.big b{font-size:clamp(22px,6.5vh,34px)}
+/* menu: dni */
+.corner{position:absolute;top:calc(8px + var(--st));left:calc(8px + var(--sl));width:56px;height:56px;border-radius:16px}.corner.r{left:auto;right:calc(8px + var(--sr))}
+.days{display:flex;gap:clamp(6px,1.6vw,14px);justify-content:center;flex-wrap:wrap}
+.day{position:relative;width:clamp(76px,22vh,112px);height:clamp(84px,25vh,124px);border-radius:20px;background:linear-gradient(#fffaf0,#f3e2bf);border:3px solid #fff;
+  box-shadow:0 5px 0 #b98a4a,0 9px 14px rgba(60,35,10,.3);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px}
+.day:active{transform:translateY(4px);box-shadow:0 1px 0 #b98a4a}
+.day img{position:absolute;top:2px;left:8%;width:84%;height:auto;max-height:68%;object-fit:contain}
+.day b{position:absolute;left:6px;top:2px;font:400 clamp(22px,6vh,34px)/1 Bangers,var(--font);color:#fff;-webkit-text-stroke:2.5px #3b2a17;paint-order:stroke fill}
+.day .st{display:flex;gap:1px}.day .st svg{width:clamp(16px,5vh,24px);height:auto}
+.day.locked img{filter:grayscale(1) brightness(.75);opacity:.55}
+.day .lk{position:absolute;inset:0;display:grid;place-items:center}.day .lk svg{width:44%;height:auto}
+#parade{display:flex;flex-wrap:wrap;justify-content:center;max-width:92vw;gap:0}
+#parade img{height:clamp(40px,11vh,70px);animation:hop .6s ease-in-out infinite alternate}
+@keyframes hop{to{transform:translateY(-10px) rotate(4deg)}}
 #err{position:fixed;inset:0;display:none;place-items:center;background:#9fd6f2;font-size:20px;text-align:center;padding:20px}
 </style>
 </head>
@@ -107,16 +122,16 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
     </div>
   </div>
   <div id="day" aria-label="Pora dnia"><i id="dayFill"></i><b id="daySun"></b></div>
+  <div id="sub" hidden></div>
   <div id="fx"></div>
 </div>
 <div id="menu" class="scr">
+  <button class="rb corner" id="bGames" aria-label="Wszystkie gry"></button>
+  <button class="rb corner r" id="bSnd" aria-label="Dźwięk"></button>
   <div class="in">
-    <div class="title">Łakome<br>Zwierzaki</div>
+    <div class="title">Łakome Zwierzaki</div>
     <div class="crew" id="crew"></div>
-    <div class="row">
-      <button class="big" id="bGo" aria-label="Graj"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="#fff" stroke="#7a1e10" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
-      <button class="rb" id="bSnd" aria-label="Dźwięk"></button>
-    </div>
+    <div class="days" id="days"></div>
   </div>
 </div>
 <div id="pause" class="scr" hidden>
@@ -127,18 +142,20 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
     <div class="row">
       <button class="rb" id="bRestart" aria-label="Od nowa"></button>
       <button class="rb" id="bSnd2" aria-label="Dźwięk"></button>
-      <button class="rb" id="bHome" aria-label="Wszystkie gry"></button>
+      <button class="rb" id="bHome" aria-label="Wybór dnia"></button>
     </div>
   </div>
 </div>
 <div id="end" class="scr" hidden>
   <div class="in">
-    <div class="title" style="font-size:clamp(36px,10vh,64px)">Koniec dnia!</div>
+    <div class="title" id="endTitle" style="font-size:clamp(32px,9vh,60px)">Koniec dnia!</div>
+    <div id="parade" hidden></div>
     <div id="endStars"></div>
     <div id="endBasket"><img id="endBasketIco" alt=""><b id="endN">0</b></div>
     <div class="row">
-      <button class="big" id="bAgain" aria-label="Jeszcze raz"></button>
-      <button class="rb" id="bHome2" aria-label="Wszystkie gry"></button>
+      <button class="rb" id="bAgain" aria-label="Jeszcze raz"></button>
+      <button class="big" id="bNext" aria-label="Następny dzień"></button>
+      <button class="rb" id="bHome2" aria-label="Wybór dnia"></button>
     </div>
   </div>
 </div>

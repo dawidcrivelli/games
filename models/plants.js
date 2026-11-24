@@ -1,9 +1,10 @@
 // Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS.
-// p = PLANTS.make(rodzaj) — 'beanstalk' magiczna fasola (pnącze ze strąkami i świecącym kwiatem), 'carrot' marchewka, 'cabbage' kapusta,
+// p = PLANTS.make(rodzaj) — 'beanstalk' magiczna fasola (pnącze ze strąkami i świecącym kwiatem), 'carrot' marchewka, 'wheat' pszenica
+//   (zielona → złota), 'cabbage' kapusta,
 //   'sunflower' słonecznik (z buzią), 'onion' cebula, 'garlic' czosnek,
 //   'thorns' kolczasty krzak jeżyn, 'tree' jabłonka (sadzonka → drzewo z jabłkami). p.g → Group (środek na ziemi, przód +z).
 // PLANTS.set(p, wzrost 0..1, życie 0..1) — wzrost: kiełek → dojrzała; życie: gryziona traci liście, brązowieje, oklapuje, owoc maleje.
-// PLANTS.anim(p, t, dt) — kołysanie, dojrzała podskakuje (p.ripe), p.fear 0..1 — drży ze strachu.
+// PLANTS.anim(p, t, dt) — kołysanie, dojrzała podskakuje (p.ripe), p.fear 0..1 — drży ze strachu; cebula: p.stink 0..1 — ile zielonych chmurek smrodu.
 // Krajobraz (wspólne materiały, bez stanu): PLANTS.pine(), PLANTS.leafy(), PLANTS.bush() → Group.
 // Drobiazgi: PLANTS.bean() — magiczna fasolka (fioletowa w kropki), PLANTS.seed() — ziarenko słonecznika, PLANTS.apple() — jabłko, PLANTS.basket(pełny) — wiklinowy kosz.
 // wymaga: models/animals.js (ZOO: pomocniki brył)
@@ -47,12 +48,21 @@ const BUILD = {
     p.face = h;
   },
   onion(p, garlic) {
-    const bu = own(garlic ? 0xf6f1e4 : 0xd9864a), lf = own(garlic ? 0x8fcf6a : 0x5fb84a), ln = M(garlic ? 0xd8cdb8 : 0xa8582a); p.mats.push([bu, .5], [lf, 1]);
+    const bu = own(garlic ? 0xf6f1e4 : 0xb2306a), lf = own(garlic ? 0x8fcf6a : 0x5fb84a), ln = M(garlic ? 0xd8cdb8 : 0xf0a0c8); p.mats.push([bu, .5], [lf, 1]);
     const b = grp(p.g, 0, 0, 0); p.fruit.push(b);
     if (garlic) { for (let i = 0; i < 6; i++) { const q = grp(b, 0, .26, 0); q.rotation.y = i*1.05; ball(bu, q, .1, 0, 0, .16, .24, .14); } ball(bu, b, 0, .26, 0, .2, .25, .2); }
-    else { ball(bu, b, 0, .27, 0, .32, .3, .32); for (let i = 0; i < 4; i++) box(ln, b, 0, .27, 0, .01, .58, .66).rotation.y = i*.8; }
-    mesh(G.cone, bu, b, 0, .6, 0, .12, .2, .12);
+    else { ball(bu, b, 0, .36, 0, .42, .4, .42); for (let i = 0; i < 5; i++) ball(ln, b, 0, .36, 0, .425, .405, .015).rotation.y = i*.63; }
+    mesh(G.cone, bu, b, 0, .8, 0, .14, .26, .14);
+    p.puffs = []; const sm = new T.MeshStandardMaterial({ color: 0x9be04a, roughness: 1, transparent: true, opacity: .55, depthWrite: false });   // chmurki smrodu
+    for (let i = 0; i < 3; i++) { const q = grp(p.g, Math.cos(i*2.1)*.45, 1.25 + i*.25, Math.sin(i*2.1)*.45); q.userData.k = i; ball(sm, q, 0, 0, 0, .2); ball(sm, q, .14, .05, 0, .14); ball(sm, q, -.12, .04, .05, .13); p.puffs.push(q); }
     for (let i = 0; i < 5; i++) { const l = leafG(p.g, 0, .62, 0, i*1.25, .12 + (i % 2)*.12); p.leaves.push(l); mesh(cg(.02, .05, 1.1, 6), lf, l, 0, .55, 0); }
+  },
+  wheat(p) {                                       // kępka pszenicy: źdźbła z kłosami, zielona → złota
+    const st = own(0x7cbf4a), ear = own(0x9fd060), aw = M(0xf6e2a0); st.userData.ripe = new T.Color(0xd8b050); ear.userData.ripe = new T.Color(0xf2b632); p.mats.push([st, 1], [ear, .6]);
+    for (let i = 0; i < 14; i++) { const a = i*2.399, r = .12 + .3*Math.sqrt(i/14), h = 1.05 + .25*Math.abs(Math.sin(i*3.7)), l = leafG(p.g, Math.cos(a)*r, 0, Math.sin(a)*r, a, .1 + .12*Math.sin(i*1.9)); p.leaves.push(l);
+      mesh(cg(.018, .026, h, 5), st, l, 0, h/2, 0); const e = grp(l, 0, h + .12, 0); p.fruit.push(e); ball(ear, e, 0, 0, 0, .06, .17, .06);
+      for (let k = 0; k < 3; k++) { const w = mesh(cg(.004, .004, .22, 3), aw, e, (k - 1)*.03, .2, 0); w.rotation.z = (k - 1)*.25; } }
+    const lg = flat('pl_whL', [[0, 0], [.05, .3], [0, .6], [-.03, .3]], .02, 0); for (let i = 0; i < 5; i++) { const q = leafG(p.g, 0, 0, 0, i*1.26, -.5); mesh(lg, st, q); p.leaves.push(q); }
   },
   thorns(p) {
     const bu = own(0x3f7e3a), bu2 = own(0x4f9442), th = M(0xa8553a, { roughness: .5 }), be = M(0x3a1640, { roughness: .3 }), red = M(0xd8304a, { roughness: .3 }); p.mats.push([bu, 1], [bu2, 1]);
@@ -109,7 +119,7 @@ function set(p, grow, hp) {
   p.fruit.forEach(f => { f.visible = fk > .02; f.scale.setScalar(Math.max(.02, fk)*(.55 + .45*hp)); });
   const keep = Math.ceil(p.leaves.length*(.25 + .75*hp));
   p.leaves.forEach((l, i) => { const order = (i*7) % p.leaves.length; l.visible = order < keep; });   // znikają liście „na wyrywki”
-  const k = (1 - hp)*.8; p.mats.forEach(([m, w, c0]) => m.color.copy(c0).lerp(BROWN, k*w));
+  const k = (1 - hp)*.8; p.mats.forEach(([m, w, c0]) => { m.color.copy(c0); if (m.userData.ripe) m.color.lerp(m.userData.ripe, ease((grow - .6)/.4)); m.color.lerp(BROWN, k*w); });
   p.droop = 1 - hp;
 }
 function anim(p, t, dt) {
@@ -119,6 +129,8 @@ function anim(p, t, dt) {
   const hop = p.ripe ? Math.abs(Math.sin(p.t*4))*.12 : 0; p.g.position.y = hop*(p.kind === 'tree' ? 0 : 1);
   if (p.face) p.face.rotation.y = Math.sin(p.t*.7)*.2;
   if (p.kind === 'beanstalk') p.g.rotation.y = Math.sin(p.t*.5)*.25;
+  if (p.puffs) { const sk = p.stink === undefined ? 1 : p.stink; p.puffs.forEach(q => { const i = q.userData.k, on = p.grow > .3 && i < Math.round(sk*3);
+    q.visible = on; q.position.y = 1.25 + i*.25 + Math.sin(p.t*1.5 + i)*.08; q.scale.setScalar(.8 + .2*Math.sin(p.t*2 + i*2)); }); }
 }
 
 // ---------- krajobraz: sosna, drzewo liściaste, krzak (wspólne materiały)

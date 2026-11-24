@@ -123,9 +123,10 @@ particlesInit(scene, LITE ? 300 : 900);
 /* =====================================================================
    STAN GRY
    ===================================================================== */
-const G = { t: 0, queue: [], run: false, paused: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['beanstalk', 'carrot']), script: 0, rain: false, ended: false, tut: 0, firsts: new Set(), muted: false };
+const G = { day: Math.max(0, Math.min(4, (+Q.get('dzien') || 1) - 1)), t: 0, queue: [], run: false, paused: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['beanstalk', 'carrot']), script: 0, rain: false, ended: false, tut: 0, firsts: new Set(), muted: false };
 try { G.muted = localStorage.getItem('ogrodek-cisza') === '1'; } catch (e) {}
 AU.muted = () => G.muted;
+const DAY = () => DAYS[G.day];
 const plants = [], animals = [], drops = [];
 G.stats = { eaten: 0, crops: 0, fled: 0, spawned: 0 };
 
@@ -150,8 +151,11 @@ function plantAt(tile, k) {
   } else if (k === 'scarecrow') {
     const sc = ZOO.scarecrow(); P.sc = sc; P.g = new T.Group(); P.g.add(sc.g); P.g.scale.setScalar(1.05); P.grow = 1; P.scT = 1; P.flap = 0;
     P.ring = auraRing(tile, SCARE_R, 0xffd23f);
+  } else if (k === 'mouse') {
+    const a = ZOO.MK.mouse(), w = new T.Group(); w.add(a.root); a.root.position.x = -a.cx; w.scale.setScalar(.75/a.dims.h); a.moving = true;
+    P.a = a; P.g = new T.Group(); P.g.add(w); P.mw = w; P.grow = 1; SFX.call('mouse'); P.ring = auraRing(tile, MOUSE_R, 0xc9a8ff);
   } else { P.p = PLANTS.make(k); P.g = new T.Group(); P.g.add(P.p.g); P.g.scale.setScalar(k === 'tree' ? 1 : PLANT_K); PLANTS.set(P.p, 0, 1); }
-  if (k === 'onion') P.ring = auraRing(tile, ONION_R, 0x8ee04a);
+  if (k === 'onion') { P.ring = auraRing(tile, ONION_R, 0x8ee04a); P.charge = 2; }
   P.g.position.set(tile.x, .12, tile.z); scene.add(P.g); tile.plant = P; plants.push(P);
   for (let i = 0; i < 14; i++) emit(tile.x + rr(-.6, .6), .3, tile.z + rr(-.6, .6), rr(-1, 1), rr(1.5, 3), rr(-1, 1), .7, .45, .3, .15, 8);
   SFX.plant(); return P;
@@ -182,6 +186,7 @@ function updatePlants(dt) {
   for (const P of plants.slice()) {
     if (P.k === 'lion') { updateLion(P, dt); continue; }
     if (P.k === 'scarecrow') { updateScarecrow(P, dt); continue; }
+    if (P.k === 'mouse') { updateMouse(P, dt); continue; }
     const wasRipe = P.grow >= 1;
     if (P.grow < 1) P.grow = Math.min(1, P.grow + dt*rainK/P.card.grow);
     if (P.k === 'tree' && P.grow >= 1 && P.max < 30) { P.max = 30; P.hp = Math.min(30, P.hp + 20); }
@@ -191,27 +196,28 @@ function updatePlants(dt) {
     P.p.ripe = isRipe(P); P.p.fear = Math.max(0, (P.p.fear || 0) - dt*2);
     PLANTS.anim(P.p, G.t, dt);
     if (P.grow >= 1 && !wasRipe && isRipe(P)) { SFX.seed(); for (let i = 0; i < 20; i++) emit(P.tile.x, 1, P.tile.z, rr(-1.5, 1.5), rr(1, 3), rr(-1.5, 1.5), 1, 1, .95, .4, 2);
-      if (!G.firsts.has('ripe')) { G.firsts.add('ripe'); lektor('Urosło! Stuknij, żeby zebrać do kosza.'); pointAt({ x: P.tile.x, y: 1.2, z: P.tile.z }, 'ripe'); } }
+      if (!G.firsts.has('ripe')) { G.firsts.add('ripe'); say('Urosło! Stuknij, żeby zebrać do kosza.'); pointAt({ x: P.tile.x, y: 1.2, z: P.tile.z }, 'ripe'); } }
     if (isRipe(P)) P.ripeT += dt;
     if (P.k === 'beanstalk' && P.grow >= 1 && (P.prodT -= dt) <= 0) { P.prodT = 11; dropSeed(P.tile.x, 3, P.tile.z + .2, true); }
     if (P.k === 'onion' && P.grow > .25) onionAura(P, dt);
     if (P.k === 'tree' && P.grow >= 1 && (P.prodT -= dt) <= 0) { P.prodT = 11; dropApple(P.tile.x + rr(-.8, .8), 2.2, P.tile.z + rr(-.3, .8)); }
-    if (P.k === 'onion' && P.grow > .25 && rnd() < dt*9) { const a = rnd()*6.28, r = rnd()*ONION_R*.8; emit(P.tile.x + Math.cos(a)*r, .4, P.tile.z + Math.sin(a)*r, rr(-.2, .2), rr(.3, .8), rr(-.2, .2), 1.8, .55, .85, .25, -.05); }
+    if (P.k === 'onion') { P.charge = Math.min(2, P.charge + dt/ONION_RECHARGE); P.p.stink = Math.floor(P.charge)/2; P.ring.children[0].material.opacity = .15 + .12*Math.floor(P.charge); }
+    if (P.k === 'onion' && P.grow > .25 && P.charge >= 1 && rnd() < dt*3*P.charge) { const a = rnd()*6.28, r = rnd()*ONION_R*.8; emit(P.tile.x + Math.cos(a)*r, .4, P.tile.z + Math.sin(a)*r, rr(-.2, .2), rr(.3, .8), rr(-.2, .2), 1.8, .55, .85, .25, -.05); }
     const show = P.hp < P.max - .05; P.bar.visible = show; if (show) setBar(P.bar, P.hp/P.max, P.tile.x, P.k === 'tree' ? 4.4 : P.k === 'beanstalk' ? 3.8 : 2.4, P.tile.z);
   }
 }
 // ---------- obrońcy: zasięg widać na ziemi (kółko cebuli i stracha, pas lwa)
-const ONION_R = 3.3, SCARE_R = 4.4, LION_R = 9;
+const ONION_R = 2.3, SCARE_R = 3.6, LION_R = 8, MOUSE_R = 5, ONION_RECHARGE = 8, SCARE_CD = 5, LION_CD = 7;
 function auraRing(tile, r, col) { const g = new T.Group(), m1 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .5, depthWrite: false }), m2 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .1, depthWrite: false });
   const a = new T.Mesh(new T.RingGeometry(r - .14, r, 48), m1), b = new T.Mesh(new T.CircleGeometry(r, 48), m2); a.rotation.x = b.rotation.x = -PI/2; a.position.y = .16; b.position.y = .15; a.renderOrder = b.renderOrder = 3;
   g.add(a, b); g.position.set(tile.x, 0, tile.z); scene.add(g); return g; }
 function laneMark(tile, len, col) { const m = new T.Mesh(new T.PlaneGeometry(len, TS*.8), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .16, depthWrite: false }));
   m.rotation.x = -PI/2; m.position.set(tile.x + len/2, .16, tile.z); m.renderOrder = 3; scene.add(m); return m; }
 function animalsNear(x, z, r) { return animals.filter(A => A.alive && !A.leaving && A.state !== 'under' && Math.hypot(A.x - x, A.z - z) < r); }
-function onionAura(P, dt) {                        // smród cebuli: wrażliwe uciekają od razu (pierd!), uparte tracą odwagę co 1,5 s
-  for (const A of animalsNear(P.tile.x, P.tile.z, ONION_R)) {
-    if (A.sp.smell) { P.p.fear = 0; stinkPuff(A); flee(A, 'onion'); }
-    else if ((A.stinkT = (A.stinkT || 0) - dt) <= 0) { A.stinkT = 1.5; stinkPuff(A); scare(A, 1, 'onion'); }
+function onionAura(P, dt) {      // smród cebuli: 3 chmurki, każda odbiera wrażliwemu zwierzakowi 1 odwagi i odpycha (pierd!); nowa chmurka co 6 s.
+  for (const A of animalsNear(P.tile.x, P.tile.z, ONION_R)) {   // bez smell (krowa, koza, bóbr, słoń…) — nie czują, cebulę zjadają
+    if (!A.sp.smell || P.charge < 1 || (A.stinkT || 0) > G.t) continue;
+    P.charge -= 1; A.stinkT = G.t + 1.5; stinkPuff(A); scare(A, .5, 'onion');
   }
 }
 function stinkPuff(A) { for (let i = 0; i < 16; i++) emit(A.x + rr(-.5, .5), A.sp.h*.6, A.z + rr(-.5, .5), rr(-1.5, 1.5), rr(.5, 2), rr(-1.5, 1.5), 1.2, .5, .85, .2, -.2); }
@@ -221,17 +227,21 @@ function updateScarecrow(P, dt) {                  // strach: co 3 s macha ręka
   if (P.scT > 0) return;
   const near = animalsNear(P.tile.x, P.tile.z, SCARE_R);
   if (!near.length) { P.scT = .3; return; }
-  P.scT = 3; P.flap = .9; SFX.scare(); bubble('Uuu-uuu!', P.tile.x, 3.2, P.tile.z, '');
+  P.scT = SCARE_CD; P.flap = .9; SFX.scare(); bubble('Uuu-uuu!', P.tile.x, 3.2, P.tile.z, '');
   for (let i = 0; i < 20; i++) emit(P.tile.x + rr(-.8, .8), 2, P.tile.z, rr(-3, 3), rr(1, 3), rr(-2, 2), 1, 1, .85, .3, 6);
-  near.forEach(A => A.sp.bird ? flee(A, 'scarecrow') : scare(A, 2, 'scarecrow'));
+  near.forEach(A => A.sp.bird ? flee(A, 'scarecrow') : scare(A, 1, 'scarecrow'));
+}
+function updateMouse(P, dt) {                      // mysz biega w kółko po grządce; słoń w kółku — ucieka z trąbieniem
+  ZOO.anim(P.a, dt); const a = G.t*2.5; P.mw.position.set(Math.cos(a)*.5, 0, Math.sin(a)*.5); P.mw.rotation.y = -a - PI/2;
+  for (const A of animalsNear(P.tile.x, P.tile.z, MOUSE_R)) if (A.sp.mouseFear) { SFX.call('elephant'); bubble('Mysz!!!', A.x, A.sp.h + .6, A.z, 'big'); ZOO.pose(A.a, 'rear'); flee(A, 'mouse'); }
 }
 function updateLion(P, dt) {
   ZOO.anim(P.a, dt); P.roarT -= dt;
   if (P.roarT <= 0) {
     const prey = animals.filter(A => A.alive && !A.leaving && A.row === P.tile.r && A.x > P.tile.x - .5 && A.x - P.tile.x < LION_R && (A.state !== 'under'));
-    if (prey.length) { P.roarT = 4.5; ZOO.pose(P.a, 'rear'); P.a.jumpT = 0; SFX.roar(); bubble('RAAAU!', P.tile.x, 2.4, P.tile.z, 'big');
+    if (prey.length) { P.roarT = LION_CD; ZOO.pose(P.a, 'rear'); P.a.jumpT = 0; SFX.roar(); bubble('RAAAU!', P.tile.x, 2.4, P.tile.z, 'big');
       setTimeout(() => P.a && ZOO.pose(P.a, null), 1100);
-      prey.forEach(A => scare(A, A.sp.boss ? 2 : 99, 'lion')); }
+      prey.forEach(A => scare(A, A.sp.boss ? 1 : 3, 'lion')); }
     else P.roarT = .4;
   }
 }
@@ -247,7 +257,7 @@ function makeDrop(kind, x, y, z, vy) {
   g.position.set(x, y, z); scene.add(g); const D = { kind, g, x, y, z, vy: vy || 0, vx: 0, vz: 0, t: 0, landed: false }; drops.push(D); return D;
 }
 function dropSeed(x, y, z, pop) { const D = makeDrop('seed', x, y, z, pop ? 4 : -1.2); if (pop) { D.vx = rr(-1, 1); D.vz = rr(.4, 1.4); } else D.sky = 1;
-  if (!G.firsts.has('seed') && !pop) { G.firsts.add('seed'); lektor('Złap magiczną fasolkę! Stuknij ją.'); } return D; }
+  if (!G.firsts.has('seed') && !pop) { G.firsts.add('seed'); say('Złap magiczną fasolkę! Stuknij ją.'); } return D; }
 function dropApple(x, y, z) { const D = makeDrop('apple', x, y, z, 1.5); D.vx = rr(-.5, .5); D.vz = rr(.2, .8); }
 function updateDrops(dt) {
   for (const D of drops.slice()) {
@@ -284,7 +294,7 @@ function spawn(k, row) {
   return A;
 }
 function edible(A, P) {
-  if (!P || P.k === 'lion' || P.k === 'scarecrow') return false; const sp = A.sp;
+  if (!P || P.card.cat === 'guard' && P.k !== 'onion' && P.k !== 'thorns') return false; const sp = A.sp;
   if (P.k === 'thorns') return !!sp.thorns;
   if (P.k === 'tree' && P.grow >= 1) return !!sp.trees;
   if (sp.young && P.grow > .6) return false;
@@ -339,10 +349,10 @@ function updateAnimals(dt) {
     else if (A.state === 'walk') {
       a.moving = true; A.x -= sp.sp*dt*(1 - A.fat*.12);
       const mouthX = A.x - A.len*.45, c = colOf(mouthX), T0 = tileAt(c, A.row), P = T0 && T0.plant;
-      if (P && P.k !== 'lion' && P.k !== 'scarecrow' && Math.abs(mouthX - T0.x) < .7) {
+      if (P && Math.abs(mouthX - T0.x) < .75) {
         if (edible(A, P)) { A.state = 'eat'; A.eatP = P; A.target = T0; if (sp.saw) { A.saw = SFX.chainsaw(); } bubble(sp.bub, A.x, sp.h + .6, A.z, 'small'); }
-        else if (P.k === 'thorns') { if (sp.jump) { A.state = 'jump'; A.jumpT = 0; A.jx = A.x; } else { A.state = 'blocked'; A.ouchT = .3; } }
-      } else if (P && P.k === 'lion' && Math.abs(mouthX - T0.x) < .9) { flee(A, 'lion'); }
+        else if (P.k === 'thorns' || P.k === 'lion' || P.k === 'scarecrow') { if (sp.jump && P.k !== 'lion') { A.state = 'jump'; A.jumpT = 0; A.jx = A.x; } else { A.state = 'blocked'; A.ouchT = .3; } }
+      }
       // wystraszone rośliny przed zwierzakiem
       for (let k = 0; k < 2; k++) { const t = tileAt(c - k, A.row); if (t && t.plant && t.plant.p) t.plant.p.fear = Math.max(t.plant.p.fear, .6); }
       if (A.x < EXIT_X) { kill(A); continue; }
@@ -350,8 +360,10 @@ function updateAnimals(dt) {
       a.moving = true; A.jumpT += dt; const k = Math.min(1, A.jumpT/.7); A.x = A.jx - k*(TS + A.len*.6); A.jy = Math.sin(k*PI)*1.3; if (k >= 1) { A.state = 'walk'; A.jy = 0; }
     } else if (A.state === 'blocked') {
       A.ouchT -= dt; const T0 = tileAt(colOf(A.x - A.len*.45), A.row);
-      if (!T0 || !T0.plant || T0.plant.k !== 'thorns') A.state = 'walk';
-      else if (A.ouchT <= 0) { A.ouchT = 1; SFX.ouch(); A.brave -= 1; A.x += .5; ZOO.pose(a, 'hurt'); A.stun = .4; bubble('Auć!', A.x, sp.h + .5, A.z, 'small');
+      const B = T0 && T0.plant;
+      if (!B || !(B.k === 'thorns' || B.k === 'lion' || B.k === 'scarecrow') || edible(A, B)) A.state = 'walk';
+      else if (B.k !== 'thorns') { /* stoi przed lwem / strachem i czeka (oni sami straszą) */ }
+      else if (A.ouchT <= 0) { A.ouchT = 1.2; SFX.ouch(); A.brave -= 1; A.x += .5; B.hp -= 2; B.biting = true; if (B.hp <= 0) removePlant(B, true); ZOO.pose(a, 'hurt'); A.stun = .4; bubble('Auć!', A.x, sp.h + .5, A.z, 'small');
         for (let i = 0; i < 8; i++) emit(A.x - .4, sp.h*.4, A.z, rr(-1, 1), rr(1, 2), rr(-1, 1), .5, 1, .3, .3, 6); if (A.brave <= 0) flee(A, 'thorns'); }
     } else if (A.state === 'eat') {
       const P = A.eatP; if (!P || !plants.includes(P)) { A.state = 'walk'; stopSaw(A); }
@@ -458,7 +470,7 @@ function onTap(X, Y) {
   }
   if (G.sel && t.plant) { setSel(null); }
 }
-function noSeeds() { const e = $('seeds'); e.classList.remove('no'); void e.offsetWidth; e.classList.add('no'); SFX.ouch(); if (!G.firsts.has('poor')) { G.firsts.add('poor'); lektor('Brakuje fasolek. Posadź magiczną fasolę i zbieraj plony!'); } }
+function noSeeds() { const e = $('seeds'); e.classList.remove('no'); void e.offsetWidth; e.classList.add('no'); SFX.ouch(); if (!G.firsts.has('poor')) { G.firsts.add('poor'); say('Brakuje fasolek. Posadź magiczną fasolę i zbieraj plony!'); } }
 $('c').addEventListener('pointerdown', e => { e.preventDefault(); onTap(e.clientX, e.clientY); });
 // przeciągnij kartę na grządkę (jak stuknięcie karty i grządki)
 let dragK = null;
@@ -471,23 +483,26 @@ const ICONS = {};
 function makeIcons() {
   for (const c of CARDS) {
     if (c.k === 'scarecrow') { ICONS.scarecrow = ikonaModelu(ZOO.scarecrow().g, { ry: .2 }); continue; }
-    if (c.k === 'lion') { const a = ZOO.MK.lion(); ZOO.pose(a, 'sit'); ZOO.anim(a, 1); ZOO.anim(a, 1); ICONS.lion = ikonaModelu(a.root, { ry: -.5 }); continue; }
+    if (c.k === 'lion') { const a = ZOO.MK.lion(); ZOO.anim(a, 1); ICONS.lion = ikonaModelu(a.root, { ry: -.5 }); continue; }
+    if (c.k === 'mouse') { const a = ZOO.MK.mouse(); ZOO.anim(a, 1); ICONS.mouse = ikonaModelu(a.root, { ry: -.6 }); continue; }
     const p = PLANTS.make(c.k); PLANTS.set(p, 1, 1); ICONS[c.k] = ikonaModelu(p.g, { ry: .3, rx: .15 });
   }
   ICONS.seed = ikonaModelu(PLANTS.bean(), {}); ICONS.apple = ikonaModelu(PLANTS.apple(), {}); ICONS.basket = ikonaModelu(PLANTS.basket(true), { rx: .35 });
-  for (const k of ['farmer', 'rabbit', 'cow', 'beaver']) { const a = ZOO.MK[k](); if (k === 'farmer') ZOO.pose(a, 'cheer'); ZOO.anim(a, 1); ZOO.anim(a, 1); ICONS[k] = ikonaModelu(a.root, { ry: k === 'farmer' ? -1.2 : -.6 }); }
+  for (const k of ['farmer', 'rabbit', 'cow', 'beaver', 'elephant', 'chicken', 'deer', 'zebra', 'giraffe', 'kangaroo', 'hippo', 'panda', 'penguin', 'goat', 'mole', 'lion']) { const a = ZOO.MK[k](); if (k === 'farmer') ZOO.pose(a, 'cheer'); ZOO.anim(a, 1); ZOO.anim(a, 1); ICONS[k] = ikonaModelu(a.root, { ry: k === 'farmer' ? -1.2 : -.6 }); }
 }
 makeIcons();
 $('seedIco').src = ICONS.seed; $('basketIco').src = ICONS.basket; $('endBasketIco').src = ICONS.basket;
 $('crew').innerHTML = ['rabbit', 'farmer', 'cow', 'beaver'].map(k => `<img src="${ICONS[k]}" alt="">`).join('');
 const STAR = on => `<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="${on ? '#ffd23f' : '#d8c8a8'}" stroke="#3b2a17" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-const STAR_AT = [12, 28, 42];
 const SVG = {
   again: '<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M17.5 2.5v5h-5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   againD: '<svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="#3b2a17" stroke-width="2.6" stroke-linecap="round"/><path d="M17.5 2.5v5h-5" fill="none" stroke="#3b2a17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  days: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3" fill="#fff3d6" stroke="#3b2a17" stroke-width="1.6"/><rect x="3" y="4" width="18" height="5" rx="2" fill="#e8574a" stroke="#3b2a17" stroke-width="1.6"/><g fill="#4fae3a"><circle cx="8" cy="13" r="1.6"/><circle cx="12" cy="13" r="1.6"/><circle cx="16" cy="13" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="12" cy="17" r="1.6"/></g></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M4 9h9V4l8 8-8 8v-5H4z" fill="#fff" stroke="#7a1e10" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" fill="#c9a35a" stroke="#3b2a17" stroke-width="1.6"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#3b2a17" stroke-width="2"/></svg>',
   finger: '<svg viewBox="0 0 64 64"><path d="M22 30V9a5 5 0 0 1 10 0v17l3-1a5 5 0 0 1 6 3l1 1a5 5 0 0 1 6 3l1 1a5 5 0 0 1 7 4v10c0 9-6 15-15 15h-6c-6 0-10-3-13-8L13 41a5 5 0 0 1 8-6z" fill="#fff" stroke="#3b2a17" stroke-width="3" stroke-linejoin="round"/></svg>',
 };
-$('bAgain').innerHTML = SVG.again; $('bRestart').innerHTML = SVG.againD; $('bHome').innerHTML = $('bHome2').innerHTML = SVG_IKONY.dom;
+$('bAgain').innerHTML = SVG.againD; $('bRestart').innerHTML = SVG.againD; $('bHome').innerHTML = $('bHome2').innerHTML = SVG.days; $('bGames').innerHTML = SVG_IKONY.dom; $('bNext').innerHTML = SVG.next;
 function sndIcons() { $('bSnd').innerHTML = $('bSnd2').innerHTML = G.muted ? SVG_IKONY.cisza : SVG_IKONY.glos; }
 sndIcons();
 
@@ -513,8 +528,8 @@ function hudCards(dt) {
 }
 function unlock(k) { G.unlocked.add(k); const b = $('cards').querySelector(`[data-k="${k}"]`); if (b) { b.hidden = false; b.classList.add('new'); setTimeout(() => b.classList.remove('new'), 2600); } SFX.harvest(); }
 function addSeeds(n, from) { G.seeds = Math.max(0, G.seeds + n); $('seedN').textContent = G.seeds; if (n > 0) { const e = $('seeds'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); } }
-function hudBasket() { $('basketN').textContent = G.basket; const e = $('basket'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); $('stars').innerHTML = STAR_AT.map(n => STAR(G.basket >= n)).join(''); }
-function hudSun() { const k = clamp(G.t/DAY_LEN, 0, 1); $('dayFill').style.width = (k*100).toFixed(1) + '%'; $('daySun').style.left = (k*100).toFixed(1) + '%'; $('daySun').classList.toggle('late', k > .85); }
+function hudBasket() { $('basketN').textContent = G.basket; const e = $('basket'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); $('stars').innerHTML = DAY().stars.map(n => STAR(G.basket >= n)).join(''); }
+function hudSun() { const k = clamp(G.t/DAY().len, 0, 1); $('dayFill').style.width = (k*100).toFixed(1) + '%'; $('daySun').style.left = (k*100).toFixed(1) + '%'; $('daySun').classList.toggle('late', k > .85); }
 function bubble(txt, x, y, z, cls) { const s = toScreen(x, y, z); if (s.Y < 80) s.Y = 80; komiksDymek($('fx'), txt, s.X, s.Y, cls || ''); }
 function flyTo(src, from, toEl, done) {
   if (IS_TEST) { done && done(); return; }
@@ -522,6 +537,9 @@ function flyTo(src, from, toEl, done) {
   const r = toEl.getBoundingClientRect(); requestAnimationFrame(() => requestAnimationFrame(() => { im.style.transform = `translate(${r.left + r.width/2 - from.X}px,${r.top + r.height/2 - from.Y}px) scale(.6)`; }));
   setTimeout(() => { im.remove(); done && done(); }, IS_TEST ? 0 : 720);
 }
+// lektor + napis na dole ekranu (przy wyciszonym telefonie rodzic może przeczytać)
+let subT = null;
+function say(txt, pilne) { lektor(txt, { pilne }); const e = $('sub'); e.textContent = txt; e.hidden = false; clearTimeout(subT); subT = setTimeout(() => { e.hidden = true; }, IS_TEST ? 0 : 5500); }
 function banner(txt) { const d = document.createElement('div'); d.id = 'banner'; d.textContent = txt; $('fx').append(d); setTimeout(() => d.remove(), 2500); }
 
 // palec-podpowiedź: nad elementem HUD albo nad punktem / zwierzakiem w świecie
@@ -536,8 +554,8 @@ function placeFinger() { if (!finger) return; const t = finger.target; let X, Y;
 // samouczek: słonecznik → grządka → marchewka → grządka
 function tutorialSelected(k) { if (G.tut === 1 && k === 'beanstalk') { G.tut = 2; const t = tileAt(1, 2); pointAt({ x: t.x, y: .2, z: t.z }, 'tut'); }
   else if (G.tut === 3 && k === 'carrot') { G.tut = 4; const t = tileAt(3, 2); pointAt({ x: t.x, y: .2, z: t.z }, 'tut'); } }
-function tutorialPlanted(k) { if (G.tut <= 2 && k === 'beanstalk') { G.tut = 3; lektor('Brawo! Teraz posadź marchewkę.', { pilne: 1 }); pointAt(cardEl('carrot'), 'tut'); }
-  else if (G.tut >= 3 && G.tut <= 4 && k === 'carrot') { G.tut = 5; clearPoint('tut'); lektor('Super! Marchewka rośnie. Uważaj na głodne zwierzaki!', { pilne: 1 }); } }
+function tutorialPlanted(k) { if (G.tut <= 2 && k === 'beanstalk') { G.tut = 3; say('Brawo! Teraz posadź marchewkę.', 1); pointAt(cardEl('carrot'), 'tut'); }
+  else if (G.tut >= 3 && G.tut <= 4 && k === 'carrot') { G.tut = 5; clearPoint('tut'); say('Super! Marchewka rośnie. Uważaj na głodne zwierzaki!', 1); } }
 const cardEl = k => $('cards').querySelector(`[data-k="${k}"]`);
 
 /* =====================================================================
@@ -545,28 +563,33 @@ const cardEl = k => $('cards').querySelector(`[data-k="${k}"]`);
    ===================================================================== */
 let skySeedT = 6;
 function runScript() {
-  while (G.script < SCRIPT.length && SCRIPT[G.script].t <= G.t) {
-    const e = SCRIPT[G.script++];
+  const S = DAY().script;
+  while (G.script < S.length && S[G.script].t <= G.t) {
+    const e = S[G.script++];
     if (e.unlock) unlock(e.unlock);
     if (e.spawn) { const n = e.n || 1; for (let i = 0; i < n; i++) G.queue.push({ t: G.t + (e.gap || 1)*i, k: e.spawn, row: e.row }); }
     if (e.rain !== undefined) { G.rain = !!e.rain; }
-    if (e.horde) { SFX.drum(); banner('Horda z lasu!'); }
-    if (e.boss) { banner('Bobry!'); }
-    if (e.say) lektor(e.say, { pilne: !!e.spawn || !!e.horde || !!e.boss });
+    if (e.horde) { SFX.drum(); banner(e.horde); }
+    if (e.boss) { SFX.drum(); banner(e.boss); }
+    if (e.say) say(e.say, !!e.spawn || !!e.horde || !!e.boss);
     if (e.tut) { G.tut = 1; pointAt(cardEl('beanstalk'), 'tut'); }
   }
 }
-function updateSky() { const k = G.t/DAY_LEN; setWeather(G.rain ? 'rain' : k < .12 ? 'dawn' : k < .55 ? 'sun' : k < .85 ? 'gold' : 'dusk'); }
+function updateSky() { const k = G.t/DAY().len; setWeather(G.rain ? 'rain' : k < .12 ? 'dawn' : k < .55 ? 'sun' : k < .85 ? 'gold' : 'dusk'); }
 function endDay() {
   G.ended = true; setSel(null); clearPoint();
   plants.filter(isRipe).forEach(P => { G.basket += P.card.crop; });
   hudBasket(); SFX.win(); ZOO.pose(farmer.a, 'cheer');
-  const stars = STAR_AT.filter(n => G.basket >= n).length || 1;
+  const stars = DAY().stars.filter(n => G.basket >= n).length || 1, last = G.day === DAYS.length - 1;
+  PROG[G.day] = Math.max(PROG[G.day] || 0, stars); saveProg();
   $('endStars').innerHTML = [0, 1, 2].map(i => STAR(i < stars).replace('<svg', `<svg class="${i < stars ? 'on' : ''}"`)).join('');
-  $('endN').textContent = G.basket;
-  setTimeout(() => { $('end').hidden = false; $('hud').hidden = true; confetti(); lektor(`Koniec dnia! W koszu jest ${G.basket} ${plural(G.basket, 'warzywo', 'warzywa', 'warzyw')}. Brawo!`, { pilne: 1 }); }, IS_TEST ? 0 : 1200);
+  $('endN').textContent = G.basket; $('bNext').hidden = last; $('endTitle').textContent = last ? 'Ogródek uratowany!' : 'Koniec dnia!';
+  $('parade').hidden = !last; if (last) $('parade').innerHTML = ['rabbit', 'chicken', 'deer', 'mole', 'cow', 'goat', 'beaver', 'zebra', 'kangaroo', 'giraffe', 'elephant', 'hippo', 'panda', 'penguin', 'lion', 'farmer'].map((k, i) => `<img src="${ICONS[k]}" alt="" style="animation-delay:${(i*.12).toFixed(2)}s">`).join('');
+  setTimeout(() => { $('end').hidden = false; $('hud').hidden = true; $('sub').hidden = true; confetti();
+    lektor(last ? `Hura! Ogródek uratowany! Wszystkie zwierzaki są najedzone i idą spać. W koszu jest ${G.basket} ${plural(G.basket, 'warzywo', 'warzywa', 'warzyw')}. Jesteś super ogrodnikiem!`
+      : `Koniec dnia! W koszu jest ${G.basket} ${plural(G.basket, 'warzywo', 'warzywa', 'warzyw')}. Brawo!`, { pilne: 1 }); }, IS_TEST ? 0 : 1200);
 }
-function confetti() { const c = $('confetti'); c.innerHTML = ''; for (let i = 0; i < 40; i++) { const im = document.createElement('img'); im.src = [ICONS.carrot, ICONS.cabbage, ICONS.apple, ICONS.seed][i % 4];
+function confetti() { const c = $('confetti'); c.innerHTML = ''; for (let i = 0; i < 40; i++) { const im = document.createElement('img'); im.src = [ICONS.carrot, ICONS.wheat, ICONS.apple, ICONS.seed][i % 4];
   im.style.cssText = `position:absolute;top:-80px;left:${Math.random()*100}vw;width:${40 + Math.random()*30}px;animation:fall ${2.5 + Math.random()*2}s linear ${Math.random()*1.5}s forwards`; c.append(im); } setTimeout(() => c.innerHTML = '', 6000); }
 
 /* =====================================================================
@@ -578,7 +601,7 @@ function update(dt) {
     for (const q of G.queue.slice()) if (q.t <= G.t) { G.queue.splice(G.queue.indexOf(q), 1); spawn(q.k, q.row); }
     if ((skySeedT -= dt) <= 0) { skySeedT = rr(11, 14); dropSeed(X0 + 1 + rnd()*(COLS*TS - 2), 9, Z0 + 1 + rnd()*(ROWS*TS - 2)); }
     updatePlants(dt); updateFalling(dt); updateAnimals(dt); updateFarmer(dt); updateHand(dt); updateDrops(dt); hudCards(dt);
-    if (G.t >= DAY_LEN && (!animals.length || G.t > DAY_LEN + 30)) endDay();
+    if (G.t >= DAY().len && (!animals.length || G.t > DAY().len + 30)) endDay();
   } else if (!G.run || G.ended) { updateFarmer(dt); }
   updateSky(); updateParticles(dt); updateRain(dt, camera);
   for (const c of clouds) { c.position.x += c.userData.v*dt; if (c.position.x > 160) c.position.x = -160; }
@@ -603,22 +626,36 @@ let last = performance.now();
 function loop(now) { const dt = Math.min(.05, (now - last)/1000); last = now; frame(G.paused ? 0 : dt); requestAnimationFrame(loop); }
 setWeather('dawn'); hudSun(); hudBasket(); addSeeds(0);
 
-function startGame() {
-  critAudioInit(); goFS();
+function startGame(day) {
+  critAudioInit(); goFS(); if (typeof day === 'number') G.day = day; const D = DAY();
   // sprzątanie poprzedniego dnia
   animals.slice().forEach(kill); plants.slice().forEach(P => removePlant(P)); drops.slice().forEach(D => { scene.remove(D.g); }); drops.length = 0;
-  Object.assign(G, { t: 0, run: true, paused: false, ended: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['beanstalk', 'carrot']), script: 0, queue: [], rain: false, tut: 0, firsts: new Set(), stats: { eaten: 0, crops: 0, fled: 0, spawned: 0 } });
+  Object.assign(G, { t: 0, run: true, paused: false, ended: false, seeds: D.seeds, basket: 0, sel: null, cd: {}, unlocked: new Set(D.start), script: 0, queue: [], rain: false, tut: 0, firsts: new Set(G.day ? ['ripe', 'seed', 'poor'] : []), stats: { eaten: 0, crops: 0, fled: 0, spawned: 0 } });
   farmer.x = PORCH.x; farmer.z = PORCH.z; ZOO.pose(farmer.a, null); skySeedT = 6;
-  $('menu').hidden = $('end').hidden = $('pause').hidden = true; $('hud').hidden = false; buildCards(); hudBasket(); addSeeds(0); hudSun();
+  $('menu').hidden = $('end').hidden = $('pause').hidden = true; $('hud').hidden = false; buildCards(); hudBasket(); addSeeds(0); hudSun(); clearPoint(); setWeather('dawn');
+  banner(`Dzień ${G.day + 1}`);
   (Q.get('zw') || '').split(',').filter(Boolean).forEach((k, i) => G.queue.push({ t: 2 + i*1.5, k }));
 }
-tap('bGo', startGame); tap('bAgain', startGame); tap('bRestart', startGame);
+tap('bAgain', () => startGame()); tap('bRestart', () => startGame()); tap('bNext', () => startGame(Math.min(DAYS.length - 1, G.day + 1)));
+// menu: dni z gwiazdkami (zapis w przeglądarce); następny dzień otwiera się po ukończeniu poprzedniego
+const PROG = (() => { try { return JSON.parse(localStorage.getItem('ogrodek-postep')) || []; } catch (e) { return []; } })();
+if (Q.has('wszystkie')) DAYS.forEach((d, i) => PROG[i] = PROG[i] || 1);
+function saveProg() { try { localStorage.setItem('ogrodek-postep', JSON.stringify(PROG)); } catch (e) {} }
+const dayOpen = i => i === 0 || (PROG[i - 1] || 0) > 0;
+function showMenu() {
+  G.run = false; G.ended = false; G.paused = false; animals.slice().forEach(kill); $('end').hidden = $('pause').hidden = $('hud').hidden = true; $('menu').hidden = false;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  $('days').innerHTML = DAYS.map((d, i) => `<button class="day${dayOpen(i) ? '' : ' locked'}" data-i="${i}" aria-label="Dzień ${i + 1}: ${d.name}"><img src="${ICONS[d.hero]}" alt=""><b>${i + 1}</b>` +
+    `<span class="st">${[0, 1, 2].map(k => STAR(k < (PROG[i] || 0))).join('')}</span>${dayOpen(i) ? '' : `<span class="lk">${SVG.lock}</span>`}</button>`).join('');
+  $('days').querySelectorAll('.day').forEach(b => b.addEventListener('click', e => { e.preventDefault(); const i = +b.dataset.i; if (!dayOpen(i)) { SFX.ouch && critAudioInit(); SFX.ouch(); return; } startGame(i); }));
+}
+showMenu();
 tap('bPause', () => { G.paused = true; $('pause').hidden = false; if (window.speechSynthesis) speechSynthesis.cancel(); });
 tap('bResume', () => { G.paused = false; $('pause').hidden = true; });
 const toggleSnd = () => { G.muted = !G.muted; try { localStorage.setItem('ogrodek-cisza', G.muted ? '1' : '0'); } catch (e) {} lektorWl(!G.muted); if (AU.master) AU.master.gain.value = G.muted ? 0 : .8; sndIcons(); };
 tap('bSnd', toggleSnd); tap('bSnd2', toggleSnd); lektorWl(!G.muted);
-const home = () => { location.href = '../'; }; tap('bHome', home); tap('bHome2', home);
+tap('bHome', showMenu); tap('bHome2', showMenu); tap('bGames', () => { location.href = '../'; });
 
-if (IS_TEST) { window.TEST = { G, animals, plants, tiles, spawn, plantAt, onTap, toScreen, startGame, harvest,
+if (IS_TEST) { window.TEST = { G, animals, plants, tiles, spawn, plantAt, onTap, toScreen, startGame, harvest, showMenu, PROG,
   step(sec, dt = 1/30) { for (let t = 0; t < sec; t += dt) update(dt); hudSun(); }, render() { renderer.render(scene, camera); } }; renderer.render(scene, camera); }
 else requestAnimationFrame(loop);

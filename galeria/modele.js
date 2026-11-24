@@ -23,7 +23,7 @@ const MODELE = [
   { kat: 'ludzie', typ: 'ręka z widłami', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.skyHand().g' },
   { kat: 'ludzie', typ: 'widły', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.pitchfork()' },
   { kat: 'ludzie', typ: 'strach na wróble', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.scarecrow().g' },
-  ...['beanstalk', 'carrot', 'cabbage', 'sunflower', 'onion', 'garlic', 'thorns', 'tree'].flatMap(k => [[1, 1], [.45, 1], [1, .35]].map(([g, h]) =>
+  ...['beanstalk', 'carrot', 'wheat', 'cabbage', 'sunflower', 'onion', 'garlic', 'thorns', 'tree'].flatMap(k => [[1, 1], [.45, 1], [1, .35]].map(([g, h]) =>
     ({ kat: 'ogródek', typ: k, gra: 'ogrodek', js: `(() => { const p = PLANTS.make('${k}'); PLANTS.set(p, ${g}, ${h}); PLANTS.anim(p, 0, 0); return p.g; })()` }))),
   ...['pine', 'leafy', 'bush', 'seed', 'bean', 'apple'].map(k => ({ kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: `PLANTS.${k}()` })),
   { kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: 'PLANTS.basket(true)' },

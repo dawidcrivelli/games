@@ -26,15 +26,16 @@ flowchart LR
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/animals.js` → `ZOO`, `models/sea.js` → `MORZE` (`MORZE_CFG={water:false}` nad wodą).
 - `klinika/` — weterynarz dla 4–6 lat, tylko poziomo (`obrotInit()`): pacjent przychodzi ulicą do kliniki (3D, kamera idzie za nim), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D — zwierzęta z boku (żyrafa, słoń, tygrys, lew), wyprostowani (Pan Doktor, pingwin) od przodu. Jak w „Operacji”, ale łagodnie: trasy od startu do celu z kilkoma losowymi zakrętami, bez pętli (połknięta rzecz przełykiem do buzi albo przez brzuch do pupy, organy po jednym na swoje miejsce, uciekła kość do łapy + gips), układanki kości z liczeniem (szyja i ogon żyrafy, ogony słonia, tygrysa i lwa, palce doktora, żebra pingwina). Bez rentgena (`klinika/zabiegi3d.js`): drzazga, stetoskop, termometr i syrop, pchły, bandaż z gazy owijany kręceniem palca (łapa, szyja żyrafy, cała mumia), mycie kłów / zębów / dzioba (każdy pacjent; zoom na pysk). Wizyta = 3 losowe zabiegi z rentgenem + 1 bez + plasterki; test konkretnych: `?zabiegi=organ,kosc,pchly`. Bez przegranej; lektor = polska synteza mowy przeglądarki.
 - `ogrodek/` — Łakome Zwierzaki, dla 4–6 lat, tylko poziomo: obrona ogródka jak „rośliny kontra zombie” w scenerii Żniw (niebo, pogoda, traktor).
-  Karty u góry w trzech kolorowych grupach (fiolet — magiczna fasola daje fasolki, zieleń — plony do kosza, czerwień — obrona); rysunki z modeli 3D,
-  koszt w kropkach-fasolkach: stuknij kartę, potem grządkę 9×5 (albo przeciągnij). Marchewka / kapusta — plon do kosza i fasolki przy zbiorze,
-  jabłonka rośnie długo (duża bezpieczna, daje jabłka). Obrona z zasięgiem widocznym na ziemi: cebula śmierdzi w kółku (wrażliwe uciekają z pierdem,
-  uparte tracą odwagę), kolczasty krzak zatrzymuje i kłuje, strach na wróble macha co 3 s (kury uciekają), lew ryczy na pas rzędu. Zwierzaki z lasu z prawej: królik, kura (tylko młode roślinki, przelatuje krzaki), sarenka (skacze), kret (spod ziemi),
-  krowa i koza (uparte: pasek odwagi), na koniec dnia bobry z piłą mechaniczną. Stuknięcie zwierzaka — ręka dziadka z widłami z chmury (odbiera 1 odwagi, odpycha);
-  dziadek sam goni jedzące zwierzaki i zbiera plony. Rośliny mają pasek życia i brzydną gryzione, najedzone zwierzaki grubną i bekają.
-  Bez przegranej: koniec dnia o zachodzie, 1–3 gwiazdki za kosz; lektor mówi, co robić. Dane dnia: `ogrodek/day.js`.
-  `?test` — bez pętli klatek (`TEST.step(s)`, `TEST.render()`: szybkie testy w headless Chrome bez GPU), `?lite` — słaba grafika
-  (włącza się sama przy SwiftShader), `?zw=elephant,giraffe` — od razu te zwierzaki (zoo na następne dni).
+  5 dni do wyboru w menu (gwiazdki zapisane w przeglądarce, następny dzień po ukończeniu poprzedniego): Króliki, Sarenki i krowy, Bobry,
+  Ucieczka z zoo (zebry, kangury, hipopotam, żyrafa je jabłonki, słoń boi się myszy), Wielka horda i finał „Ogródek uratowany!”.
+  Karty u góry w trzech kolorowych grupach (fiolet — magiczna fasola daje fasolki, zieleń — marchewka / pszenica / jabłonka: plon do kosza i fasolki
+  przy zbiorze, czerwień — obrona); rysunki z modeli 3D, koszt w kropkach-fasolkach: stuknij kartę, potem grządkę 9×5 (albo przeciągnij).
+  Obrona z zasięgiem na ziemi, celowo nie za mocna: cebula ma 2 chmurki smrodu (nowa co 8 s, krowa / koza / bóbr / słoń ją zjadają),
+  kolczasty krzak kłuje, ale się zużywa, strach na wróble co 5 s (kury uciekają od razu), lew ryczy na pas rzędu co 7 s, mysz płoszy słonie.
+  Zwierzaki mają pasek odwagi; stuknięcie — ręka dziadka z widłami z chmury (−1 odwagi, odepchnięcie); dziadek sam goni i zbiera plony.
+  Rośliny brzydną gryzione, najedzone zwierzaki grubną i puszczają bąki. Bez przegranej: koniec dnia o zachodzie, 1–3 gwiazdki za kosz.
+  Lektor + napis na dole. Dane dni: `ogrodek/day.js`. `?test` (szybkie testy, `tools/quick.mjs`), `?lite`, `?dzien=4`, `?wszystkie` (otwarte dni),
+  `?zw=elephant,giraffe` — od razu te zwierzaki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js): `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka); z `lib/` tylko `common/dom.js`.
 - `kosmopatologia/`, `zoopatologia/` — gry 2D (canvas, pikselowa grafika) przeniesione z osobnych repo (stan z 2026-11-08: kosmopatologia `c5066df`, zoopatologia `7a5440b`; historia zostaje tam). `index.html`, `css/app.css`, `js/*.js` w kolejności z `index.html`; PWA: `manifest.json` + `sw.js` (offline). Nowy plik w `js/` → dopisz do `CORE` w `sw.js` i zmień `VERSION`.
 - `orig/` — oryginalne artefakty (tylko do odczytu); `tools/split.mjs` zrobił z nich pierwszy podział (jednorazowo).
@@ -92,7 +93,7 @@ flowchart LR
 | `models/people.js` | 19 | ciuchcia taxi zniwa ogrodek | Ludzie: makeFarmer(ręka w górze) — rolnik/kierowca w kapeluszu; pedGroup, pedMats — piesi na chodniku. |
 | `models/pirates.js` | 91 | piraci klinika | Piraci: ludziki (mkHuman), czapki, opaski, wojownicy (mkFighter: zwierzak z ZOO lub ludzik + broń). |
 | `models/plane.js` | 13 | taxi | Samolot (Taxi): planeBody(kolor) — kadłub ze skrzydłami i śmigłem, buildPlane — samolot jako pojazd (mkAuto). |
-| `models/plants.js` | 149 | ogrodek | Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS. |
+| `models/plants.js` | 161 | ogrodek | Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS. |
 | `models/sea.js` | 354 | arka rafa piraci | Zwierzęta morskie (z Rafy koralowej) — samodzielny moduł: geometria, materiał z animacją wierzchołków. |
 | `models/ships.js` | 141 | piraci | Okręty: kadłub (hullGeo, wymiary SH), deski, działa (mkCannon), żagle, flagi, buildShip(opcje) — maszty, wanty, załoga. |
 | `models/tractor.js` | 90 | ciuchcia taxi zniwa ogrodek | Ursus C-330: kabina, maska, koła z bieżnikiem, światła, kierowca, tablica rejestracyjna (M.uPlate). |
