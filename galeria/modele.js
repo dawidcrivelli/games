@@ -22,9 +22,10 @@ const MODELE = [
   ...['stand', 'cheer', 'swipe', 'crouch'].map(pz => ({ kat: 'ludzie', typ: 'dziadek', gra: 'ogrodek', plik: 'models/farmer.js', js: `(() => { const a = ZOO.MK.farmer(); ZOO.pose(a, '${pz}'); ZOO.anim(a, 1); ZOO.anim(a, 1); return a; })()` })),
   { kat: 'ludzie', typ: 'ręka z widłami', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.skyHand().g' },
   { kat: 'ludzie', typ: 'widły', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.pitchfork()' },
-  ...['carrot', 'cabbage', 'sunflower', 'onion', 'garlic', 'thorns', 'tree'].flatMap(k => [[1, 1], [.45, 1], [1, .35]].map(([g, h]) =>
+  { kat: 'ludzie', typ: 'strach na wróble', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.scarecrow().g' },
+  ...['beanstalk', 'carrot', 'cabbage', 'sunflower', 'onion', 'garlic', 'thorns', 'tree'].flatMap(k => [[1, 1], [.45, 1], [1, .35]].map(([g, h]) =>
     ({ kat: 'ogródek', typ: k, gra: 'ogrodek', js: `(() => { const p = PLANTS.make('${k}'); PLANTS.set(p, ${g}, ${h}); PLANTS.anim(p, 0, 0); return p.g; })()` }))),
-  ...['pine', 'leafy', 'bush', 'seed', 'apple'].map(k => ({ kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: `PLANTS.${k}()` })),
+  ...['pine', 'leafy', 'bush', 'seed', 'bean', 'apple'].map(k => ({ kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: `PLANTS.${k}()` })),
   { kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: 'PLANTS.basket(true)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },

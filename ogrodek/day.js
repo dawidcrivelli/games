@@ -2,14 +2,16 @@
 'use strict';
 
 // Karty u góry ekranu: koszt w ziarenkach (kropki), odnowienie karty (s), czas wzrostu (s), życie, plon do kosza po zbiorze
+// cat: 'bean' daje fasolki, 'crop' plon do kosza (i fasolki przy zbiorze), 'guard' obrona (płoszy, rani, straszy)
 const CARDS = [
-  { k: 'sunflower', cost: 1, cd: 3, grow: 12, hp: 6, crop: 0, name: 'słonecznik' },
-  { k: 'carrot',    cost: 1, cd: 1.5, grow: 15, hp: 4, crop: 1, name: 'marchewka' },
-  { k: 'cabbage',   cost: 2, cd: 3, grow: 24, hp: 8, crop: 3, name: 'kapusta' },
-  { k: 'onion',     cost: 2, cd: 5, grow: 8, hp: 6, crop: 0, name: 'cebula' },
-  { k: 'thorns',    cost: 2, cd: 5, grow: 6, hp: 14, crop: 0, name: 'kolczasty krzak' },
-  { k: 'tree',      cost: 3, cd: 8, grow: 40, hp: 10, crop: 0, name: 'jabłonka' },
-  { k: 'lion',      cost: 4, cd: 12, grow: 0, hp: 99, crop: 0, name: 'lew' },
+  { k: 'beanstalk', cat: 'bean',  cost: 1, cd: 3, grow: 12, hp: 6, crop: 0, beans: 0, name: 'magiczna fasola' },
+  { k: 'carrot',    cat: 'crop',  cost: 1, cd: 1.5, grow: 15, hp: 4, crop: 1, beans: 1, name: 'marchewka' },
+  { k: 'cabbage',   cat: 'crop',  cost: 2, cd: 3, grow: 24, hp: 8, crop: 3, beans: 2, name: 'kapusta' },
+  { k: 'tree',      cat: 'crop',  cost: 3, cd: 8, grow: 40, hp: 10, crop: 0, beans: 0, name: 'jabłonka' },
+  { k: 'onion',     cat: 'guard', cost: 2, cd: 5, grow: 6, hp: 8, crop: 0, name: 'cebula' },
+  { k: 'thorns',    cat: 'guard', cost: 2, cd: 5, grow: 5, hp: 14, crop: 0, name: 'kolczasty krzak' },
+  { k: 'scarecrow', cat: 'guard', cost: 3, cd: 8, grow: 0, hp: 99, crop: 0, name: 'strach na wróble' },
+  { k: 'lion',      cat: 'guard', cost: 4, cd: 12, grow: 0, hp: 99, crop: 0, name: 'lew' },
 ];
 const CARD = Object.fromEntries(CARDS.map(c => [c.k, c]));
 
@@ -17,13 +19,13 @@ const CARD = Object.fromEntries(CARDS.map(c => [c.k, c]));
 // jump — przeskakuje krzaki, smell — ucieka przed cebulą, young — je tylko młode rośliny, thorns — je kolce, trees — je duże drzewa,
 // under — chodzi pod ziemią (kret), boss — szef (lew go nie przegoni od razu), saw — piła mechaniczna przy jedzeniu
 const SPECIES = {
-  rabbit:   { h: 1.4, sp: 1.5, bite: 1.3, brave: 1, full: 3, smell: 1, name: 'królik', bub: 'Chrup!' },
-  chicken:  { h: 1.1, sp: 1.0, bite: .8, brave: 1, full: 2, smell: 1, jump: 1, young: 1, name: 'kura', bub: 'Ko-ko!' },
-  deer:     { h: 2.4, sp: 2.0, bite: 1.3, brave: 1, full: 2, smell: 1, jump: 1, name: 'sarenka', bub: 'Mniam!' },
-  mole:     { h: 0.74, sp: 1.7, bite: 1.0, brave: 1, full: 2, smell: 1, under: 1, name: 'kret', bub: 'Chrup!' },
-  cow:      { h: 2.6, sp: .7, bite: 2.2, brave: 3, full: 3, name: 'krowa', bub: 'Muuu!' },
-  goat:     { h: 1.9, sp: 1.2, bite: 1.6, brave: 2, full: 3, thorns: 1, name: 'koza', bub: 'Meee!' },
-  beaver:   { h: 1.4, sp: 1.0, bite: 3.2, brave: 5, full: 3, thorns: 1, trees: 1, boss: 1, saw: 1, name: 'bóbr', bub: 'Brrrzzz!' },
+  rabbit:   { h: 1.4, sp: 1.5, bite: 1.3, brave: 2, full: 3, smell: 1, name: 'królik', bub: 'Chrup!' },
+  chicken:  { h: 1.1, sp: 1.0, bite: .8, brave: 2, full: 2, smell: 1, jump: 1, young: 1, bird: 1, name: 'kura', bub: 'Ko-ko!' },
+  deer:     { h: 2.4, sp: 2.0, bite: 1.3, brave: 2, full: 2, smell: 1, jump: 1, name: 'sarenka', bub: 'Mniam!' },
+  mole:     { h: 0.74, sp: 1.7, bite: 1.0, brave: 2, full: 2, smell: 1, under: 1, name: 'kret', bub: 'Chrup!' },
+  cow:      { h: 2.6, sp: .7, bite: 2.2, brave: 4, full: 3, name: 'krowa', bub: 'Muuu!' },
+  goat:     { h: 1.9, sp: 1.2, bite: 1.6, brave: 3, full: 3, thorns: 1, name: 'koza', bub: 'Meee!' },
+  beaver:   { h: 1.4, sp: 1.0, bite: 3.2, brave: 6, full: 3, thorns: 1, trees: 1, boss: 1, saw: 1, name: 'bóbr', bub: 'Brrrzzz!' },
   mouse:    { h: 0.47, sp: 1.8, bite: .6, brave: 1, full: 1, smell: 1, name: 'mysz', bub: 'Pi-pi!' },
   // zwierzęta z zoo (models/animals.js) — na następne dni; ?zw=elephant,giraffe w adresie, żeby je zobaczyć od razu
   elephant: { h: 4.3, sp: .7, bite: 3, brave: 4, full: 4, thorns: 1, trees: 1, name: 'słoń', bub: 'Tru-tu-tu!' },
@@ -38,20 +40,21 @@ const SPECIES = {
 // Scenariusz dnia 1 (sekundy). spawn: k, n (ile), row (rząd 0–4, inaczej losowy z roślinami), gap (odstęp)
 const DAY_LEN = 215;
 const SCRIPT = [
-  { t: .5, say: 'Dzień dobry! Posadź słonecznik. Da nam ziarenka.', tut: 1 },
-  { t: 26, spawn: 'rabbit', say: 'Uwaga, królik! Stuknij go, a ręka z widłami go przegoni!', first: 1 },
+  { t: .5, say: 'Dzień dobry! Posadź magiczną fasolę. Da nam fasolki na nowe rośliny.', tut: 1 },
+  { t: 26, spawn: 'rabbit', say: 'Uwaga, królik! Stuknij go widłami! Szybko!', first: 1 },
   { t: 30, unlock: 'cabbage', say: 'Nowa roślina: kapusta! Daje dużo do kosza.' },
   { t: 42, spawn: 'rabbit', n: 2, gap: 3 },
-  { t: 50, unlock: 'onion', say: 'Cebula śmierdzi! Zwierzaki przed nią uciekają.' },
+  { t: 46, unlock: 'onion', say: 'Cebula! Czerwona karta to obrona. Cebula śmierdzi i zwierzaki dookoła uciekają.' },
+  { t: 55, unlock: 'scarecrow', say: 'Strach na wróble! Straszy zwierzaki dookoła, a kury najbardziej.' },
   { t: 58, spawn: 'chicken', n: 3, gap: .8, say: 'Kury! Dziobią małe roślinki.' },
   { t: 70, spawn: 'rabbit', n: 3, gap: 2 },
-  { t: 76, unlock: 'thorns', say: 'Kolczasty krzak! Zatrzyma zwierzaki.' },
+  { t: 76, unlock: 'thorns', say: 'Kolczasty krzak! Kłuje i zatrzymuje zwierzaki.' },
   { t: 84, spawn: 'mole', say: 'Kret! Wychodzi spod ziemi!' },
   { t: 94, spawn: 'deer', say: 'Sarenka! Skacze przez krzaki.' },
   { t: 100, unlock: 'tree', say: 'Jabłonka! Rośnie długo, ale potem daje jabłka.' },
   { t: 106, spawn: 'rabbit', n: 2, gap: 2 }, { t: 108, spawn: 'chicken', n: 3, gap: 1 },
   { t: 112, rain: 1, say: 'Pada deszcz! Rośliny rosną szybciej.' },
-  { t: 120, spawn: 'cow', say: 'Krowa! Trzeba ją szturchnąć trzy razy.' },
+  { t: 120, spawn: 'cow', say: 'Krowa! Jest uparta. Postaw przed nią lwa albo stracha!' },
   { t: 128, unlock: 'lion', say: 'Lew! Ryczy i straszy zwierzaki.' },
   { t: 131, rain: 0 },
   { t: 136, spawn: 'deer', n: 2, gap: 3 }, { t: 139, spawn: 'rabbit', n: 2, gap: 2 },

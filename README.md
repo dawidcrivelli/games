@@ -26,10 +26,11 @@ flowchart LR
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/animals.js` → `ZOO`, `models/sea.js` → `MORZE` (`MORZE_CFG={water:false}` nad wodą).
 - `klinika/` — weterynarz dla 4–6 lat, tylko poziomo (`obrotInit()`): pacjent przychodzi ulicą do kliniki (3D, kamera idzie za nim), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D — zwierzęta z boku (żyrafa, słoń, tygrys, lew), wyprostowani (Pan Doktor, pingwin) od przodu. Jak w „Operacji”, ale łagodnie: trasy od startu do celu z kilkoma losowymi zakrętami, bez pętli (połknięta rzecz przełykiem do buzi albo przez brzuch do pupy, organy po jednym na swoje miejsce, uciekła kość do łapy + gips), układanki kości z liczeniem (szyja i ogon żyrafy, ogony słonia, tygrysa i lwa, palce doktora, żebra pingwina). Bez rentgena (`klinika/zabiegi3d.js`): drzazga, stetoskop, termometr i syrop, pchły, bandaż z gazy owijany kręceniem palca (łapa, szyja żyrafy, cała mumia), mycie kłów / zębów / dzioba (każdy pacjent; zoom na pysk). Wizyta = 3 losowe zabiegi z rentgenem + 1 bez + plasterki; test konkretnych: `?zabiegi=organ,kosc,pchly`. Bez przegranej; lektor = polska synteza mowy przeglądarki.
 - `ogrodek/` — Łakome Zwierzaki, dla 4–6 lat, tylko poziomo: obrona ogródka jak „rośliny kontra zombie” w scenerii Żniw (niebo, pogoda, traktor).
-  Karty u góry (rysunki z modeli 3D, koszt w kropkach-ziarenkach): stuknij kartę, potem grządkę 9×5 (albo przeciągnij). Słonecznik daje ziarenka,
-  marchewka / kapusta — plon do kosza, cebula płoszy (w swoim rzędzie), kolczasty krzak zatrzymuje, jabłonka rośnie długo (duża bezpieczna, daje jabłka),
-  lew ryczy na cały rząd. Zwierzaki z lasu z prawej: królik, kura (tylko młode roślinki, przelatuje krzaki), sarenka (skacze), kret (spod ziemi),
-  krowa i koza (trzeba szturchnąć kilka razy), na koniec dnia bobry z piłą mechaniczną. Stuknięcie zwierzaka — ręka dziadka z widłami z chmury;
+  Karty u góry w trzech kolorowych grupach (fiolet — magiczna fasola daje fasolki, zieleń — plony do kosza, czerwień — obrona); rysunki z modeli 3D,
+  koszt w kropkach-fasolkach: stuknij kartę, potem grządkę 9×5 (albo przeciągnij). Marchewka / kapusta — plon do kosza i fasolki przy zbiorze,
+  jabłonka rośnie długo (duża bezpieczna, daje jabłka). Obrona z zasięgiem widocznym na ziemi: cebula śmierdzi w kółku (wrażliwe uciekają z pierdem,
+  uparte tracą odwagę), kolczasty krzak zatrzymuje i kłuje, strach na wróble macha co 3 s (kury uciekają), lew ryczy na pas rzędu. Zwierzaki z lasu z prawej: królik, kura (tylko młode roślinki, przelatuje krzaki), sarenka (skacze), kret (spod ziemi),
+  krowa i koza (uparte: pasek odwagi), na koniec dnia bobry z piłą mechaniczną. Stuknięcie zwierzaka — ręka dziadka z widłami z chmury (odbiera 1 odwagi, odpycha);
   dziadek sam goni jedzące zwierzaki i zbiera plony. Rośliny mają pasek życia i brzydną gryzione, najedzone zwierzaki grubną i bekają.
   Bez przegranej: koniec dnia o zachodzie, 1–3 gwiazdki za kosz; lektor mówi, co robić. Dane dnia: `ogrodek/day.js`.
   `?test` — bez pętli klatek (`TEST.step(s)`, `TEST.render()`: szybkie testy w headless Chrome bez GPU), `?lite` — słaba grafika
@@ -56,7 +57,7 @@ flowchart LR
 | `lib/3d/zoo-kit.js` | 6 | pralnia arka piraci klinika | Pomocniki 3D z modułu ZOO (models/animals.js) jako nazwy globalne — styl „słodziaków”: Pralnia, Arka, Piraci, Klinika. |
 | `lib/audio/ambience.js` | 19 | ciuchcia taxi | Dźwięk gier z pojazdami (Ciuchcia, Taxi): initAudio() zakłada AU (kontekst, kompresor, bufor szumu) i stałe pętle: |
 | `lib/audio/aud.js` | 43 | bryki klinika | Dźwięki syntezowane w Web Audio (bez plików) — klocki z własnym stanem AUD (styl Dzikich Bryk). |
-| `lib/audio/critters.js` | 68 | ogrodek | Odgłosy zwierzaków i ogródka (syntezowane, bez plików) na wspólnym stanie AU z lib/audio/synth.js. |
+| `lib/audio/critters.js` | 115 | ogrodek | Odgłosy zwierzaków i ogródka (syntezowane, bez plików) na wspólnym stanie AU z lib/audio/synth.js. |
 | `lib/audio/diesel.js` | 29 | taxi zniwa | Niski, klekoczący silnik diesla (traktor, kombajn): dieselProfile, dieselCreate, dieselSet(obroty, gaz). |
 | `lib/audio/engine.js` | 50 | taxi | Silnik spalinowy z biegami: stałe generatory sterowane obrotami, strzały z wydechu, pisk opon, syrena. |
 | `lib/audio/horns.js` | 31 | ciuchcia taxi | Klaksony i gwizdki pojazdów: hornKind, hornStart (trzymany klakson), whistleStart, trainHornStart, hornStop, hornTap. |
@@ -82,7 +83,7 @@ flowchart LR
 | `models/cars.js` | 89 | ciuchcia taxi | Auta: mkAuto (podwozie, koła, kierownica, kamera), nadwozie z bocznego zarysu (profGeo), szyby, autobus, wyścigówka, auta AI. |
 | `models/farm-animals.js` | 125 | ogrodek | Zwierzęta z gospodarstwa w stylu „słodziaków” (dopisane do ZOO.MK): królik, kura, krowa, koza, mysz. |
 | `models/farm.js` | 287 | zniwa | Maszyny rolnicze (Żniwa): makeScrew (ślimak), buildCombine (kombajn z hederem zbożowym / do kukurydzy), buildPlough, buildSeeder, |
-| `models/farmer.js` | 74 | ogrodek | Rolnik-dziadek w stylu „słodziaków” (dopisany do ZOO.MK.farmer): słomkowy kapelusz, siwe wąsy, okrągłe okulary, |
+| `models/farmer.js` | 93 | ogrodek | Rolnik-dziadek w stylu „słodziaków” (dopisany do ZOO.MK.farmer): słomkowy kapelusz, siwe wąsy, okrągłe okulary, |
 | `models/forest-animals.js` | 76 | ogrodek | Zwierzęta z lasu i łąki w stylu „słodziaków” (dopisane do ZOO.MK): sarenka, kret, bóbr. |
 | `models/grass.js` | 48 | zniwa ogrodek | Kępki trawy i zboża: tuftGeo(rodzaj) → geometria do InstancedMesh (pszenica, kukurydza, trawa…). |
 | `models/hats.js` | 10 | pralnia | Czapki dla zwierzaków (Pralnia): mkHat(rodzaj) → Group. Wariant mkHat w models/pirates.js — nie ładować obu. |
@@ -91,7 +92,7 @@ flowchart LR
 | `models/people.js` | 19 | ciuchcia taxi zniwa ogrodek | Ludzie: makeFarmer(ręka w górze) — rolnik/kierowca w kapeluszu; pedGroup, pedMats — piesi na chodniku. |
 | `models/pirates.js` | 91 | piraci klinika | Piraci: ludziki (mkHuman), czapki, opaski, wojownicy (mkFighter: zwierzak z ZOO lub ludzik + broń). |
 | `models/plane.js` | 13 | taxi | Samolot (Taxi): planeBody(kolor) — kadłub ze skrzydłami i śmigłem, buildPlane — samolot jako pojazd (mkAuto). |
-| `models/plants.js` | 130 | ogrodek | Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS. |
+| `models/plants.js` | 149 | ogrodek | Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS. |
 | `models/sea.js` | 354 | arka rafa piraci | Zwierzęta morskie (z Rafy koralowej) — samodzielny moduł: geometria, materiał z animacją wierzchołków. |
 | `models/ships.js` | 141 | piraci | Okręty: kadłub (hullGeo, wymiary SH), deski, działa (mkCannon), żagle, flagi, buildShip(opcje) — maszty, wanty, załoga. |
 | `models/tractor.js` | 90 | ciuchcia taxi zniwa ogrodek | Ursus C-330: kabina, maska, koła z bieżnikiem, światła, kierowca, tablica rejestracyjna (M.uPlate). |

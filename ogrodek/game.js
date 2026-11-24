@@ -123,7 +123,7 @@ particlesInit(scene, LITE ? 300 : 900);
 /* =====================================================================
    STAN GRY
    ===================================================================== */
-const G = { t: 0, queue: [], run: false, paused: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['sunflower', 'carrot']), script: 0, rain: false, ended: false, tut: 0, firsts: new Set(), muted: false };
+const G = { t: 0, queue: [], run: false, paused: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['beanstalk', 'carrot']), script: 0, rain: false, ended: false, tut: 0, firsts: new Set(), muted: false };
 try { G.muted = localStorage.getItem('ogrodek-cisza') === '1'; } catch (e) {}
 AU.muted = () => G.muted;
 const plants = [], animals = [], drops = [];
@@ -146,19 +146,24 @@ function plantAt(tile, k) {
   if (k === 'lion') {
     const a = ZOO.MK.lion(), w = new T.Group(); w.add(a.root); a.root.position.x = -a.cx; w.scale.setScalar(2.1/a.dims.h);
     P.a = a; P.g = w; P.roarT = 1; P.grow = 1; SFX.call('lion');
+    P.ring = laneMark(tile, LION_R, 0xff9a3a);
+  } else if (k === 'scarecrow') {
+    const sc = ZOO.scarecrow(); P.sc = sc; P.g = new T.Group(); P.g.add(sc.g); P.g.scale.setScalar(1.05); P.grow = 1; P.scT = 1; P.flap = 0;
+    P.ring = auraRing(tile, SCARE_R, 0xffd23f);
   } else { P.p = PLANTS.make(k); P.g = new T.Group(); P.g.add(P.p.g); P.g.scale.setScalar(k === 'tree' ? 1 : PLANT_K); PLANTS.set(P.p, 0, 1); }
+  if (k === 'onion') P.ring = auraRing(tile, ONION_R, 0x8ee04a);
   P.g.position.set(tile.x, .12, tile.z); scene.add(P.g); tile.plant = P; plants.push(P);
   for (let i = 0; i < 14; i++) emit(tile.x + rr(-.6, .6), .3, tile.z + rr(-.6, .6), rr(-1, 1), rr(1.5, 3), rr(-1, 1), .7, .45, .3, .15, 8);
   SFX.plant(); return P;
 }
 function removePlant(P, eaten) {
-  if (P.tile.plant === P) P.tile.plant = null; const i = plants.indexOf(P); if (i < 0) return; plants.splice(i, 1); scene.remove(P.bar);
-  if (eaten && P.k === 'tree') falling.push({ g: P.g, t: 0 }); else scene.remove(P.g);       // ścięta jabłonka przewraca się („Bęc!”)
+  if (P.tile.plant === P) P.tile.plant = null; const i = plants.indexOf(P); if (i < 0) return; plants.splice(i, 1); scene.remove(P.bar); if (P.ring) scene.remove(P.ring);
+  if (eaten && P.k === 'tree') { falling.push({ g: P.g, t: 0 }); SFX.timber(); } else scene.remove(P.g);       // ścięta jabłonka przewraca się („Bęc!”)
   if (eaten) { for (let i = 0; i < 18; i++) emit(P.tile.x + rr(-.5, .5), rr(.3, 1.2), P.tile.z + rr(-.5, .5), rr(-2, 2), rr(1, 4), rr(-2, 2), 1, .35, .7, .25, 6); }
   if (P.saw) { P.saw.stop(); P.saw = null; }
 }
 const PLANT_K = 1.45, falling = [];
-function updateFalling(dt) { for (const F of falling.slice()) { F.t += dt; F.g.rotation.z = -Math.min(PI/2, F.t*F.t*3); if (F.t > .9 && !F.hit) { F.hit = 1; SFX.slap(); for (let i = 0; i < 20; i++) emit(F.g.position.x - 2, .3, F.g.position.z, rr(-2, 2), rr(1, 3), rr(-1, 1), .8, .6, .45, .25, 8); }
+function updateFalling(dt) { for (const F of falling.slice()) { F.t += dt; F.g.rotation.z = -Math.min(PI/2, F.t*F.t*3); if (F.t > .9 && !F.hit) { F.hit = 1; for (let i = 0; i < 20; i++) emit(F.g.position.x - 2, .3, F.g.position.z, rr(-2, 2), rr(1, 3), rr(-1, 1), .8, .6, .45, .25, 8); }
   if (F.t > 2) { F.g.position.y -= dt*2; } if (F.t > 2.6) { scene.remove(F.g); falling.splice(falling.indexOf(F), 1); } } }
 const isRipe = P => P.card.crop > 0 && P.grow >= 1;
 function harvest(P, byFarmer) {
@@ -166,7 +171,8 @@ function harvest(P, byFarmer) {
   const pos = toScreen(P.tile.x, 1, P.tile.z), icon = ICONS[P.k];
   removePlant(P, false); SFX.harvest();
   for (let i = 0; i < 16; i++) emit(P.tile.x, 1, P.tile.z, rr(-2, 2), rr(2, 5), rr(-2, 2), .8, 1, .9, .3, 6);
-  const n = P.card.crop; flyTo(icon, pos, $('basketIco'), () => { G.basket += n; hudBasket(); });
+  const n = P.card.crop, b = P.card.beans || 0; flyTo(icon, pos, $('basketIco'), () => { G.basket += n; hudBasket(); });
+  for (let i = 0; i < b; i++) setTimeout(() => flyTo(ICONS.seed, { X: pos.X + i*20, Y: pos.Y - 10 }, $('seedIco'), () => { addSeeds(1); SFX.seed(); }), IS_TEST ? 0 : 250 + i*180);
   G.stats.crops++;
   if (!byFarmer) bubble(n > 1 ? 'Super!' : 'Mniam!', P.tile.x, 1.5, P.tile.z, 'small');
   return true;
@@ -175,6 +181,7 @@ function updatePlants(dt) {
   const rainK = G.rain ? 2 : 1;
   for (const P of plants.slice()) {
     if (P.k === 'lion') { updateLion(P, dt); continue; }
+    if (P.k === 'scarecrow') { updateScarecrow(P, dt); continue; }
     const wasRipe = P.grow >= 1;
     if (P.grow < 1) P.grow = Math.min(1, P.grow + dt*rainK/P.card.grow);
     if (P.k === 'tree' && P.grow >= 1 && P.max < 30) { P.max = 30; P.hp = Math.min(30, P.hp + 20); }
@@ -186,16 +193,42 @@ function updatePlants(dt) {
     if (P.grow >= 1 && !wasRipe && isRipe(P)) { SFX.seed(); for (let i = 0; i < 20; i++) emit(P.tile.x, 1, P.tile.z, rr(-1.5, 1.5), rr(1, 3), rr(-1.5, 1.5), 1, 1, .95, .4, 2);
       if (!G.firsts.has('ripe')) { G.firsts.add('ripe'); lektor('Urosło! Stuknij, żeby zebrać do kosza.'); pointAt({ x: P.tile.x, y: 1.2, z: P.tile.z }, 'ripe'); } }
     if (isRipe(P)) P.ripeT += dt;
-    if (P.k === 'sunflower' && P.grow >= 1 && (P.prodT -= dt) <= 0) { P.prodT = 12; dropSeed(P.tile.x, 2.3, P.tile.z + .2, true); }
+    if (P.k === 'beanstalk' && P.grow >= 1 && (P.prodT -= dt) <= 0) { P.prodT = 11; dropSeed(P.tile.x, 3, P.tile.z + .2, true); }
+    if (P.k === 'onion' && P.grow > .25) onionAura(P, dt);
     if (P.k === 'tree' && P.grow >= 1 && (P.prodT -= dt) <= 0) { P.prodT = 11; dropApple(P.tile.x + rr(-.8, .8), 2.2, P.tile.z + rr(-.3, .8)); }
-    if (P.k === 'onion' && P.grow > .3 && rnd() < dt*5) emit(P.tile.x + rr(-.4, .4), .9, P.tile.z + rr(-.4, .4), rr(-.2, .2), rr(.5, 1), rr(-.2, .2), 1.6, .55, .85, .25, -.1);
-    const show = P.hp < P.max - .05; P.bar.visible = show; if (show) setBar(P.bar, P.hp/P.max, P.tile.x, P.k === 'tree' ? 4.4 : P.k === 'sunflower' ? 3.6 : 2.4, P.tile.z);
+    if (P.k === 'onion' && P.grow > .25 && rnd() < dt*9) { const a = rnd()*6.28, r = rnd()*ONION_R*.8; emit(P.tile.x + Math.cos(a)*r, .4, P.tile.z + Math.sin(a)*r, rr(-.2, .2), rr(.3, .8), rr(-.2, .2), 1.8, .55, .85, .25, -.05); }
+    const show = P.hp < P.max - .05; P.bar.visible = show; if (show) setBar(P.bar, P.hp/P.max, P.tile.x, P.k === 'tree' ? 4.4 : P.k === 'beanstalk' ? 3.8 : 2.4, P.tile.z);
   }
+}
+// ---------- obrońcy: zasięg widać na ziemi (kółko cebuli i stracha, pas lwa)
+const ONION_R = 3.3, SCARE_R = 4.4, LION_R = 9;
+function auraRing(tile, r, col) { const g = new T.Group(), m1 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .5, depthWrite: false }), m2 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .1, depthWrite: false });
+  const a = new T.Mesh(new T.RingGeometry(r - .14, r, 48), m1), b = new T.Mesh(new T.CircleGeometry(r, 48), m2); a.rotation.x = b.rotation.x = -PI/2; a.position.y = .16; b.position.y = .15; a.renderOrder = b.renderOrder = 3;
+  g.add(a, b); g.position.set(tile.x, 0, tile.z); scene.add(g); return g; }
+function laneMark(tile, len, col) { const m = new T.Mesh(new T.PlaneGeometry(len, TS*.8), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .16, depthWrite: false }));
+  m.rotation.x = -PI/2; m.position.set(tile.x + len/2, .16, tile.z); m.renderOrder = 3; scene.add(m); return m; }
+function animalsNear(x, z, r) { return animals.filter(A => A.alive && !A.leaving && A.state !== 'under' && Math.hypot(A.x - x, A.z - z) < r); }
+function onionAura(P, dt) {                        // smród cebuli: wrażliwe uciekają od razu (pierd!), uparte tracą odwagę co 1,5 s
+  for (const A of animalsNear(P.tile.x, P.tile.z, ONION_R)) {
+    if (A.sp.smell) { P.p.fear = 0; stinkPuff(A); flee(A, 'onion'); }
+    else if ((A.stinkT = (A.stinkT || 0) - dt) <= 0) { A.stinkT = 1.5; stinkPuff(A); scare(A, 1, 'onion'); }
+  }
+}
+function stinkPuff(A) { for (let i = 0; i < 16; i++) emit(A.x + rr(-.5, .5), A.sp.h*.6, A.z + rr(-.5, .5), rr(-1.5, 1.5), rr(.5, 2), rr(-1.5, 1.5), 1.2, .5, .85, .2, -.2); }
+function updateScarecrow(P, dt) {                  // strach: co 3 s macha rękami — wszystko w kółku traci 2 odwagi, kury uciekają od razu
+  P.scT -= dt; P.flap = Math.max(0, P.flap - dt);
+  const f = P.flap > 0 ? Math.sin(P.flap*28)*.5 : Math.sin(G.t*1.3)*.04; P.sc.arms.rotation.x = f; P.sc.head.rotation.z = f*.4; P.sc.g.rotation.y = P.flap > 0 ? Math.sin(P.flap*14)*.5 : 0;
+  if (P.scT > 0) return;
+  const near = animalsNear(P.tile.x, P.tile.z, SCARE_R);
+  if (!near.length) { P.scT = .3; return; }
+  P.scT = 3; P.flap = .9; SFX.scare(); bubble('Uuu-uuu!', P.tile.x, 3.2, P.tile.z, '');
+  for (let i = 0; i < 20; i++) emit(P.tile.x + rr(-.8, .8), 2, P.tile.z, rr(-3, 3), rr(1, 3), rr(-2, 2), 1, 1, .85, .3, 6);
+  near.forEach(A => A.sp.bird ? flee(A, 'scarecrow') : scare(A, 2, 'scarecrow'));
 }
 function updateLion(P, dt) {
   ZOO.anim(P.a, dt); P.roarT -= dt;
   if (P.roarT <= 0) {
-    const prey = animals.filter(A => A.alive && !A.leaving && A.row === P.tile.r && A.x > P.tile.x - .5 && A.x - P.tile.x < 8 && (A.state !== 'under'));
+    const prey = animals.filter(A => A.alive && !A.leaving && A.row === P.tile.r && A.x > P.tile.x - .5 && A.x - P.tile.x < LION_R && (A.state !== 'under'));
     if (prey.length) { P.roarT = 4.5; ZOO.pose(P.a, 'rear'); P.a.jumpT = 0; SFX.roar(); bubble('RAAAU!', P.tile.x, 2.4, P.tile.z, 'big');
       setTimeout(() => P.a && ZOO.pose(P.a, null), 1100);
       prey.forEach(A => scare(A, A.sp.boss ? 2 : 99, 'lion')); }
@@ -206,7 +239,7 @@ function updateLion(P, dt) {
 /* =====================================================================
    ZIARENKA I JABŁKA: spadają z nieba / ze słonecznika / z jabłonki — stuknij, żeby zebrać (same się zbiorą po chwili)
    ===================================================================== */
-const seedTpl = PLANTS.seed(), appleTpl = PLANTS.apple();
+const seedTpl = PLANTS.bean(), appleTpl = PLANTS.apple();
 const glowTex = tex(64, 64, g => { const r = g.createRadialGradient(32, 32, 2, 32, 32, 31); r.addColorStop(0, 'rgba(255,250,190,1)'); r.addColorStop(.5, 'rgba(255,230,120,.5)'); r.addColorStop(1, 'rgba(255,230,120,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
 function makeDrop(kind, x, y, z, vy) {
   const g = new T.Group(), m = (kind === 'seed' ? seedTpl : appleTpl).clone(); g.add(m); m.scale.setScalar(kind === 'seed' ? 2.2 : 1.6);
@@ -214,7 +247,7 @@ function makeDrop(kind, x, y, z, vy) {
   g.position.set(x, y, z); scene.add(g); const D = { kind, g, x, y, z, vy: vy || 0, vx: 0, vz: 0, t: 0, landed: false }; drops.push(D); return D;
 }
 function dropSeed(x, y, z, pop) { const D = makeDrop('seed', x, y, z, pop ? 4 : -1.2); if (pop) { D.vx = rr(-1, 1); D.vz = rr(.4, 1.4); } else D.sky = 1;
-  if (!G.firsts.has('seed') && !pop) { G.firsts.add('seed'); lektor('Złap ziarenko! Stuknij je.'); } return D; }
+  if (!G.firsts.has('seed') && !pop) { G.firsts.add('seed'); lektor('Złap magiczną fasolkę! Stuknij ją.'); } return D; }
 function dropApple(x, y, z) { const D = makeDrop('apple', x, y, z, 1.5); D.vx = rr(-.5, .5); D.vz = rr(.2, .8); }
 function updateDrops(dt) {
   for (const D of drops.slice()) {
@@ -251,17 +284,12 @@ function spawn(k, row) {
   return A;
 }
 function edible(A, P) {
-  if (!P || P.k === 'lion') return false; const sp = A.sp;
+  if (!P || P.k === 'lion' || P.k === 'scarecrow') return false; const sp = A.sp;
   if (P.k === 'thorns') return !!sp.thorns;
   if (P.k === 'tree' && P.grow >= 1) return !!sp.trees;
   if (sp.young && P.grow > .6) return false;
   if ((P.k === 'onion' || P.k === 'garlic') && sp.smell) return false;
   return true;
-}
-function smellsOnion(A) {             // cebula w tym samym rzędzie tuż przed pyskiem (do 1,6 kratki)
-  if (!A.sp.smell || A.dir > 0) return null; const mouth = A.x - A.len*.45;
-  for (const t of tiles) if (t.r === A.row && t.plant && (t.plant.k === 'onion' || t.plant.k === 'garlic') && t.plant.grow > .25) { const d = mouth - t.x; if (d > -.6 && d < TS*1.6) return t.plant; }
-  return null;
 }
 function pickMoleTarget(A) {
   const ok = tiles.filter(t => t.plant && edible(A, t.plant) && !tiles.some(o => o.plant && (o.plant.k === 'onion' || o.plant.k === 'garlic') && o.plant.grow > .25 && Math.abs(o.r - t.r) <= 1 && Math.abs(o.c - t.c) <= 1));
@@ -270,18 +298,18 @@ function pickMoleTarget(A) {
 }
 function scare(A, power, by) {
   if (!A.alive || A.leaving) return;
-  A.brave -= power; A.stun = .55; ZOO.pose(A.a, 'hurt'); A.a.jumpT = 0;
+  A.brave -= power; A.stun = .8; ZOO.pose(A.a, 'hurt'); A.a.jumpT = 0;
   if (A.state === 'eat' && A.saw) { A.saw.stop(); A.saw = null; }
   if (A.k === 'beaver') { SFX.slap(); for (let i = 0; i < 10; i++) emit(A.x, .3, A.z, rr(-2, 2), rr(1, 3), rr(-2, 2), .6, .6, .45, .25, 8); }
   if (A.brave <= 0) flee(A, by);
-  else { A.x += 1.2; A.state = A.sp.under ? 'up' : 'walk'; bubble(A.brave === 1 ? 'Ojej!' : 'Auć!', A.x, A.sp.h + .6, A.z, 'small'); }
+  else { if (!A.sp.under) A.x = Math.min(A.x + 1.6, SPAWN_X); A.state = A.sp.under ? 'up' : 'walk'; bubble(by === 'onion' ? 'Fuj!' : A.brave <= 1 ? 'Ojej!' : 'Auć!', A.x, A.sp.h + .6, A.z, 'small'); if (by === 'onion') SFX.fart(.4); }
 }
 function flee(A, by) {
   A.leaving = true; A.dir = 1; A.state = A.sp.under ? 'dive' : 'flee'; G.stats.fled++; A.t = 0; A.stun = .5; ZOO.pose(A.a, 'hurt');
   if (A.saw) { A.saw.stop(); A.saw = null; }
   if (A.target && A.target.plant) A.target.plant.biting = false;
-  bubble(by === 'onion' ? 'Fuj!' : by === 'lion' ? 'Ratunku!' : by === 'thorns' ? 'Auuuć!' : 'Kysz!', A.x, A.sp.h + .7, A.z, by === 'onion' ? 'small' : '');
-  if (by === 'onion') SFX.yuck(); else if (by === 'thorns') SFX.ouch(); else SFX.call(A.k);
+  bubble(by === 'onion' ? 'Fuj!' : by === 'lion' ? 'Ratunku!' : by === 'thorns' ? 'Auuuć!' : by === 'scarecrow' ? 'Aaa!' : 'Kysz!', A.x, A.sp.h + .7, A.z, '');
+  if (by === 'onion') SFX.fart(); else if (by === 'thorns') SFX.ouch(); else SFX.call(A.k);
   if (!G.firsts.has('flee')) { G.firsts.add('flee'); clearPoint('rabbit'); }
   if (farmer && farmer.chase === A) farmer.chase = null;
 }
@@ -311,9 +339,7 @@ function updateAnimals(dt) {
     else if (A.state === 'walk') {
       a.moving = true; A.x -= sp.sp*dt*(1 - A.fat*.12);
       const mouthX = A.x - A.len*.45, c = colOf(mouthX), T0 = tileAt(c, A.row), P = T0 && T0.plant;
-      const on = smellsOnion(A);
-      if (on) { on.p.fear = 1; flee(A, 'onion'); }
-      else if (P && P.k !== 'lion' && Math.abs(mouthX - T0.x) < .7) {
+      if (P && P.k !== 'lion' && P.k !== 'scarecrow' && Math.abs(mouthX - T0.x) < .7) {
         if (edible(A, P)) { A.state = 'eat'; A.eatP = P; A.target = T0; if (sp.saw) { A.saw = SFX.chainsaw(); } bubble(sp.bub, A.x, sp.h + .6, A.z, 'small'); }
         else if (P.k === 'thorns') { if (sp.jump) { A.state = 'jump'; A.jumpT = 0; A.jx = A.x; } else { A.state = 'blocked'; A.ouchT = .3; } }
       } else if (P && P.k === 'lion' && Math.abs(mouthX - T0.x) < .9) { flee(A, 'lion'); }
@@ -325,10 +351,10 @@ function updateAnimals(dt) {
     } else if (A.state === 'blocked') {
       A.ouchT -= dt; const T0 = tileAt(colOf(A.x - A.len*.45), A.row);
       if (!T0 || !T0.plant || T0.plant.k !== 'thorns') A.state = 'walk';
-      else if (A.ouchT <= 0) { A.ouchT = 1.3; SFX.ouch(); A.brave -= .5; A.x += .4; ZOO.pose(a, 'hurt'); A.stun = .4; bubble('Auć!', A.x, sp.h + .5, A.z, 'small'); if (A.brave <= 0) flee(A, 'thorns'); }
+      else if (A.ouchT <= 0) { A.ouchT = 1; SFX.ouch(); A.brave -= 1; A.x += .5; ZOO.pose(a, 'hurt'); A.stun = .4; bubble('Auć!', A.x, sp.h + .5, A.z, 'small');
+        for (let i = 0; i < 8; i++) emit(A.x - .4, sp.h*.4, A.z, rr(-1, 1), rr(1, 2), rr(-1, 1), .5, 1, .3, .3, 6); if (A.brave <= 0) flee(A, 'thorns'); }
     } else if (A.state === 'eat') {
       const P = A.eatP; if (!P || !plants.includes(P)) { A.state = 'walk'; stopSaw(A); }
-      else if (smellsOnion(A)) flee(A, 'onion');
       else eatTick(A, P, dt);
     } else if (A.state === 'flee' || A.state === 'home') {
       a.moving = true; A.x += sp.sp*(A.state === 'flee' ? 2.2 : .8)*dt;
@@ -375,7 +401,7 @@ function updateFarmer(dt) {
   const dx = tx - F.x, dz = tz - F.z, d = Math.hypot(dx, dz);
   a.moving = d > near;
   if (a.moving) { const s = Math.min(d, 2.3*dt); F.x += dx/d*s; F.z += dz/d*s; F.w.rotation.y = Math.atan2(-dz, dx); }
-  else if (F.chase && F.hitT <= 0) { F.hitT = 1.7; ZOO.pose(a, 'swipe'); setTimeout(() => ZOO.pose(a, null), 450); SFX.poke(); bubble('A kysz!', F.x, 2.6, F.z, 'small'); F.w.rotation.y = 0; scare(F.chase, 1, 'farmer'); }
+  else if (F.chase && F.hitT <= 0) { F.hitT = 2.2; ZOO.pose(a, 'swipe'); setTimeout(() => ZOO.pose(a, null), 450); SFX.poke(); bubble('A kysz!', F.x, 2.6, F.z, 'small'); F.w.rotation.y = 0; scare(F.chase, 1, 'farmer'); }
   else if (F.job) { ZOO.pose(a, 'crouch'); setTimeout(() => ZOO.pose(a, null), 500); harvest(F.job, true); F.job = null; }
   else if (!F.chase) F.w.rotation.y += (-.4 - F.w.rotation.y)*Math.min(1, dt*3);
   F.w.position.set(F.x, .12, F.z); ZOO.anim(a, dt);
@@ -386,7 +412,7 @@ function updateFarmer(dt) {
    ===================================================================== */
 const HAND = (() => { const h = ZOO.skyHand(); h.g.scale.setScalar(1.6); h.g.visible = false; scene.add(h.g); return h; })();
 const strikes = [];                       // każde stuknięcie trafia (szybkie stuknięcia jedno po drugim też); widać rękę ostatniego
-function poke(x, y, z, onHit) { SFX.whoosh(); strikes.push({ t: 0, to: { x, y, z }, hit: onHit, done: false }); }
+function poke(x, y, z, onHit) { const L = strikes[strikes.length - 1]; if (L && L.t < .3) return false; SFX.whoosh(); strikes.push({ t: 0, to: { x, y, z }, hit: onHit, done: false }); return true; }
 function updateHand(dt) {
   for (const S of strikes) { S.t += dt; if (!S.done && S.t >= .22) { S.done = true; S.hit && S.hit(); } }
   while (strikes.length && strikes[0].t > .85) strikes.shift();
@@ -432,7 +458,7 @@ function onTap(X, Y) {
   }
   if (G.sel && t.plant) { setSel(null); }
 }
-function noSeeds() { const e = $('seeds'); e.classList.remove('no'); void e.offsetWidth; e.classList.add('no'); SFX.ouch(); if (!G.firsts.has('poor')) { G.firsts.add('poor'); lektor('Brakuje ziarenek. Zbieraj ziarenka ze słoneczników!'); } }
+function noSeeds() { const e = $('seeds'); e.classList.remove('no'); void e.offsetWidth; e.classList.add('no'); SFX.ouch(); if (!G.firsts.has('poor')) { G.firsts.add('poor'); lektor('Brakuje fasolek. Posadź magiczną fasolę i zbieraj plony!'); } }
 $('c').addEventListener('pointerdown', e => { e.preventDefault(); onTap(e.clientX, e.clientY); });
 // przeciągnij kartę na grządkę (jak stuknięcie karty i grządki)
 let dragK = null;
@@ -444,10 +470,11 @@ addEventListener('pointerup', e => { if (dragK && e.target === $('c') && G.sel =
 const ICONS = {};
 function makeIcons() {
   for (const c of CARDS) {
+    if (c.k === 'scarecrow') { ICONS.scarecrow = ikonaModelu(ZOO.scarecrow().g, { ry: .2 }); continue; }
     if (c.k === 'lion') { const a = ZOO.MK.lion(); ZOO.pose(a, 'sit'); ZOO.anim(a, 1); ZOO.anim(a, 1); ICONS.lion = ikonaModelu(a.root, { ry: -.5 }); continue; }
     const p = PLANTS.make(c.k); PLANTS.set(p, 1, 1); ICONS[c.k] = ikonaModelu(p.g, { ry: .3, rx: .15 });
   }
-  ICONS.seed = ikonaModelu(PLANTS.seed(), { rz: -.2 }); ICONS.apple = ikonaModelu(PLANTS.apple(), {}); ICONS.basket = ikonaModelu(PLANTS.basket(true), { rx: .35 });
+  ICONS.seed = ikonaModelu(PLANTS.bean(), {}); ICONS.apple = ikonaModelu(PLANTS.apple(), {}); ICONS.basket = ikonaModelu(PLANTS.basket(true), { rx: .35 });
   for (const k of ['farmer', 'rabbit', 'cow', 'beaver']) { const a = ZOO.MK[k](); if (k === 'farmer') ZOO.pose(a, 'cheer'); ZOO.anim(a, 1); ZOO.anim(a, 1); ICONS[k] = ikonaModelu(a.root, { ry: k === 'farmer' ? -1.2 : -.6 }); }
 }
 makeIcons();
@@ -464,8 +491,15 @@ $('bAgain').innerHTML = SVG.again; $('bRestart').innerHTML = SVG.againD; $('bHom
 function sndIcons() { $('bSnd').innerHTML = $('bSnd2').innerHTML = G.muted ? SVG_IKONY.cisza : SVG_IKONY.glos; }
 sndIcons();
 
+// grupy kart: fasolki (fiolet), plony do kosza (zieleń), obrona (czerwień) — każda z własnym znaczkiem
+const CAT_BADGE = {
+  bean: '<svg viewBox="0 0 24 24"><path d="M5 12c0-5 6-7 9-4 2 2 6 0 6 4 0 5-6 7-9 5-3-2-6 1-6-5z" fill="#a63ad0" stroke="#3b2a17" stroke-width="1.6"/><circle cx="9" cy="10" r="1.3" fill="#f4e6ff"/><circle cx="15" cy="13" r="1.1" fill="#f4e6ff"/></svg>',
+  crop: '<svg viewBox="0 0 24 24"><path d="M3 10h18l-2.5 10h-13z" fill="#d9a45a" stroke="#3b2a17" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 10a5 5 0 0 1 10 0" fill="none" stroke="#3b2a17" stroke-width="1.8"/><circle cx="9" cy="9" r="2.4" fill="#ff8a1e" stroke="#3b2a17" stroke-width="1.2"/><circle cx="14.5" cy="8.6" r="2.4" fill="#e2352c" stroke="#3b2a17" stroke-width="1.2"/></svg>',
+  guard: '<svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z" fill="#e8574a" stroke="#3b2a17" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6v12M7 11h10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+};
 function buildCards() {
-  $('cards').innerHTML = CARDS.map(c => `<button class="card" data-k="${c.k}" aria-label="${c.name}" hidden><img src="${ICONS[c.k]}" alt=""><span class="cost">${'<i></i>'.repeat(c.cost)}</span><span class="cd"></span></button>`).join('');
+  $('cards').innerHTML = ['bean', 'crop', 'guard'].map(cat => `<div class="grp g-${cat}" data-cat="${cat}"><span class="badge">${CAT_BADGE[cat]}</span>` +
+    CARDS.filter(c => c.cat === cat).map(c => `<button class="card c-${cat}" data-k="${c.k}" aria-label="${c.name}" hidden><img src="${ICONS[c.k]}" alt=""><span class="cost">${'<i></i>'.repeat(c.cost)}</span><span class="cd"></span></button>`).join('') + '</div>').join('');
   $('cards').querySelectorAll('.card').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); critAudioInit(); const k = b.dataset.k;
     if (G.seeds < CARD[k].cost) { noSeeds(); return; }
     setSel(G.sel === k ? null : k); dragK = G.sel; tutorialSelected(k); }));
@@ -475,12 +509,12 @@ function setSel(k) { G.sel = k; $('cards').querySelectorAll('.card').forEach(b =
 function hudCards(dt) {
   $('cards').querySelectorAll('.card').forEach(b => { const k = b.dataset.k, c = CARD[k]; b.hidden = !G.unlocked.has(k);
     if (G.cd[k] > 0) G.cd[k] = Math.max(0, G.cd[k] - dt); b.style.setProperty('--cd', ((G.cd[k] || 0)/c.cd).toFixed(3)); b.classList.toggle('poor', G.seeds < c.cost); });
+  $('cards').querySelectorAll('.grp').forEach(g => { g.hidden = !CARDS.some(c => c.cat === g.dataset.cat && G.unlocked.has(c.k)); });
 }
 function unlock(k) { G.unlocked.add(k); const b = $('cards').querySelector(`[data-k="${k}"]`); if (b) { b.hidden = false; b.classList.add('new'); setTimeout(() => b.classList.remove('new'), 2600); } SFX.harvest(); }
 function addSeeds(n, from) { G.seeds = Math.max(0, G.seeds + n); $('seedN').textContent = G.seeds; if (n > 0) { const e = $('seeds'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); } }
 function hudBasket() { $('basketN').textContent = G.basket; const e = $('basket'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); $('stars').innerHTML = STAR_AT.map(n => STAR(G.basket >= n)).join(''); }
-function hudSun() { const k = clamp(G.t/DAY_LEN, 0, 1), a = PI*(1 - k), x = 12 + Math.cos(a)*9, y = 15 - Math.sin(a)*9;
-  $('sun').innerHTML = `<svg viewBox="0 0 24 24"><path d="M3 15a9 9 0 0 1 18 0" fill="none" stroke="#9a6630" stroke-width="1.4" stroke-dasharray="2 2"/><rect x="2" y="15" width="20" height="2.5" rx="1" fill="#4fae3a"/><circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3.2" fill="${k > .85 ? '#ff7a50' : '#ffd23f'}" stroke="#3b2a17" stroke-width="1.2"/></svg>`; }
+function hudSun() { const k = clamp(G.t/DAY_LEN, 0, 1); $('dayFill').style.width = (k*100).toFixed(1) + '%'; $('daySun').style.left = (k*100).toFixed(1) + '%'; $('daySun').classList.toggle('late', k > .85); }
 function bubble(txt, x, y, z, cls) { const s = toScreen(x, y, z); if (s.Y < 80) s.Y = 80; komiksDymek($('fx'), txt, s.X, s.Y, cls || ''); }
 function flyTo(src, from, toEl, done) {
   if (IS_TEST) { done && done(); return; }
@@ -500,9 +534,9 @@ function placeFinger() { if (!finger) return; const t = finger.target; let X, Y;
   else { const s = toScreen(t.x, t.y, t.z); X = s.X; Y = s.Y; }
   finger.el.style.left = X + 'px'; finger.el.style.top = Y + 'px'; }
 // samouczek: słonecznik → grządka → marchewka → grządka
-function tutorialSelected(k) { if (G.tut === 1 && k === 'sunflower') { G.tut = 2; const t = tileAt(1, 2); pointAt({ x: t.x, y: .2, z: t.z }, 'tut'); }
+function tutorialSelected(k) { if (G.tut === 1 && k === 'beanstalk') { G.tut = 2; const t = tileAt(1, 2); pointAt({ x: t.x, y: .2, z: t.z }, 'tut'); }
   else if (G.tut === 3 && k === 'carrot') { G.tut = 4; const t = tileAt(3, 2); pointAt({ x: t.x, y: .2, z: t.z }, 'tut'); } }
-function tutorialPlanted(k) { if (G.tut <= 2 && k === 'sunflower') { G.tut = 3; lektor('Brawo! Teraz posadź marchewkę.', { pilne: 1 }); pointAt(cardEl('carrot'), 'tut'); }
+function tutorialPlanted(k) { if (G.tut <= 2 && k === 'beanstalk') { G.tut = 3; lektor('Brawo! Teraz posadź marchewkę.', { pilne: 1 }); pointAt(cardEl('carrot'), 'tut'); }
   else if (G.tut >= 3 && G.tut <= 4 && k === 'carrot') { G.tut = 5; clearPoint('tut'); lektor('Super! Marchewka rośnie. Uważaj na głodne zwierzaki!', { pilne: 1 }); } }
 const cardEl = k => $('cards').querySelector(`[data-k="${k}"]`);
 
@@ -519,7 +553,7 @@ function runScript() {
     if (e.horde) { SFX.drum(); banner('Horda z lasu!'); }
     if (e.boss) { banner('Bobry!'); }
     if (e.say) lektor(e.say, { pilne: !!e.spawn || !!e.horde || !!e.boss });
-    if (e.tut) { G.tut = 1; pointAt(cardEl('sunflower'), 'tut'); }
+    if (e.tut) { G.tut = 1; pointAt(cardEl('beanstalk'), 'tut'); }
   }
 }
 function updateSky() { const k = G.t/DAY_LEN; setWeather(G.rain ? 'rain' : k < .12 ? 'dawn' : k < .55 ? 'sun' : k < .85 ? 'gold' : 'dusk'); }
@@ -573,7 +607,7 @@ function startGame() {
   critAudioInit(); goFS();
   // sprzątanie poprzedniego dnia
   animals.slice().forEach(kill); plants.slice().forEach(P => removePlant(P)); drops.slice().forEach(D => { scene.remove(D.g); }); drops.length = 0;
-  Object.assign(G, { t: 0, run: true, paused: false, ended: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['sunflower', 'carrot']), script: 0, queue: [], rain: false, tut: 0, firsts: new Set(), stats: { eaten: 0, crops: 0, fled: 0, spawned: 0 } });
+  Object.assign(G, { t: 0, run: true, paused: false, ended: false, seeds: 4, basket: 0, sel: null, cd: {}, unlocked: new Set(['beanstalk', 'carrot']), script: 0, queue: [], rain: false, tut: 0, firsts: new Set(), stats: { eaten: 0, crops: 0, fled: 0, spawned: 0 } });
   farmer.x = PORCH.x; farmer.z = PORCH.z; ZOO.pose(farmer.a, null); skySeedT = 6;
   $('menu').hidden = $('end').hidden = $('pause').hidden = true; $('hud').hidden = false; buildCards(); hudBasket(); addSeeds(0); hudSun();
   (Q.get('zw') || '').split(',').filter(Boolean).forEach((k, i) => G.queue.push({ t: 2 + i*1.5, k }));

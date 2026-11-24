@@ -1,10 +1,11 @@
 // Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS.
-// p = PLANTS.make(rodzaj) — 'carrot' marchewka, 'cabbage' kapusta, 'sunflower' słonecznik (z buzią), 'onion' cebula, 'garlic' czosnek,
+// p = PLANTS.make(rodzaj) — 'beanstalk' magiczna fasola (pnącze ze strąkami i świecącym kwiatem), 'carrot' marchewka, 'cabbage' kapusta,
+//   'sunflower' słonecznik (z buzią), 'onion' cebula, 'garlic' czosnek,
 //   'thorns' kolczasty krzak jeżyn, 'tree' jabłonka (sadzonka → drzewo z jabłkami). p.g → Group (środek na ziemi, przód +z).
 // PLANTS.set(p, wzrost 0..1, życie 0..1) — wzrost: kiełek → dojrzała; życie: gryziona traci liście, brązowieje, oklapuje, owoc maleje.
 // PLANTS.anim(p, t, dt) — kołysanie, dojrzała podskakuje (p.ripe), p.fear 0..1 — drży ze strachu.
 // Krajobraz (wspólne materiały, bez stanu): PLANTS.pine(), PLANTS.leafy(), PLANTS.bush() → Group.
-// Drobiazgi: PLANTS.seed() — ziarenko słonecznika (do zbierania), PLANTS.apple() — jabłko, PLANTS.basket(pełny) — wiklinowy kosz.
+// Drobiazgi: PLANTS.bean() — magiczna fasolka (fioletowa w kropki), PLANTS.seed() — ziarenko słonecznika, PLANTS.apple() — jabłko, PLANTS.basket(pełny) — wiklinowy kosz.
 // wymaga: models/animals.js (ZOO: pomocniki brył)
 'use strict';
 const PLANTS = (() => {
@@ -75,6 +76,20 @@ const BUILD = {
       ball(ap, c, 0, 0, 0, .13); mesh(cg(.01, .012, .08, 4), apL, c, 0, .14, 0); }
   },
 };
+BUILD.beanstalk = p => {
+  const vn = own(0x47b03e), lf = own(0x6fd65a), pod = own(0x8fd84a), fl = own(0xd34ad8), gold = M(0xffd23f, { roughness: .3, emissive: 0x6a4a00 }), spark = new T.MeshBasicMaterial({ color: 0xfff3a0 });
+  p.mats.push([vn, 1], [lf, 1], [pod, .6], [fl, .4]);
+  const pts = []; for (let i = 0; i <= 40; i++) { const k = i/40, a = k*PI*5; pts.push(new T.Vector3(Math.cos(a)*.18*(1 - k*.4), k*2.1, Math.sin(a)*.18*(1 - k*.4))); }
+  const curve = new T.CatmullRomCurve3(pts); mesh(new T.TubeGeometry(curve, 60, .085, 7, false), vn, p.g);
+  mesh(cg(.03, .05, .3, 6), vn, p.g, 0, .1, 0);
+  const lg = flat('pl_bnL', [[0, 0], [.14, .1], [.24, .02], [.3, -.1], [.2, -.14], [.08, -.1]], .025, .01);
+  for (let i = 0; i < 9; i++) { const k = .12 + i*.095, v = curve.getPoint(k), l = leafG(p.g, v.x, v.y, v.z, i*2.4, -.3); p.leaves.push(l); mesh(lg, lf, l).scale.setScalar(2.3 - k*.8); }
+  const fr = grp(p.g, 0, 0, 0); p.fruit.push(fr);
+  for (let i = 0; i < 5; i++) { const k = .3 + i*.12, v = curve.getPoint(k), d = grp(fr, v.x*1.6, v.y - .1, v.z*1.6); d.rotation.z = (i % 2 ? .3 : -.3); ball(pod, d, 0, -.16, 0, .08, .28, .07); for (let j = 0; j < 3; j++) ball(M(0xa63ad0, { roughness: .3 }), d, .045, -.06 - j*.1, 0, .05); }
+  const top = curve.getPoint(1), f = grp(fr, top.x, top.y + .1, top.z);
+  for (let i = 0; i < 6; i++) { const q = grp(f, 0, 0, 0); q.rotation.y = i*PI/3; const pe = ball(fl, q, .16, 0, 0, .16, .05, .09); pe.rotation.z = .35; }
+  ball(gold, f, 0, .04, 0, .08); for (let i = 0; i < 7; i++) { const a = i*.9, y = .4 + i*.24; ball(spark, fr, Math.cos(a)*.45, y, Math.sin(a)*.45, .035).userData.spark = 1; }
+};
 BUILD.garlic = p => BUILD.onion(p, true);
 
 function make(kind) {
@@ -103,6 +118,7 @@ function anim(p, t, dt) {
   p.g.rotation.z = shake*.5;
   const hop = p.ripe ? Math.abs(Math.sin(p.t*4))*.12 : 0; p.g.position.y = hop*(p.kind === 'tree' ? 0 : 1);
   if (p.face) p.face.rotation.y = Math.sin(p.t*.7)*.2;
+  if (p.kind === 'beanstalk') p.g.rotation.y = Math.sin(p.t*.5)*.25;
 }
 
 // ---------- krajobraz: sosna, drzewo liściaste, krzak (wspólne materiały)
@@ -118,6 +134,9 @@ function bush() { const g = new T.Group(), l1 = M(0x4c9a3a), l2 = M(0x5fb048);
 
 function seed() { const g = new T.Group(), s = grp(g, 0, 0, 0); s.rotation.z = .5; ball(M(0x3a2c26, { roughness: .35 }), s, 0, 0, 0, .16, .3, .1);
   for (const x of [-.06, .06]) ball(M(0xf4efe0, { roughness: .4 }), s, x, 0, .07, .025, .24, .04); ball(M(0xfff3a8), s, -.05, .12, .08, .03, .06, .02); return g; }
+function bean() { const g = new T.Group(), s = grp(g, 0, 0, 0), pu = M(0xa63ad0, { roughness: .25 }), wh = M(0xf4e6ff, { roughness: .3 }); s.rotation.z = .2;
+  ball(pu, s, -.15, .04, 0, .17, .13, .13).rotation.z = .45; ball(pu, s, .15, .04, 0, .17, .13, .13).rotation.z = -.45; ball(pu, s, 0, -.02, 0, .16, .13, .13);
+  [[-.2, .07], [.18, .06], [0, -.04], [-.08, .02], [.08, -.02]].forEach(([x, y]) => ball(wh, s, x, y, .12, .028, .028, .015)); ball(M(0xffffff, { roughness: .1 }), s, -.06, .1, .11, .05, .03, .02); return g; }
 function apple() { const g = new T.Group(); ball(M(0xe2352c, { roughness: .35 }), g, 0, 0, 0, .3, .28, .3); mesh(cg(.02, .025, .16, 5), M(0x6a3a1a), g, 0, .3, 0);
   const l = ball(M(0x58a83a), g, .1, .34, 0, .12, .03, .06); l.rotation.z = -.4; ball(M(0xffffff, { roughness: .2 }), g, -.12, .12, .2, .06, .08, .04); return g; }
 function basket(full) { const g = new T.Group(), wk = M(0xc8904a, { roughness: .9 }), wd = M(0x9a6630, { roughness: .9 });
@@ -126,5 +145,5 @@ function basket(full) { const g = new T.Group(), wk = M(0xc8904a, { roughness: .
   const h = mesh(new T.TorusGeometry(.55, .05, 6, 20, PI), wd, g, 0, .55, 0);
   if (full) { [[0xff8a1e, -.2, .1], [0xbfe58a, .2, -.05], [0xe2352c, 0, .25], [0xd9864a, .25, .22], [0xff8a1e, -.25, -.22]].forEach(([c, x, z]) => ball(M(c), g, x, .58, z, .2)); }
   return g; }
-return { make, set, anim, pine, leafy, bush, seed, apple, basket, KINDS: Object.keys(BUILD) };
+return { make, set, anim, pine, leafy, bush, seed, bean, apple, basket, KINDS: Object.keys(BUILD) };
 })();

@@ -31,7 +31,14 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
 #seeds.no{animation:shake .4s}
 @keyframes bump{50%{transform:scale(1.18)}}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-#cards{display:flex;gap:6px;padding:4px;flex:1 1 auto;min-width:0}
+#cards{display:flex;gap:7px;padding:2px;flex:1 1 auto;min-width:0;align-items:flex-start}
+.grp{position:relative;display:flex;gap:4px;padding:3px 4px 4px 4px;border-radius:16px;min-width:0}
+.grp .badge{position:absolute;left:-6px;top:-7px;width:24px;height:24px;z-index:2;filter:drop-shadow(0 2px 0 rgba(0,0,0,.25))}
+.grp .badge svg{width:100%;height:100%}
+.g-bean{background:linear-gradient(#d9a8f0,#a663d0);box-shadow:0 3px 0 #6a2a90}
+.g-crop{background:linear-gradient(#a8e08a,#5fae3a);box-shadow:0 3px 0 #3a7a22}
+.g-guard{background:linear-gradient(#ffb09a,#e0574a);box-shadow:0 3px 0 #9c2a18}
+.c-bean{background:linear-gradient(#fff,#f3e6fb)}.c-crop{background:linear-gradient(#fff,#eaf7df)}.c-guard{background:linear-gradient(#fff,#fde6df)}
 .card{position:relative;flex:0 1 auto;min-width:44px;width:clamp(56px,12.5vh,76px);height:clamp(62px,14.5vh,88px);border-radius:14px;background:linear-gradient(#fffaf0,#f3e2bf);
   box-shadow:0 4px 0 #b98a4a,0 6px 10px rgba(60,35,10,.3);border:2px solid #fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;transition:transform .1s}
 .card img{width:92%;height:auto;margin-top:-2px;pointer-events:none}
@@ -50,8 +57,10 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
 #stars{position:absolute;left:4px;right:4px;bottom:-15px;display:flex;justify-content:center;gap:2px}
 #stars svg{width:22px;height:22px}
 #basket.bump{animation:bump .35s}
-#sun{width:clamp(56px,13vh,76px);height:clamp(56px,13vh,76px);position:relative;padding:0}
-#sun svg{position:absolute;inset:0;width:100%;height:100%}
+#day{position:absolute;left:calc(14% + var(--sl));right:calc(14% + var(--sr));bottom:calc(6px + var(--sb));height:8px;border-radius:5px;background:rgba(40,25,10,.35);pointer-events:none}
+#dayFill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,#ffc8b0,#ffd23f 40%,#ffa53a 75%,#ff7a50)}
+#daySun{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff7b0,#ffd23f 60%,#f0a020);border:2px solid #3b2a17;box-shadow:0 0 10px #ffe680}
+#daySun.late{background:radial-gradient(circle at 40% 35%,#ffd0a0,#ff7a50 60%,#c04020)}
 #bPause{width:clamp(48px,11vh,60px);height:clamp(48px,11vh,60px);display:grid;place-items:center}
 #fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .fly{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;transition:transform .7s cubic-bezier(.5,-0.4,.7,1),opacity .7s;pointer-events:none;will-change:transform}
@@ -94,10 +103,10 @@ button:focus-visible{outline:4px solid #fff36a;outline-offset:2px}
     <div id="cards"></div>
     <div id="right">
       <div id="basket" class="plank" aria-label="Kosz"><img id="basketIco" alt=""><b id="basketN">0</b><div id="stars"></div></div>
-      <div id="sun" class="plank" aria-label="Pora dnia"></div>
       <button id="bPause" class="plank" aria-label="Pauza"><svg viewBox="0 0 24 24" width="30" height="30"><rect x="5" y="4" width="5" height="16" rx="1.5" fill="#fff" stroke="#3b2a17" stroke-width="1.6"/><rect x="14" y="4" width="5" height="16" rx="1.5" fill="#fff" stroke="#3b2a17" stroke-width="1.6"/></svg></button>
     </div>
   </div>
+  <div id="day" aria-label="Pora dnia"><i id="dayFill"></i><b id="daySun"></b></div>
   <div id="fx"></div>
 </div>
 <div id="menu" class="scr">

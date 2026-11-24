@@ -2,6 +2,7 @@
 // koszula w kratę, ogrodniczki, gumiaki. Chodzi jak zwierzaki ZOO (a.moving), ręce = przednie „nogi” (pozy ZOO: 'cheer' — ręce w górę).
 // a.hand — prawa dłoń (tu można włożyć narzędzie: ZOO.pitchfork()); głowa w +x, stopy na y = 0.
 // ZOO.pitchfork() → Group: widły, czubki zębów w (0, 0, 0), trzonek w górę (+y).
+// ZOO.scarecrow() → { g, arms, head }: strach na wróble — kij, koszula w kratę na poprzeczce, głowa z worka z uśmiechem, kapelusz, słoma.
 // ZOO.skyHand() → { g, fork, fingers }: wielka ręka dziadka z chmury (rękaw w kratę) trzyma widły zębami w dół; czubki w (0, 0, 0).
 // wymaga: models/animals.js (ZOO i jego budulec)
 'use strict';
@@ -69,6 +70,24 @@ function skyHand() {
   ball(cloudM, g, -.15, 3.45, 0, .7, .4, .7);
   return { g, fork, fingers };
 }
+function scarecrow() {
+  plaid || mkFarmer();
+  const g = new THREE.Group(), wood = M(0x9a6a3a, { roughness: .9 }), sack = M(0xd8b878, { roughness: 1 }), hay = M(0xf0cf5a, { roughness: .9 }), den = M(0x3f6db0, { roughness: .85 });
+  mesh(cg(.06, .07, 2.5, 8), wood, g, 0, 1.25, 0);
+  const arms = grp(g, 0, 1.75, 0); mesh(cg(.05, .05, 1.9, 8), wood, arms, 0, 0, 0).rotation.z = PI/2;
+  mesh(cg(.13, .14, 1.5, 10), plaid, arms, 0, -.02, 0).rotation.z = PI/2;
+  for (const s of [1, -1]) for (let i = 0; i < 5; i++) { const c = mesh(G2.cone, hay, arms, s*(.8 + .1), -.05 + (i - 2)*.04, (i - 2)*.04, .04, .22, .04); c.rotation.z = -s*(PI/2 + (i - 2)*.25); }
+  mesh(cg(.3, .34, .75, 12), plaid, g, 0, 1.4, 0); mesh(cg(.36, .38, .3, 12), den, g, 0, .98, 0);
+  for (let i = 0; i < 10; i++) { const a = i/10*PI*2, c = mesh(G2.cone, hay, g, Math.cos(a)*.3, .75, Math.sin(a)*.3, .05, .3, .05); c.rotation.x = Math.sin(a)*.4; c.rotation.z = -Math.cos(a)*.4 + PI; }
+  const head = grp(g, 0, 2.1, 0); ball(sack, head, 0, 0, 0, .32, .34, .3); mesh(cg(.08, .12, .12, 8), sack, head, 0, -.32, 0);
+  for (const s of [1, -1]) { ball(mK, head, s*.11, .07, .27, .055); ball(mW, head, s*.11 + .015, .09, .32, .015); }
+  ball(M(0xe8742a), head, 0, -.02, .3, .05, .045, .05);
+  for (let i = 0; i < 7; i++) { const a = -.9 + i*.3; box(mK, head, Math.sin(a)*.17, -.14 + (1 - Math.cos(a))*.12, .27, .045, .015, .02).rotation.z = a; }
+  const hat = grp(head, 0, .26, 0); hat.rotation.z = -.12; mesh(cg(.5, .52, .04, 20), straw, hat, 0, 0, 0); mesh(cg(.24, .28, .28, 14), straw, hat, 0, .15, 0); mesh(cg(.285, .285, .07, 14), M(0x3f6db0), hat, 0, .06, 0);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { g, arms, head };
+}
+const G2 = { cone: new THREE.ConeGeometry(1, 1, 8) };
 Object.assign(ZOO.MK, { farmer: mkFarmer });
-Object.assign(ZOO, { pitchfork, skyHand });
+Object.assign(ZOO, { pitchfork, skyHand, scarecrow });
 })();
