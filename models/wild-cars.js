@@ -1,6 +1,6 @@
 // Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku.
 // Widok z boku (2.5D): przód = +x, góra = +y, szerokość wzdłuż z. Kreskówkowe cieniowanie + czarny kontur.
-// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz'|'zaba', kolory?) → { g, body, kind, p: części, wheels, len }
+// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz'|'zaba'|'tygrys'|'lew', kolory?) → { g, body, kind, p: części, wheels, len }
 // brykaPose(b, 'jazda'|'atak'|'moc'|'oberwal', k 0..1) · brykaTick(b, dt, prędkość) — koła, bujanie, macki, pióra
 // wymaga: lib/3d/comic.js, lib/ui/comic.js (brMat, brPart, brExt, brBox, brCyl, brLimb), THREE
 
@@ -11,6 +11,8 @@ const BRYKI_KOLORY = () => ({
   krab: { a: 0xdd4426, b: 0x5a1f14, c: 0xffb04a },
   nietoperz: { a: 0x4d4063, b: 0x1d1a24, c: 0xd8342a },
   zaba: { a: 0x3f9a34, b: 0xe6e08a, c: 0xff5a8a },
+  tygrys: { a: 0xf0841c, b: 0xfff1dc, c: 0x1e1a1a },
+  lew: { a: 0xe0a83a, b: 0xfff0c8, c: 0x9a4a1a },
 });
 
 // Nity: rząd od (x0,y0) do (x1,y1), po obu bokach ±z
@@ -70,7 +72,7 @@ function buildBryka(kind, kol) {
   const C = { ...BRYKI_KOLORY()[kind], ...(kol || {}) };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = { g, body, kind, C, p: {}, wheels: [], t: 0, len: 4.6, pose: {} };
-  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz, zaba: brZaba })[kind](b);
+  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz, zaba: brZaba, tygrys: brTygrys, lew: brLew })[kind](b);
   g.userData.bryka = kind;
   return b;
 }
@@ -369,6 +371,95 @@ function brZaba(b) {
   b.len = 4.9;
 }
 
+// TYGRYS: długi pomarańczowy klin w czarne pasy (boki i dach), uszy, szablaste kły, wąsy z drutu; łapy z pazurami na tłokach (atak),
+// ogon w pasy (moc: ogon w górę, łapy do przodu — skok)
+function brTygrys(b) {
+  const B = b.body, C = b.C, W = 1.9, Z = W / 2;
+  brPart(B, brExt([[-2.3, .55, 1], [-2.35, 1.25], [-1.9, 1.6], [-1.2, 1.66], [-.6, 1.5], [.2, 1.55], [.9, 1.38], [1.7, 1.12], [2.15, .92], [2.2, .55, 1]], W, .05, 1), C.a);
+  brPart(B, brExt([[-2.25, .5], [2.2, .5], [2.2, .8], [-2.25, .76]], W + .12, .03), C.b);
+  brPart(B, brExt([[1.55, .8], [2.22, .8], [2.2, 1.0], [1.75, 1.12]], W * .72, .04), C.b);                       // jasny pysk
+  brPart(B, brExt([[0, .1], [.22, .1], [.11, -.08, 1]], .36, .02), 0xff7a9a, 2.05, 1.02, 0, { ol: .015 });      // nos
+  // pasy: na bokach skośne, na dachu w poprzek (widać je też od tyłu)
+  const sb = brBox(.13, .62, .03);
+  for (let i = 0; i < 6; i++) for (const sd of [-1, 1]) brPart(B, sb, C.c, -1.95 + i * .62, 1.12, sd * (Z + .02), { r: [0, 0, .35], ol: 0 });
+  for (const [x, y, r] of [[-1.85, 1.6, .25], [-1.35, 1.67, .05], [-.85, 1.6, -.2], [-.25, 1.52, .05], [.35, 1.55, -.08], [.95, 1.37, -.32], [1.45, 1.21, -.32]])
+    brPart(B, brBox(.16, .05, W * .78), C.c, x, y + .01, 0, { r: [0, 0, r], ol: 0 });
+  for (let i = 0; i < 3; i++) brPart(B, brBox(.03, .5, W * .7), C.c, -2.33 + i * .02, 1.0 - i * .2, 0, { r: [0, 0, .25], ol: 0, s: [1, 1 - i * .25, 1] });   // tył
+  for (const sd of [-1, 1]) {                                // uszy
+    brPart(B, brExt([[-.28, 0], [.24, 0], [-.04, .48, 1]], .14, .03), C.a, .95, 1.3, sd * .58, { r: [0, 0, -.15] });
+    brPart(B, brExt([[-.16, .06], [.12, .06], [-.03, .3, 1]], .16, 0), 0xff9ab0, .95, 1.3, sd * .58, { r: [0, 0, -.15], ol: 0 });
+  }
+  brEye(B, 1.5, 1.12, Z + .02, .16, 1, { glow: 0xc6ff3a, slit: true }); brEye(B, 1.5, 1.12, -Z - .02, .16, -1, { glow: 0xc6ff3a, slit: true });
+  const fang = new THREE.ConeGeometry(.075, .42, 5);
+  for (const z of [-.35, .35]) brPart(B, fang, 0xf3f0e4, 2.05, .42, z, { r: [0, 0, Math.PI], ol: .014 });
+  const wh = brCyl(.014, .014, .85, 4, 'z');
+  for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) brPart(B, wh, 0xe8e4d8, 2.05, .95 + i * .09, sd * (Z * .55 + .42), { r: [(i - 1) * .18 * sd, 0, 0], ol: 0 });
+  // łapy z pazurami na tłokach — atak: wysuwają się i drapią w dół
+  b.p.paws = [];
+  const claw = new THREE.ConeGeometry(.055, .36, 5);
+  for (const sd of [-1, 1]) {
+    const pw = new THREE.Group(); pw.position.set(1.45, .78, sd * (Z + .18)); B.add(pw); b.p.paws.push(pw);
+    brPart(pw, brCyl(.07, .07, .9, 8, 'x'), 0xc9ced3, -.45, 0, 0, { ol: .015 });
+    brPart(pw, new THREE.SphereGeometry(.24, 10, 8), C.a, .05, 0, 0, { s: [1.3, .75, 1], ol: .025 });
+    for (let i = -1; i <= 1; i++) brPart(pw, claw, 0xf3f0e4, .35, -.04, i * .1, { r: [0, 0, -Math.PI / 2 - .35], ol: .012 });
+  }
+  // ogon w pasy
+  const tl = new THREE.Group(); tl.position.set(-2.3, 1.2, 0); B.add(tl); b.p.tail = tl;
+  [[0, 0, 0], [-.45, .3, 0], [-.6, .85, 0], [-.4, 1.2, 0]].reduce((a, q, i) => { brLimb(tl, a, q, .09, .08, i % 2 ? C.c : C.a); return q; });
+  brPipe(B, -1.55, 1.55, .45, .7, .6); brPipe(B, -1.55, 1.55, -.45, .7, .6);
+  brPatch(B, -.9, 1.0, .5, .3, Z + .02, 0xb5651d, -.06);
+  brWeld(B, .15, .82, .1, 1.5, Z + .01);
+  brRivets(B, -2.1, .66, 2.0, .66, 12, Z + .07, 0xa9b1b8);
+  brWheels(b, [1.25, -1.45], Z + .12, .56, .5, 0xf2a124);
+  b.len = 5.2;
+}
+
+// LEW: niska, masywna sylwetka drapieżnika z wysokim „karkiem” pod grzywą; kocia morda jak u tygrysa (jasny pysk, duży nos, policzki,
+// wąsy, oczy-reflektory po bokach, kły, szczęka na zawiasie — atak: gryzie); grzywa z zaokrąglonych płatów blachy w trzech warstwach,
+// wygiętych do tyłu jak płomienie (widać ją też od tyłu; moc: RYK — grzywa się jeży); ogon z kitą
+function brLew(b) {
+  const B = b.body, C = b.C, W = 2.1, Z = W / 2;
+  brPart(B, brExt([[-2.25, .55, 1], [-2.3, 1.15], [-1.9, 1.42], [-1.0, 1.45], [-.2, 1.6], [.6, 1.85], [1.25, 1.82], [1.75, 1.5], [2.05, 1.12], [2.15, .55, 1]], W, .05, 1), C.a);
+  brPart(B, brExt([[-2.2, .5], [2.1, .5], [2.1, .8], [-2.2, .76]], W + .12, .03), C.b);
+  // morda: jasny pysk, policzki, duży nos, brwi, oczy po bokach, wąsy, kły
+  brPart(B, brExt([[1.4, .8], [2.2, .8], [2.17, 1.08], [1.7, 1.3]], W * .66, .05, 1), C.b);
+  for (const sd of [-1, 1]) brPart(B, new THREE.SphereGeometry(.34, 12, 9), C.b, 1.98, .92, sd * .33, { s: [1, .8, 1], ol: .025 });
+  brPart(B, brExt([[-.24, .14], [.24, .14], [0, -.14, 1]], .5, .03), 0x5a2a1a, 2.12, 1.16, 0, { r: [0, 0, -.5], ol: .015 });
+  for (const sd of [-1, 1]) {                                // oczy z przodu-z boku, brwi
+    brEye(B, 1.62, 1.3, sd * (Z + .03), .21, sd, { glow: 0xffb020, brow: 0x7a3412 });
+  }
+  const wh = brCyl(.014, .014, .8, 4, 'z');
+  for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) brPart(B, wh, 0xe8e4d8, 2.05, .88 + i * .08, sd * (.6 + .36), { r: [(i - 1) * .18 * sd, 0, 0], ol: 0 });
+  const fang = new THREE.ConeGeometry(.07, .32, 5);
+  for (const z of [-.3, .3]) brPart(B, fang, 0xf3f0e4, 2.02, .64, z, { r: [0, 0, Math.PI], ol: .012 });
+  brPart(B, brBox(.45, .26, 1.0), 0x5a0f12, 1.85, .66, 0, { ol: 0 });                // gardło, widać przy otwartej paszczy
+  const jaw = new THREE.Group(); jaw.position.set(1.6, .6, 0); B.add(jaw); b.p.jaw = jaw;
+  brPart(jaw, brExt([[-.2, .06], [.55, .04], [.5, -.14, 1], [-.2, -.2]], 1.05, .03), C.b);
+  for (const z of [-.3, -.1, .1, .3]) brPart(jaw, new THREE.ConeGeometry(.05, .18, 5), 0xf3f0e4, .42, .13, z, { ol: .01 });
+  // grzywa: grube kosmyki (wydłużone bryły) promieniście wokół karku za przednimi kołami, odgięte do tyłu jak płomienie;
+  // trzy warstwy od rdzawej (zewn.) do złotej (wewn.), na całym obwodzie poza samym spodem
+  const mane = new THREE.Group(); mane.position.set(.75, 1.2, 0); B.add(mane); b.p.mane = mane;
+  const lock = new THREE.SphereGeometry(1, 10, 8);
+  for (const [n, L, w, tilt, r0, col, dx] of [[16, 1.35, .3, .7, .62, C.c, -.3], [14, 1.1, .27, .45, .58, 0xb8641e, -.05], [12, .85, .24, .25, .55, 0xd88a2a, .2]]) {
+    for (let i = 0; i < n; i++) {
+      const a = (i + (n === 14 ? .5 : 0)) / n * Math.PI * 2; if (Math.cos(a) < -.7) continue;
+      const g1 = new THREE.Group(); g1.rotation.x = a; g1.position.x = dx; mane.add(g1);
+      const g2 = new THREE.Group(); g2.position.y = r0; g2.rotation.z = tilt; g1.add(g2);
+      brPart(g2, lock, col, 0, L / 2, 0, { s: [.3, L / 2, w], ol: .025 });
+    }
+  }
+  // ogon z kitą
+  const tl = new THREE.Group(); tl.position.set(-2.25, 1.1, 0); B.add(tl); b.p.tail = tl;
+  [[0, 0, 0], [-.45, .2, .2], [-.6, .7, .55], [-.45, 1.1, .75]].reduce((a, q) => { brLimb(tl, a, q, .08, .07, C.a); return q; });
+  brPart(tl, new THREE.SphereGeometry(.26, 9, 7), C.c, -.42, 1.25, .8, { s: [1, 1.25, 1], ol: .025 });
+  brPipe(B, -1.6, .95, Z + .05, .9, .7); brPipe(B, -1.6, .95, -Z - .05, .9, .7);
+  brPatch(B, -.9, 1.0, .55, .32, Z + .02, 0xb5651d, .06);
+  brWeld(B, -.2, .82, -.25, 1.5, Z + .01);
+  brRivets(B, -2.1, .66, 1.95, .66, 12, Z + .07, 0xa9b1b8);
+  brWheels(b, [1.25, -1.45], Z + .12, .6, .55, 0x9a4a1a);
+  b.len = 5.2;
+}
+
 /* --- pozy i animacja --- */
 // k = 0..1; każda poza liczona od zera (neutralnej)
 function brykaPose(b, pose, k = 1) {
@@ -415,6 +506,18 @@ function brykaPose(b, pose, k = 1) {
     P.tongue.scale.x = Math.max(.01, L); P.tongueTip.position.x = L; P.tongue.visible = P.tongueTip.visible = a > .03;
     P.tongueG.rotation.y = a > 0 ? (b.tongueYaw || 0) : 0;
   }
+  if (b.kind === 'tygrys') {
+    const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
+    P.paws.forEach(pw => { pw.position.x = 1.45 + 1.0 * a + .6 * m; pw.rotation.z = -.7 * a + .25 * m; });   // atak: łapy do przodu, pazury w dół
+    P.tail.rotation.z = .35 * m;                                                                          // skok: ogon sztywno do tyłu
+    B.rotation.z = .08 * m;
+  }
+  if (b.kind === 'lew') {
+    const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0;
+    P.jaw.rotation.z = -.55 * a - .7 * m;
+    P.mane.scale.setScalar(1 + .12 * a + .45 * m);                                                       // ryk: grzywa się jeży
+    B.rotation.z = .12 * m;
+  }
   if (pose === 'oberwal') { B.rotation.z = .22 * k; B.rotation.x = .12 * k; B.position.y = .25 * k; }
   b.baseY = B.position.y;
   brykaTick(b, 0, 0);
@@ -439,4 +542,6 @@ function brykaTick(b, dt, v) {
   if (b.kind === 'krab') P.stalks.forEach((s, i) => { s.rotation.z = Math.sin(t * 4 + i * 2) * .12; s.rotation.x = Math.sin(t * 3 + i) * .1; });
   if (b.kind === 'ptak' && b.pose.pose === 'moc') P.wings.forEach(w => { w.rotation.z = -(1.5 + Math.sin(t * 14) * .4) * b.pose.k; });
   if (b.kind === 'rekin') P.fin.rotation.x = b.pose.pose === 'moc' ? Math.sin(t * 9) * .08 : 0;
+  if (b.kind === 'tygrys' || b.kind === 'lew') P.tail.rotation.x = Math.sin(t * 3) * .25;                 // ogon się kołysze
+  if (b.kind === 'lew') P.mane.rotation.x = b.pose.pose === 'moc' ? Math.sin(t * 40) * .06 * b.pose.k : 0;
 }
