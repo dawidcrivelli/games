@@ -47,6 +47,13 @@ function snd(name) {
     case 'start': T(1320, 1320, .5, 'square', .18); T(660, 660, .5, 'square', .1); break;
     case 'meta': [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => T(f, f, .22, 'square', .12, i * .12)); break;
     case 'klik': T(1300, 900, .03, 'square', .08); break;
+    // tygrys i lew
+    case 'drap': for (let i = 0; i < 3; i++) { N(.1, .45, 6500, 1600, 1.2, i * .08); M(1700 + i * 200, .06, .06, i * .08 + .02); } break;                    // trzy pazury po blasze
+    case 'grr': T(75, 58, .55, 'sawtooth', .3, 0, [26, 18]); N(.5, .3, 500, 220, 2, 0, 'lowpass'); T(150, 110, .3, 'square', .08, .05, [26, 30]); break;   // warknięcie
+    case 'sus': T(180, 820, .3, 'sine', .22, 0, [10, 20]); N(.45, .3, 700, 3200, 1); M(300, .15, .1, .05); break;                                         // sprężysty skok
+    case 'ryk': N(1.1, .7, 320, 110, 1.4, 0, 'lowpass'); T(95, 58, 1.1, 'sawtooth', .35, 0, [21, 22]); T(150, 92, 1.0, 'sawtooth', .2, .04, [17, 30]); N(.9, .3, 1300, 500, 2, .1); break;   // RYYYK
+    case 'klakson_tygrys': T(330, 620, .22, 'sawtooth', .17, 0, [22, 25]); T(620, 290, .42, 'sawtooth', .17, .22, [22, 25]); break;               // „mrrr-au”
+    case 'klakson_lew': T(78, 115, .45, 'sawtooth', .28, 0, [24, 18]); T(115, 70, .55, 'sawtooth', .28, .42, [24, 18]); N(.9, .2, 400, 200, 2, 0, 'lowpass'); break;   // „hrrr-uuu”
     // klaksony: każde auto po swojemu
     case 'klakson_rekin': T(200, 300, .25, 'sawtooth', .2, 0, [6, 6]); T(300, 300, .35, 'sawtooth', .2, .25); break;              // „a-uuu-ga”
     case 'klakson_ptak': [784, 988, 1175, 1568].forEach((f, i) => T(f, f * (i === 3 ? .8 : 1.05), i === 3 ? .4 : .12, 'square', .13, i * .12)); break;   // kukuryku
@@ -120,6 +127,22 @@ function audVoice(kind) {
     V.set = (r, tu) => { const b = 38 + 55 * r, t = A.currentTime;
       o1.frequency.setTargetAtTime(b, t, .06); l.frequency.setTargetAtTime(12 + 14 * r, t, .1);
       f1.frequency.setTargetAtTime(600 + 400 * r + (tu ? 500 : 0), t, .08); f2.frequency.setTargetAtTime(1300 + 700 * r, t, .08); };
+  }
+  if (kind === 'tygrys') {                   // mruczący V-twin: piła + kwadrat, głośność drga jak mruczenie kota
+    const o1 = osc('sawtooth', 45), o2 = osc('square', 67), f = filt('lowpass', 600, 5), tr = gain(.65);
+    o1.connect(f); o2.connect(gain(.35)).connect(f); f.connect(tr).connect(out);
+    const l = lfo(24, .35, tr.gain);
+    V.set = (r, tu) => { const b = 40 + 60 * r, t = A.currentTime;
+      o1.frequency.setTargetAtTime(b, t, .05); o2.frequency.setTargetAtTime(b * 1.5, t, .05); l.frequency.setTargetAtTime(18 + 16 * r, t, .1);
+      f.frequency.setTargetAtTime(380 + 900 * r + (tu ? 900 : 0), t, .08); };
+  }
+  if (kind === 'lew') {                      // wielki, niski silnik: kwadrat + sub + warkot z szumu
+    const o1 = osc('square', 30), sub = osc('sine', 15), f = filt('lowpass', 350, 3);
+    o1.connect(f); sub.connect(gain(.8)).connect(f); f.connect(gain(1.2)).connect(out);
+    const n = noise(), lp = filt('lowpass', 300, 2), ng = gain(.05); n.connect(lp).connect(ng).connect(out); lfo(9, .04, ng.gain);
+    V.set = (r, tu) => { const b = 28 + 40 * r, t = A.currentTime;
+      o1.frequency.setTargetAtTime(b, t, .07); sub.frequency.setTargetAtTime(b / 2, t, .07);
+      f.frequency.setTargetAtTime(220 + 600 * r + (tu ? 700 : 0), t, .1); lp.frequency.setTargetAtTime(200 + 400 * r, t, .1); };
   }
   const setFn = V.set;
   V.set = (r, tu, vol, p = 0) => { const t = A.currentTime; setFn(r, tu); out.gain.setTargetAtTime(vol, t, .08); if (pan) pan.pan.setTargetAtTime(p, t, .08); };

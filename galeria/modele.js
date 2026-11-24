@@ -67,7 +67,7 @@ const MODELE = [
 
   ...['wood', 'saber', 'bow', 'sword', 'rapier', 'axe', 'katana', 'anchor', 'trident', 'swordfish'].map(id => ({ kat: 'broń', typ: id, gra: 'piraci', js: `mkWeapon('${id}')` })),
   // Dzikie Bryki: każdy pojazd w pozach jazda / atak / moc / oberwał (brykaPose)
-  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
+  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba'], ['tygrys', 'tygrys'], ['lew', 'lew']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
     .map(pz => ({ kat: 'bryki', typ, gra: 'bryki', js: `(() => { const b = buildBryka('${k}'); brykaPose(b, '${pz}', 1); return b.g; })()` }))),
 
   // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (bryki/tracks.js)

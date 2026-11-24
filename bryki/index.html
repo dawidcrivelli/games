@@ -59,7 +59,7 @@ button{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transpar
 .grid{display:grid;gap:8px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}.g1{grid-template-columns:1fr}
 .btn .med.rek{font-size:.75rem;background:var(--gold);border-radius:9px;padding:2px 5px;right:-4px;top:-7px;box-shadow:0 2px 0 #b8860b}
 .pick{height:46px;position:relative}
-.pick.car{height:52px;justify-content:flex-start;padding-left:4px;gap:4px}.pick.car img{height:46px;margin:-6px 0}
+.pick.car{height:52px;justify-content:flex-start;padding-left:2px;gap:2px;font-size:.9rem}.pick.car img{height:42px;margin:-6px 0}
 #bGo{width:100%;height:56px;margin-top:12px;font-size:1.6rem;background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-edge),0 10px 16px var(--shade)}
 #bGo:active{box-shadow:0 2px 0 var(--red-edge)}
 #bSnd{position:fixed;left:calc(12px + var(--sl));top:calc(10px + var(--st));width:56px;height:48px;font-size:1.4rem}
@@ -115,7 +115,7 @@ body.inf #left .gb{width:var(--k);height:var(--k);flex:none;max-height:none;font
   <div class="card">
     <h1>Dzikie Bryki</h1><p class="sub">Wyścig groźnych bryk</p>
     <p class="q">Którą bryką jedziesz?</p>
-    <div class="grid g3" id="pickCar"></div>
+    <div class="grid g4" id="pickCar"></div>
     <p class="q">Gdzie jedziemy?</p><div class="grid g4" id="pickTrack"></div>
     <p class="q">Jak jedziemy?</p>
     <div class="grid g3" id="pickDiff"><button class="btn pick" data-d="latwy"><span class="ico">🐣</span>Łatwo</button><button class="btn pick" data-d="trudny"><span class="ico">🔥</span>Dorosły</button><button class="btn pick" data-d="inf"><span class="ico">♾️</span>Infinity</button></div>
