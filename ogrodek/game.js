@@ -15,7 +15,7 @@ seed = 2024;
    RENDERER, SCENA, ŚWIATŁO (słaba grafika: SwiftShader / ?lite — bez cieni, mniej pikseli)
    ===================================================================== */
 const GL_NAME = (() => { try { const g = document.createElement('canvas').getContext('webgl'), e = g && g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) { return ''; } })();
-const LITE = Q.has('lite') || /swiftshader|llvmpipe|software/i.test(GL_NAME);
+const LITE = !Q.has('hq') && (Q.has('lite') || /swiftshader|llvmpipe|software/i.test(GL_NAME));   // ?hq — pełna grafika także w teście (zrzut jak na telefonie)
 const renderer = new T.WebGLRenderer({ canvas: $('c'), antialias: !LITE, powerPreference: 'high-performance' });
 renderer.setPixelRatio(LITE ? (IS_TEST ? 1 : .6) : Math.min(devicePixelRatio || 1, 1.75));
 renderer.shadowMap.enabled = !LITE; renderer.shadowMap.type = T.PCFSoftShadowMap;
@@ -133,11 +133,13 @@ G.stats = { eaten: 0, crops: 0, fled: 0, spawned: 0 };
 /* =====================================================================
    PASKI ŻYCIA (rośliny, uparte zwierzaki) — dwie płaskie belki zwrócone do kamery
    ===================================================================== */
-const barGeo = new T.PlaneGeometry(1, 1), barBg = new T.MeshBasicMaterial({ color: 0x2a1a10, depthTest: false, transparent: true, opacity: .75 });
-function makeBar(w) { const g = new T.Group(), bg = new T.Mesh(barGeo, barBg), fg = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: 0x5fd34a, depthTest: false }));
-  bg.scale.set(w + .1, .26, 1); fg.scale.set(w, .16, 1); fg.position.z = .01; bg.renderOrder = 8; fg.renderOrder = 9; g.add(bg, fg); g.userData = { fg, w }; g.visible = false; scene.add(g); return g; }
+const barGeo = new T.PlaneGeometry(1, 1), barMat = c => new T.MeshBasicMaterial({ color: c, depthTest: false, transparent: true });
+const barFrame = barMat(0xfffaf0), barBg = barMat(0x3a2414);   // jasna ramka — widać na ziemi, trawie i zbożu
+function makeBar(w) { const g = new T.Group(), fr = new T.Mesh(barGeo, barFrame), bg = new T.Mesh(barGeo, barBg), fg = new T.Mesh(barGeo, barMat(0x5fd34a));
+  fr.scale.set(w + .22, .44, 1); bg.scale.set(w + .06, .28, 1); fg.scale.set(w, .22, 1); bg.position.z = .01; fg.position.z = .02;
+  fr.renderOrder = 8; bg.renderOrder = 9; fg.renderOrder = 10; g.add(fr, bg, fg); g.userData = { fg, w }; g.visible = false; scene.add(g); return g; }
 function setBar(b, k, x, y, z) { const { fg, w } = b.userData; k = clamp(k, 0, 1); fg.scale.x = Math.max(.001, w*k); fg.position.x = -w*(1 - k)/2;
-  fg.material.color.setHSL(k*.33, .8, .5); b.position.set(x, y, z); b.quaternion.copy(camera.quaternion); }
+  fg.material.color.setHSL(k*.33, 1, .5); b.position.set(x, y, z); b.quaternion.copy(camera.quaternion); }
 
 /* =====================================================================
    ROŚLINY: sadzenie, wzrost, plon, ziarenka ze słonecznika, jabłka z jabłonki, lew
@@ -207,6 +209,8 @@ function updatePlants(dt) {
   }
 }
 // ---------- obrońcy: zasięg widać na ziemi (kółko cebuli i stracha, pas lwa)
+const isBig = A => A.sp.brave >= 4 && !A.sp.boss;   // duży uparciuch (krowa, słoń, hipopotam): widły i dziadek ledwo go ruszają — na niego obrona; bóbr (szef) — szturchać!
+const HAND_POWER = .7, FARMER_POWER = .7, FARMER_SPEED = 1.8, FARMER_CD = 3;   // widły i dziadek płoszą słabiej niż obrona — obrona ma się opłacać
 const ONION_R = 2.3, SCARE_R = 3.6, LION_R = 8, MOUSE_R = 5, ONION_RECHARGE = 8, SCARE_CD = 5, LION_CD = 7;
 function auraRing(tile, r, col) { const g = new T.Group(), m1 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .5, depthWrite: false }), m2 = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .1, depthWrite: false });
   const a = new T.Mesh(new T.RingGeometry(r - .14, r, 48), m1), b = new T.Mesh(new T.CircleGeometry(r, 48), m2); a.rotation.x = b.rotation.x = -PI/2; a.position.y = .16; b.position.y = .15; a.renderOrder = b.renderOrder = 3;
@@ -308,18 +312,22 @@ function pickMoleTarget(A) {
 }
 function scare(A, power, by) {
   if (!A.alive || A.leaving) return;
+  if (isBig(A) && (by === 'hand' || by === 'farmer')) {   // duży uparciuch: nie przestaje jeść, tylko się krzywi
+    A.brave -= power/2; if (A.brave <= 0) return flee(A, by); bubble('Hmpf!', A.x, A.sp.h + .6, A.z, 'small'); return; }
   A.brave -= power; A.stun = .8; ZOO.pose(A.a, 'hurt'); A.a.jumpT = 0;
   if (A.state === 'eat' && A.saw) { A.saw.stop(); A.saw = null; }
   if (A.k === 'beaver') { SFX.slap(); for (let i = 0; i < 10; i++) emit(A.x, .3, A.z, rr(-2, 2), rr(1, 3), rr(-2, 2), .6, .6, .45, .25, 8); }
   if (A.brave <= 0) flee(A, by);
   else { if (!A.sp.under) A.x = Math.min(A.x + 1.6, SPAWN_X); A.state = A.sp.under ? 'up' : 'walk'; bubble(by === 'onion' ? 'Fuj!' : A.brave <= 1 ? 'Ojej!' : 'Auć!', A.x, A.sp.h + .6, A.z, 'small'); if (by === 'onion') SFX.fart(.4); }
 }
+const GUARD_BY = new Set(['onion', 'thorns', 'scarecrow', 'lion', 'mouse']);
 function flee(A, by) {
   A.leaving = true; A.dir = 1; A.state = A.sp.under ? 'dive' : 'flee'; G.stats.fled++; A.t = 0; A.stun = .5; ZOO.pose(A.a, 'hurt');
   if (A.saw) { A.saw.stop(); A.saw = null; }
   if (A.target && A.target.plant) A.target.plant.biting = false;
   bubble(by === 'onion' ? 'Fuj!' : by === 'lion' ? 'Ratunku!' : by === 'thorns' ? 'Auuuć!' : by === 'scarecrow' ? 'Aaa!' : 'Kysz!', A.x, A.sp.h + .7, A.z, '');
   if (by === 'onion') SFX.fart(); else if (by === 'thorns') SFX.ouch(); else SFX.call(A.k);
+  if (GUARD_BY.has(by)) dropSeed(A.x, Math.max(.6, A.sp.h*.6), A.z, true);   // obrona się zwraca: przegoniony zwierzak gubi fasolkę
   if (!G.firsts.has('flee')) { G.firsts.add('flee'); clearPoint('rabbit'); }
   if (farmer && farmer.chase === A) farmer.chase = null;
 }
@@ -412,8 +420,8 @@ function updateFarmer(dt) {
   else { F.chase = null; F.job = null; }
   const dx = tx - F.x, dz = tz - F.z, d = Math.hypot(dx, dz);
   a.moving = d > near;
-  if (a.moving) { const s = Math.min(d, 2.3*dt); F.x += dx/d*s; F.z += dz/d*s; F.w.rotation.y = Math.atan2(-dz, dx); }
-  else if (F.chase && F.hitT <= 0) { F.hitT = 2.2; ZOO.pose(a, 'swipe'); setTimeout(() => ZOO.pose(a, null), 450); SFX.poke(); bubble('A kysz!', F.x, 2.6, F.z, 'small'); F.w.rotation.y = 0; scare(F.chase, 1, 'farmer'); }
+  if (a.moving) { const s = Math.min(d, FARMER_SPEED*dt); F.x += dx/d*s; F.z += dz/d*s; F.w.rotation.y = Math.atan2(-dz, dx); }
+  else if (F.chase && F.hitT <= 0) { F.hitT = FARMER_CD; ZOO.pose(a, 'swipe'); setTimeout(() => ZOO.pose(a, null), 450); SFX.poke(); bubble('A kysz!', F.x, 2.6, F.z, 'small'); F.w.rotation.y = 0; scare(F.chase, FARMER_POWER, 'farmer'); }
   else if (F.job) { ZOO.pose(a, 'crouch'); setTimeout(() => ZOO.pose(a, null), 500); harvest(F.job, true); F.job = null; }
   else if (!F.chase) F.w.rotation.y += (-.4 - F.w.rotation.y)*Math.min(1, dt*3);
   F.w.position.set(F.x, .12, F.z); ZOO.anim(a, dt);
@@ -453,7 +461,7 @@ function onTap(X, Y) {
   if (bestA) { const A = bestA, y = A.state === 'under' ? .3 : A.sp.h*.75;
     poke(A.x, y, A.z, () => { if (!A.alive) return; SFX.poke(); for (let i = 0; i < 10; i++) emit(A.x, y, A.z, rr(-3, 3), rr(1, 4), rr(-3, 3), .5, 1, .95, .5, 6);
       if (A.state === 'under') { A.state = 'rise'; A.t = .3; A.a.root.visible = true; A.brave = 0; setTimeout(() => A.alive && flee(A, 'hand'), 350); bubble('Bęc!', A.x, 1, A.z, 'small'); }
-      else scare(A, 1, 'hand'); });
+      else scare(A, HAND_POWER, 'hand'); });
     return; }
   ndc.set(X/innerWidth*2 - 1, -(Y/innerHeight)*2 + 1); ray.setFromCamera(ndc, camera);
   if (!ray.ray.intersectPlane(plane0, hitV)) return;
@@ -610,12 +618,14 @@ function update(dt) {
 }
 let hudT = 0;
 function frame(dt) { update(dt); if ((hudT -= dt) <= 0) { hudT = .5; hudSun(); } renderer.render(scene, camera); }
-function fitCamera() {                 // pole od 40% do 97% wysokości ekranu (nad nim las i niebo, na górze pasek), cała szerokość grządek + skraj lasu
+const CAM = { el: 45, fov: 24, top: .22 };   // kąt kamery nad polem, kąt widzenia, górny brzeg pola (ułamek ekranu)
+function fitCamera() {                 // pole od CAM.top do 98,5% wysokości ekranu (prawie z góry, wąski obiektyw = mało perspektywy), od ganku dziadka po skraj lasu; ?el= ?fov= ?top= do prób
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w/h; camera.clearViewOffset();
-  const el = 31*PI/180, tgt = V3(1.4, 0, 0), top = .33, bot = .985;
+  const el = (+Q.get('el') || CAM.el)*PI/180, tgt = V3(1.4, 0, 0), top = +Q.get('top') || CAM.top, bot = .985;
+  camera.fov = +Q.get('fov') || CAM.fov;
   const place = d => { camera.position.set(tgt.x, Math.sin(el)*d, tgt.z + Math.cos(el)*d); camera.lookAt(tgt); camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
-  const fits = d => { place(d); const b = V3(0, 0, Z0 - 1.2).project(camera).y, f = V3(0, 0, -Z0 + 1.6).project(camera).y, xr = V3(tgt.x + 11.6, 0, -Z0 + 1.2).project(camera).x;
-    return b - f <= 2*(bot - top) && xr <= 1; };
+  const fits = d => { place(d); const b = V3(0, 0, Z0 - 1.2).project(camera).y, f = V3(0, 0, -Z0 + 1.6).project(camera).y, xr = V3(tgt.x + 11.6, 0, -Z0 + 1.2).project(camera).x, xl = V3(PORCH.x - 1.2, 0, PORCH.z).project(camera).x;
+    return b - f <= 2*(bot - top) && xr <= 1 && xl >= -1; };
   let lo = 5, hi = 120; for (let i = 0; i < 30; i++) { const m = (lo + hi)/2; if (fits(m)) hi = m; else lo = m; }
   place(hi);
   const b = V3(0, 0, Z0 - 1.2).project(camera).y, f = V3(0, 0, -Z0 + 1.6).project(camera).y, want = 1 - (top + bot), dy = want - (b + f)/2;

@@ -42,7 +42,7 @@ const SPECIES = {
 // Scenariusz (sekundy): spawn: k, n (ile), row (rząd 0–4, inaczej losowy z roślinami), gap (odstęp); unlock: karta; rain: 1/0; horde/boss: napis; say: lektor
 const ALL = CARDS.map(c => c.k);
 const DAYS = [
-  { name: 'Króliki', hero: 'rabbit', len: 170, seeds: 4, start: ['beanstalk', 'carrot'], stars: [10, 22, 34], script: [
+  { name: 'Króliki', hero: 'rabbit', len: 170, seeds: 4, start: ['beanstalk', 'carrot'], stars: [12, 26, 40], script: [
     { t: .5, say: 'Dzień dobry! Posadź magiczną fasolę. Da nam fasolki na nowe rośliny.', tut: 1 },
     { t: 24, spawn: 'rabbit', row: 2, say: 'Uwaga, królik! Stuknij go widłami. Dwa razy!' },
     { t: 34, unlock: 'wheat', say: 'Pszenica! Zielone karty to plony do kosza.' },
@@ -57,13 +57,13 @@ const DAYS = [
     { t: 130, spawn: 'mole' },
     { t: 142, horde: 'Króliki z lasu!', say: 'Uwaga! Króliki z lasu!' }, { t: 144, spawn: 'rabbit', n: 6, gap: 1.1 }, { t: 148, spawn: 'chicken', n: 3, gap: .8 },
   ] },
-  { name: 'Sarenki i krowy', hero: 'cow', len: 195, seeds: 5, start: ['beanstalk', 'carrot', 'wheat', 'onion', 'thorns'], stars: [15, 32, 50], script: [
+  { name: 'Sarenki i krowy', hero: 'cow', len: 195, seeds: 5, start: ['beanstalk', 'carrot', 'wheat', 'onion', 'thorns'], stars: [18, 36, 50], script: [
     { t: .5, unlock: 'scarecrow', say: 'Drugi dzień! Nowy obrońca: strach na wróble. Straszy wszystko dookoła.' },
     { t: 14, spawn: 'rabbit', n: 2, gap: 2 },
     { t: 28, spawn: 'deer', say: 'Sarenka! Skacze przez kolczaste krzaki.' },
     { t: 40, spawn: 'chicken', n: 3, gap: .7 }, { t: 44, spawn: 'rabbit', n: 2, gap: 1.5 },
     { t: 54, unlock: 'tree', say: 'Jabłonka! Rośnie długo, potem daje jabłka.' },
-    { t: 62, spawn: 'cow', say: 'Krowa! Cebuli się nie boi, zje ją! Ale strach i widły pomogą.' },
+    { t: 62, spawn: 'cow', say: 'Krowa! Duża i uparta, widły ledwo ją ruszą. Cebuli się nie boi. Postaw stracha na wróble!' },
     { t: 78, spawn: 'deer', n: 2, gap: 2 }, { t: 82, spawn: 'mole' },
     { t: 94, rain: 1 }, { t: 112, rain: 0 },
     { t: 98, spawn: 'rabbit', n: 3, gap: 1.5 }, { t: 104, spawn: 'cow' },
@@ -72,7 +72,7 @@ const DAYS = [
     { t: 150, horde: 'Horda z lasu!', say: 'Uwaga! Horda z lasu!' }, { t: 152, spawn: 'rabbit', n: 5, gap: 1 }, { t: 155, spawn: 'deer', n: 3, gap: 1.5 },
     { t: 160, spawn: 'cow', n: 2, gap: 4 }, { t: 166, spawn: 'goat' },
   ] },
-  { name: 'Bobry', hero: 'beaver', len: 205, seeds: 6, start: ['beanstalk', 'carrot', 'wheat', 'tree', 'onion', 'thorns', 'scarecrow'], stars: [16, 34, 52], script: [
+  { name: 'Bobry', hero: 'beaver', len: 205, seeds: 6, start: ['beanstalk', 'carrot', 'wheat', 'tree', 'onion', 'thorns', 'scarecrow'], stars: [20, 42, 60], script: [
     { t: .5, say: 'Trzeci dzień! Posadź jabłonki, zanim przyjdą bobry. Duże jabłonki są bezpieczne… prawie.' },
     { t: 16, spawn: 'rabbit', n: 2, gap: 2 }, { t: 26, spawn: 'chicken', n: 3, gap: .7 },
     { t: 34, unlock: 'lion', say: 'Lew! Ryczy na cały rząd i straszy zwierzaki.' },
@@ -85,7 +85,7 @@ const DAYS = [
     { t: 148, horde: 'Horda z lasu!', say: 'Uwaga! Horda z lasu!' }, { t: 150, spawn: 'rabbit', n: 5, gap: 1 }, { t: 152, spawn: 'deer', n: 2, gap: 2 }, { t: 158, spawn: 'cow' },
     { t: 172, spawn: 'beaver', n: 3, gap: 4, boss: 'Bobry!', say: 'Bobry! Cała rodzina bobrów!' },
   ] },
-  { name: 'Ucieczka z zoo', hero: 'elephant', len: 215, seeds: 7, start: ['beanstalk', 'carrot', 'wheat', 'tree', 'onion', 'thorns', 'scarecrow', 'lion'], stars: [16, 34, 54], script: [
+  { name: 'Ucieczka z zoo', hero: 'elephant', len: 215, seeds: 7, start: ['beanstalk', 'carrot', 'wheat', 'tree', 'onion', 'thorns', 'scarecrow', 'lion'], stars: [20, 45, 65], script: [
     { t: .5, say: 'Czwarty dzień! Ktoś otworzył zoo! Zwierzaki z zoo idą do ogródka!' },
     { t: 14, spawn: 'zebra', n: 3, gap: 1.2, say: 'Zebry! Chodzą stadem.' },
     { t: 30, spawn: 'kangaroo', say: 'Kangur! Skacze przez krzaki.' },
@@ -93,14 +93,14 @@ const DAYS = [
     { t: 58, unlock: 'mouse', say: 'Mysz! Słonie bardzo boją się myszy!' },
     { t: 70, spawn: 'elephant', say: 'Słoń! Zjada wszystko! Postaw przed nim mysz!' },
     { t: 86, spawn: 'giraffe', say: 'Żyrafa! Zjada liście z jabłonek!' },
-    { t: 98, spawn: 'zebra', n: 3, gap: 1 }, { t: 104, spawn: 'hippo', say: 'Hipopotam! Bardzo uparty.' },
+    { t: 98, spawn: 'zebra', n: 3, gap: 1 }, { t: 104, spawn: 'hippo', say: 'Hipopotam! Bardzo uparty. Na niego lew!' },
     { t: 112, rain: 1 }, { t: 128, rain: 0 },
     { t: 118, spawn: 'kangaroo', n: 2, gap: 2 }, { t: 126, spawn: 'elephant' },
     { t: 140, spawn: 'penguin', n: 3, gap: 1, say: 'Pingwiny! Też uciekły z zoo!' }, { t: 146, spawn: 'giraffe' },
     { t: 158, horde: 'Całe zoo!', say: 'Uwaga! Całe zoo idzie!' }, { t: 160, spawn: 'zebra', n: 4, gap: 1 }, { t: 164, spawn: 'kangaroo', n: 2, gap: 2 },
     { t: 170, spawn: 'elephant', n: 2, gap: 5 }, { t: 176, spawn: 'hippo' }, { t: 180, spawn: 'giraffe' },
   ] },
-  { name: 'Wielka horda', hero: 'farmer', len: 235, seeds: 8, start: ALL, stars: [20, 45, 70], script: [
+  { name: 'Wielka horda', hero: 'farmer', len: 235, seeds: 8, start: ALL, stars: [12, 40, 62], script: [
     { t: .5, say: 'Ostatni dzień! Wszystkie zwierzaki chcą zjeść nasz ogródek. Do dzieła!' },
     { t: 12, spawn: 'rabbit', n: 3, gap: 1.5 }, { t: 22, spawn: 'chicken', n: 4, gap: .6 }, { t: 32, spawn: 'mole', n: 2, gap: 2 },
     { t: 44, spawn: 'deer', n: 2, gap: 2 }, { t: 52, spawn: 'cow' }, { t: 60, spawn: 'zebra', n: 3, gap: 1 },

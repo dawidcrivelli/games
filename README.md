@@ -32,9 +32,11 @@ flowchart LR
   przy zbiorze, czerwień — obrona); rysunki z modeli 3D, koszt w kropkach-fasolkach: stuknij kartę, potem grządkę 9×5 (albo przeciągnij).
   Obrona z zasięgiem na ziemi, celowo nie za mocna: cebula ma 2 chmurki smrodu (nowa co 8 s, krowa / koza / bóbr / słoń ją zjadają),
   kolczasty krzak kłuje, ale się zużywa, strach na wróble co 5 s (kury uciekają od razu), lew ryczy na pas rzędu co 7 s, mysz płoszy słonie.
-  Zwierzaki mają pasek odwagi; stuknięcie — ręka dziadka z widłami z chmury (−1 odwagi, odepchnięcie); dziadek sam goni i zbiera plony.
+  Zwierzaki mają pasek odwagi; stuknięcie — ręka dziadka z widłami z chmury (−0,7 odwagi, odepchnięcie); dziadek sam goni (słabiej) i zbiera plony.
+  Duże uparciuchy (krowa, słoń, hipopotam) na widły tylko „Hmpf!” i jedzą dalej — na nie obrona; zwierzak przegoniony przez obronę gubi fasolkę.
+  Balans sprawdzany botem z 7 stylami gry (tylko sadzi / tylko stuka / ściana cebul / lwy / mieszany / twierdza / losowo jak dziecko).
   Rośliny brzydną gryzione, najedzone zwierzaki grubną i puszczają bąki. Bez przegranej: koniec dnia o zachodzie, 1–3 gwiazdki za kosz.
-  Lektor + napis na dole. Dane dni: `ogrodek/day.js`. `?test` (szybkie testy, `tools/quick.mjs`), `?lite`, `?dzien=4`, `?wszystkie` (otwarte dni),
+  Lektor + napis na dole. Dane dni: `ogrodek/day.js`. `?test` (szybkie testy, `tools/quick.mjs`), `?lite`, `?hq` (pełna grafika też w teście), `?el=45&fov=24&top=.22` (próby kamery), `?dzien=4`, `?wszystkie` (otwarte dni),
   `?zw=elephant,giraffe` — od razu te zwierzaki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js): `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka); z `lib/` tylko `common/dom.js`.
 - `kosmopatologia/`, `zoopatologia/` — gry 2D (canvas, pikselowa grafika) przeniesione z osobnych repo (stan z 2026-11-08: kosmopatologia `c5066df`, zoopatologia `7a5440b`; historia zostaje tam). `index.html`, `css/app.css`, `js/*.js` w kolejności z `index.html`; PWA: `manifest.json` + `sw.js` (offline). Nowy plik w `js/` → dopisz do `CORE` w `sw.js` i zmień `VERSION`.
