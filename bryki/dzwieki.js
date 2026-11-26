@@ -54,6 +54,10 @@ function snd(name) {
     case 'ryk': N(1.1, .7, 320, 110, 1.4, 0, 'lowpass'); T(95, 58, 1.1, 'sawtooth', .35, 0, [21, 22]); T(150, 92, 1.0, 'sawtooth', .2, .04, [17, 30]); N(.9, .3, 1300, 500, 2, .1); break;   // RYYYK
     case 'klakson_tygrys': T(330, 620, .22, 'sawtooth', .17, 0, [22, 25]); T(620, 290, .42, 'sawtooth', .17, .22, [22, 25]); break;               // „mrrr-au”
     case 'klakson_lew': T(78, 115, .45, 'sawtooth', .28, 0, [24, 18]); T(115, 70, .55, 'sawtooth', .28, .42, [24, 18]); N(.9, .2, 400, 200, 2, 0, 'lowpass'); break;   // „hrrr-uuu”
+    // kobra
+    case 'kas': N(.3, .35, 7000, 4500, .8, 0, 'highpass'); T(320, 90, .12, 'square', .25, .2); M(1800, .06, .25, .22); M(2200, .05, .2, .25); break;                   // sssss-KĄS (kły)
+    case 'slizg': N(1.3, .45, 6500, 3800, .8, 0, 'highpass'); T(110, 80, 1.2, 'sawtooth', .1, .1, [7, 25]); N(1.1, .2, 900, 500, 3, .15); break;                    // długi syk + pełzanie
+    case 'klakson_kobra': N(.45, .3, 6200, 4800, 1, 0, 'highpass'); T(150, 95, .55, 'sawtooth', .17, .3, [5, 10]); break;                                    // „sssss-hhaaa”
     // klaksony: każde auto po swojemu
     case 'klakson_rekin': T(200, 300, .25, 'sawtooth', .2, 0, [6, 6]); T(300, 300, .35, 'sawtooth', .2, .25); break;              // „a-uuu-ga”
     case 'klakson_ptak': [784, 988, 1175, 1568].forEach((f, i) => T(f, f * (i === 3 ? .8 : 1.05), i === 3 ? .4 : .12, 'square', .13, i * .12)); break;   // kukuryku
@@ -143,6 +147,14 @@ function audVoice(kind) {
     V.set = (r, tu) => { const b = 28 + 40 * r, t = A.currentTime;
       o1.frequency.setTargetAtTime(b, t, .07); sub.frequency.setTargetAtTime(b / 2, t, .07);
       f.frequency.setTargetAtTime(220 + 600 * r + (tu ? 700 : 0), t, .1); lp.frequency.setTargetAtTime(200 + 400 * r, t, .1); };
+  }
+  if (kind === 'kobra') {                    // syczący silnik: niska piła przez filtr + syk z szumu, falujący wężykiem
+    const o1 = osc('sawtooth', 36), o2 = osc('triangle', 54), f = filt('lowpass', 450, 4);
+    o1.connect(f); o2.connect(gain(.4)).connect(f); f.connect(out);
+    const n = noise(), hp = filt('highpass', 4800, .8), ng = gain(.05); n.connect(hp).connect(ng).connect(out); lfo(3.5, .035, ng.gain);
+    V.set = (r, tu) => { const b = 34 + 50 * r, t = A.currentTime;
+      o1.frequency.setTargetAtTime(b, t, .06); o2.frequency.setTargetAtTime(b * 1.5, t, .06);
+      f.frequency.setTargetAtTime(300 + 700 * r + (tu ? 800 : 0), t, .08); ng.gain.setTargetAtTime(.04 + .06 * r + (tu ? .08 : 0), t, .1); };
   }
   const setFn = V.set;
   V.set = (r, tu, vol, p = 0) => { const t = A.currentTime; setFn(r, tu); out.gain.setTargetAtTime(vol, t, .08); if (pan) pan.pan.setTargetAtTime(p, t, .08); };
