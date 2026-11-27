@@ -2,7 +2,7 @@
 
 Gry dla dzieci (3D: three.js r128; 2D: canvas), wcześniej artefakty Claude — teraz wspólny kod.
 
-**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [klinika](https://dawidcrivelli.github.io/games/klinika/), [ogrodek](https://dawidcrivelli.github.io/games/ogrodek/), [kosmopatologia](https://dawidcrivelli.github.io/games/kosmopatologia/) (2D), [zoopatologia](https://dawidcrivelli.github.io/games/zoopatologia/) (2D).
+**Launcher:** https://dawidcrivelli.github.io/games/ · gra bezpośrednio: `…/games/<id>/`, np. [ciuchcia](https://dawidcrivelli.github.io/games/ciuchcia/), [taxi](https://dawidcrivelli.github.io/games/taxi/), [zniwa](https://dawidcrivelli.github.io/games/zniwa/), [pralnia](https://dawidcrivelli.github.io/games/pralnia/), [arka](https://dawidcrivelli.github.io/games/arka/), [rafa](https://dawidcrivelli.github.io/games/rafa/), [piraci](https://dawidcrivelli.github.io/games/piraci/), [zle-owoce](https://dawidcrivelli.github.io/games/zle-owoce/) (2D), [bryki](https://dawidcrivelli.github.io/games/bryki/), [klinika](https://dawidcrivelli.github.io/games/klinika/), [kosmopatologia](https://dawidcrivelli.github.io/games/kosmopatologia/) (2D), [zoopatologia](https://dawidcrivelli.github.io/games/zoopatologia/) (2D).
 
 **Galeria modeli 3D:** https://dawidcrivelli.github.io/games/galeria/ — wszystkie warianty zwierząt, pojazdów, pociągów obok siebie (obrót, zoom). Zakładka „dźwięki”: klaksony i silniki z `lib/` do odsłuchania. Lista w `galeria/modele.js`; model budowany w ukrytej ramce z jego grą.
 
@@ -25,19 +25,6 @@ flowchart LR
 - Dwa zestawy pomocników 3D z tymi samymi nazwami (`mesh`, `box`, `M`) — nie łączyć w jednej grze: `lib/3d/shapes.js` (Ciuchcia, Taxi, Żniwa; `M` = paleta) i `lib/3d/zoo-kit.js` (pomocniki `ZOO`: Pralnia, Arka, Piraci, Klinika; `M()` = materiał). Podobnie `tone` w `lib/audio/synth.js` i `lib/audio/music.js`, warianty `mkHat` (`models/hats.js`, `models/pirates.js`).
 - Moduły samodzielne (własne helpery, jeden obiekt globalny): `models/animals.js` → `ZOO`, `models/sea.js` → `MORZE` (`MORZE_CFG={water:false}` nad wodą).
 - `klinika/` — weterynarz dla 4–6 lat, tylko poziomo (`obrotInit()`): pacjent przychodzi ulicą do kliniki (3D, kamera idzie za nim), rentgen lupą (warstwa kamery 1 w kole lupy), zabiegi palcem w 2.5D — zwierzęta z boku (żyrafa, słoń, tygrys, lew), wyprostowani (Pan Doktor, pingwin) od przodu. Jak w „Operacji”, ale łagodnie: trasy od startu do celu z kilkoma losowymi zakrętami, bez pętli (połknięta rzecz przełykiem do buzi albo przez brzuch do pupy, organy po jednym na swoje miejsce, uciekła kość do łapy + gips), układanki kości z liczeniem (szyja i ogon żyrafy, ogony słonia, tygrysa i lwa, palce doktora, żebra pingwina). Bez rentgena (`klinika/zabiegi3d.js`): drzazga, stetoskop, termometr i syrop, pchły, bandaż z gazy owijany kręceniem palca (łapa, szyja żyrafy, cała mumia), mycie kłów / zębów / dzioba (każdy pacjent; zoom na pysk). Wizyta = 3 losowe zabiegi z rentgenem + 1 bez + plasterki; test konkretnych: `?zabiegi=organ,kosc,pchly`. Bez przegranej; lektor = polska synteza mowy przeglądarki.
-- `ogrodek/` — Łakome Zwierzaki, dla 4–6 lat, tylko poziomo: obrona ogródka jak „rośliny kontra zombie” w scenerii Żniw (niebo, pogoda, traktor).
-  5 dni do wyboru w menu (gwiazdki zapisane w przeglądarce, następny dzień po ukończeniu poprzedniego): Króliki, Sarenki i krowy, Bobry,
-  Ucieczka z zoo (zebry, kangury, hipopotam, żyrafa je jabłonki, słoń boi się myszy), Wielka horda i finał „Ogródek uratowany!”.
-  Karty u góry w trzech kolorowych grupach (fiolet — magiczna fasola daje fasolki, zieleń — marchewka / pszenica / jabłonka: plon do kosza i fasolki
-  przy zbiorze, czerwień — obrona); rysunki z modeli 3D, koszt w kropkach-fasolkach: stuknij kartę, potem grządkę 9×5 (albo przeciągnij).
-  Obrona z zasięgiem na ziemi, celowo nie za mocna: cebula ma 2 chmurki smrodu (nowa co 8 s, krowa / koza / bóbr / słoń ją zjadają),
-  kolczasty krzak kłuje, ale się zużywa, strach na wróble co 5 s (kury uciekają od razu), lew ryczy na pas rzędu co 7 s, mysz płoszy słonie.
-  Zwierzaki mają pasek odwagi; stuknięcie — ręka dziadka z widłami z chmury (−0,7 odwagi, odepchnięcie); dziadek sam goni (słabiej) i zbiera plony.
-  Duże uparciuchy (krowa, słoń, hipopotam) na widły tylko „Hmpf!” i jedzą dalej — na nie obrona; zwierzak przegoniony przez obronę gubi fasolkę.
-  Balans sprawdzany botem z 7 stylami gry (tylko sadzi / tylko stuka / ściana cebul / lwy / mieszany / twierdza / losowo jak dziecko).
-  Rośliny brzydną gryzione, najedzone zwierzaki grubną i puszczają bąki. Bez przegranej: koniec dnia o zachodzie, 1–3 gwiazdki za kosz.
-  Lektor + napis na dole. Dane dni: `ogrodek/day.js`. `?test` (szybkie testy, `tools/quick.mjs`), `?lite`, `?hq` (pełna grafika też w teście), `?el=45&fov=24&top=.22` (próby kamery), `?dzien=4`, `?wszystkie` (otwarte dni),
-  `?zw=elephant,giraffe` — od razu te zwierzaki.
 - `zle-owoce/` — gra 2D (canvas, bez three.js): `kreska.js` (silnik ręcznej kreski), `postacie.js` (owoce, części, przeciwnicy, tła), `game.js` (zapis, dźwięk, kreator, walka); z `lib/` tylko `common/dom.js`.
 - `kosmopatologia/`, `zoopatologia/` — gry 2D (canvas, pikselowa grafika) przeniesione z osobnych repo (stan z 2026-11-08: kosmopatologia `c5066df`, zoopatologia `7a5440b`; historia zostaje tam). `index.html`, `css/app.css`, `js/*.js` w kolejności z `index.html`; PWA: `manifest.json` + `sw.js` (offline). Nowy plik w `js/` → dopisz do `CORE` w `sw.js` i zmień `VERSION`.
 - `orig/` — oryginalne artefakty (tylko do odczytu); `tools/split.mjs` zrobił z nich pierwszy podział (jednorazowo).
@@ -49,60 +36,54 @@ flowchart LR
 |---|---|---|---|
 | `lib/3d/comic.js` | 64 | bryki klinika | Styl „komiks”: kreskówkowe cieniowanie (toon) + czarny kontur odwróconą skorupą, bryły wyciągane z obrysu 2D. |
 | `lib/3d/guide-arrow.js` | 16 | taxi piraci | Strzałka „jak w Crazy Taxi” (Taxi, Piraci): płaska, z ciemnym obrysem, zawsze na wierzchu (bez testu głębi), nad pojazdem. |
-| `lib/3d/icons.js` | 27 | klinika ogrodek | Ikony z prawdziwych modeli 3D (zamiast emoji): osobny mały renderer z przezroczystym tłem, kamera dopasowana do bryły. |
-| `lib/3d/particles.js` | 28 | ciuchcia taxi zniwa ogrodek | Cząsteczki (iskry, kurz, krople, plewy): jedna chmura punktów w scenie, bufor cykliczny. |
-| `lib/3d/shapes.js` | 59 | ciuchcia taxi zniwa ogrodek | Bryły „miasta” (Ciuchcia, Taxi, Żniwa): tex(w, h, rysuj) — tekstura z płótna, lam/pho — materiały, mesh/box/cylX/Y/Z/rbox/ell/cone |
-| `lib/3d/sky.js` | 39 | ciuchcia taxi zniwa ogrodek | Niebo i pogoda dla gier „z miastem” (Ciuchcia, Taxi, Żniwa): kopuła z gradientem, słońce, księżyc, gwiazdy, |
+| `lib/3d/icons.js` | 27 | klinika | Ikony z prawdziwych modeli 3D (zamiast emoji): osobny mały renderer z przezroczystym tłem, kamera dopasowana do bryły. |
+| `lib/3d/particles.js` | 28 | ciuchcia taxi zniwa | Cząsteczki (iskry, kurz, krople, plewy): jedna chmura punktów w scenie, bufor cykliczny. |
+| `lib/3d/shapes.js` | 59 | ciuchcia taxi zniwa | Bryły „miasta” (Ciuchcia, Taxi, Żniwa): tex(w, h, rysuj) — tekstura z płótna, lam/pho — materiały, mesh/box/cylX/Y/Z/rbox/ell/cone |
+| `lib/3d/sky.js` | 39 | ciuchcia taxi zniwa | Niebo i pogoda dla gier „z miastem” (Ciuchcia, Taxi, Żniwa): kopuła z gradientem, słońce, księżyc, gwiazdy, |
 | `lib/3d/smoke.js` | 20 | ciuchcia taxi | Dym i para (kłęby z komina, rury wydechowej): 48 duszków, rosną i bledną, znosi je wiatr z pogody (WX.wind). |
-| `lib/3d/three.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika ogrodek | Skróty three.js wspólne dla gier 3D i plików lib/3d, models/: T = THREE, PI, TAU = 2π. |
-| `lib/3d/view.js` | 6 | ciuchcia taxi zniwa ogrodek | Dopasowanie widoku do okna: const resize = fitView(renderer, camera); addEventListener('resize', resize) |
-| `lib/3d/weather.js` | 18 | ciuchcia taxi zniwa ogrodek | Pogoda „miasta” (Ciuchcia, Taxi, Żniwa): applyWeather(w, świat) ustawia niebo, mgłę, słońce, światło nieba, chmury, okna nocą, |
+| `lib/3d/three.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika | Skróty three.js wspólne dla gier 3D i plików lib/3d, models/: T = THREE, PI, TAU = 2π. |
+| `lib/3d/view.js` | 6 | ciuchcia taxi zniwa | Dopasowanie widoku do okna: const resize = fitView(renderer, camera); addEventListener('resize', resize) |
+| `lib/3d/weather.js` | 18 | ciuchcia taxi zniwa | Pogoda „miasta” (Ciuchcia, Taxi, Żniwa): applyWeather(w, świat) ustawia niebo, mgłę, słońce, światło nieba, chmury, okna nocą, |
 | `lib/3d/zoo-kit.js` | 6 | pralnia arka piraci klinika | Pomocniki 3D z modułu ZOO (models/animals.js) jako nazwy globalne — styl „słodziaków”: Pralnia, Arka, Piraci, Klinika. |
 | `lib/audio/ambience.js` | 19 | ciuchcia taxi | Dźwięk gier z pojazdami (Ciuchcia, Taxi): initAudio() zakłada AU (kontekst, kompresor, bufor szumu) i stałe pętle: |
 | `lib/audio/aud.js` | 43 | bryki klinika | Dźwięki syntezowane w Web Audio (bez plików) — klocki z własnym stanem AUD (styl Dzikich Bryk). |
-| `lib/audio/critters.js` | 115 | ogrodek | Odgłosy zwierzaków i ogródka (syntezowane, bez plików) na wspólnym stanie AU z lib/audio/synth.js. |
 | `lib/audio/diesel.js` | 29 | taxi zniwa | Niski, klekoczący silnik diesla (traktor, kombajn): dieselProfile, dieselCreate, dieselSet(obroty, gaz). |
 | `lib/audio/engine.js` | 50 | taxi | Silnik spalinowy z biegami: stałe generatory sterowane obrotami, strzały z wydechu, pisk opon, syrena. |
 | `lib/audio/horns.js` | 31 | ciuchcia taxi | Klaksony i gwizdki pojazdów: hornKind, hornStart (trzymany klakson), whistleStart, trainHornStart, hornStop, hornTap. |
 | `lib/audio/music.js` | 32 | pralnia arka piraci | Dźwięk w stylu Pralni / Arki / Piratów: musicInit zakłada AC (AudioContext), master, sfx i mus (efekty, muzyka), nbuf (szum). |
-| `lib/audio/speech.js` | 15 | ogrodek | Lektor: krótkie polskie zdania mową syntetyczną przeglądarki (dla dzieci, które jeszcze nie czytają). |
-| `lib/audio/synth.js` | 15 | ciuchcia taxi zniwa ogrodek | Syntezator na wspólnym stanie AU (Web Audio): tone(częstotliwość, czas, fala, głośność, f2, opóźnienie) — ton ze zjazdem, |
+| `lib/audio/synth.js` | 15 | ciuchcia taxi zniwa | Syntezator na wspólnym stanie AU (Web Audio): tone(częstotliwość, czas, fala, głośność, f2, opóźnienie) — ton ze zjazdem, |
 | `lib/common/angle.js` | 3 | ciuchcia taxi zniwa | Kąty: wrap(a) → a w przedziale [-π, π] (różnica kierunków, skręcanie najkrótszą drogą). |
-| `lib/common/dom.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika ogrodek zle-owoce | DOM: $(id) → element; tap(id, fn) — kliknięcie / dotknięcie przycisku (bez domyślnej akcji). |
-| `lib/common/math.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci ogrodek | Liczby: clamp(v, a, b) — przytnij do [a, b]; lerp(a, b, t) — interpolacja liniowa. |
+| `lib/common/dom.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika zle-owoce | DOM: $(id) → element; tap(id, fn) — kliknięcie / dotknięcie przycisku (bez domyślnej akcji). |
+| `lib/common/math.js` | 4 | ciuchcia taxi zniwa pralnia arka rafa piraci | Liczby: clamp(v, a, b) — przytnij do [a, b]; lerp(a, b, t) — interpolacja liniowa. |
 | `lib/common/noise.js` | 5 | ciuchcia taxi zniwa arka rafa | Szum wartości 2D: hash2(x, y) → [0, 1), vnoise(x, y) — gładki szum (plamy na łące, piasek, fale). |
-| `lib/common/random.js` | 6 | ciuchcia taxi zniwa rafa ogrodek | Losowanie z ziarnem (ten sam świat dla tego samego seed): rnd() → [0, 1), rr(a, b) → [a, b). |
-| `lib/common/screen.js` | 52 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika ogrodek | Ekran telefonu: goFS() — pełny ekran; obrotInit({ pion }) — plansza „Obróć telefon poziomo/pionowo” + pełny ekran |
+| `lib/common/random.js` | 6 | ciuchcia taxi zniwa rafa | Losowanie z ziarnem (ten sam świat dla tego samego seed): rnd() → [0, 1), rr(a, b) → [a, b). |
+| `lib/common/screen.js` | 52 | ciuchcia taxi zniwa pralnia arka rafa piraci bryki klinika | Ekran telefonu: goFS() — pełny ekran; obrotInit({ pion }) — plansza „Obróć telefon poziomo/pionowo” + pełny ekran |
 | `lib/input/tilt.js` | 31 | taxi zniwa rafa | Przechylanie telefonu (żyroskop) jako sterowanie: stan tilt = {on, x, y, …} (x w prawo, y od siebie, od -1 do 1). |
-| `lib/ui/comic.css` | 26 | bryki klinika ogrodek | Styl „komiks”: tabliczki-przyciski, okienka, komiksowe napisy w gwieździe, konfetti — Dzikie Bryki, Klinika Zoo. |
-| `lib/ui/comic.js` | 8 | bryki klinika ogrodek | Komiksowy napis w gwieździe (CSS .bub z lib/ui/comic.css) w punkcie ekranu X, Y; znika sam |
+| `lib/ui/comic.css` | 26 | bryki klinika | Styl „komiks”: tabliczki-przyciski, okienka, komiksowe napisy w gwieździe, konfetti — Dzikie Bryki, Klinika Zoo. |
+| `lib/ui/comic.js` | 8 | bryki klinika | Komiksowy napis w gwieździe (CSS .bub z lib/ui/comic.css) w punkcie ekranu X, Y; znika sam |
 | `lib/ui/controls.js` | 8 | ciuchcia taxi | Przyciski sterowania: holdBtn(id, klucz, keys) — trzymany przycisk ustawia keys[klucz] = 1 (klasa .on); |
 | `lib/ui/toast.js` | 6 | ciuchcia taxi zniwa rafa | Krótki komunikat: toast(tekst, ms = 3200) — wstawia tekst do #toast i dodaje klasę .show na ms milisekund |
 | `models/anatomy.js` | 358 | klinika | Klinika Zoo — wnętrze pacjenta w rentgenie: kości (świecące, z niebieską poświatą), organy (kreskówkowe, kolorowe), |
 | `models/animal-rides.js` | 33 | zniwa | Zwierzęta jako pojazdy (Żniwa): saddle (siodło), rideAnimal (zwierzak z ZOO + siedzisko i kierowca), buildGiraffe, buildElephant. |
-| `models/animals.js` | 232 | taxi zniwa pralnia arka piraci klinika ogrodek | Zwierzęta „słodziaki” (z Pralni Zoo) — samodzielny moduł z własnymi helperami, działa w każdej grze z three.js. |
-| `models/buildings.js` | 19 | ciuchcia taxi zniwa ogrodek | Budynki: gableHouse (dom z dwuspadowym dachem), groundPad (płyta), ramp (peron/rampa), nameBoard (tablica z nazwą na słupkach). |
+| `models/animals.js` | 231 | taxi zniwa pralnia arka piraci klinika | Zwierzęta „słodziaki” (z Pralni Zoo) — samodzielny moduł z własnymi helperami, działa w każdej grze z three.js. |
+| `models/buildings.js` | 19 | ciuchcia taxi zniwa | Budynki: gableHouse (dom z dwuspadowym dachem), groundPad (płyta), ramp (peron/rampa), nameBoard (tablica z nazwą na słupkach). |
 | `models/cab.js` | 39 | ciuchcia taxi | Taksówka i radiowóz: carFace (światła, zderzaki, atrapa, tablice), buildTaxi, buildPolice. |
 | `models/cars.js` | 89 | ciuchcia taxi | Auta: mkAuto (podwozie, koła, kierownica, kamera), nadwozie z bocznego zarysu (profGeo), szyby, autobus, wyścigówka, auta AI. |
-| `models/farm-animals.js` | 125 | ogrodek | Zwierzęta z gospodarstwa w stylu „słodziaków” (dopisane do ZOO.MK): królik, kura, krowa, koza, mysz. |
 | `models/farm.js` | 287 | zniwa | Maszyny rolnicze (Żniwa): makeScrew (ślimak), buildCombine (kombajn z hederem zbożowym / do kukurydzy), buildPlough, buildSeeder, |
-| `models/farmer.js` | 93 | ogrodek | Rolnik-dziadek w stylu „słodziaków” (dopisany do ZOO.MK.farmer): słomkowy kapelusz, siwe wąsy, okrągłe okulary, |
-| `models/forest-animals.js` | 76 | ogrodek | Zwierzęta z lasu i łąki w stylu „słodziaków” (dopisane do ZOO.MK): sarenka, kret, bóbr. |
-| `models/grass.js` | 48 | zniwa ogrodek | Kępki trawy i zboża: tuftGeo(rodzaj) → geometria do InstancedMesh (pszenica, kukurydza, trawa…). |
+| `models/grass.js` | 48 | zniwa | Kępki trawy i zboża: tuftGeo(rodzaj) → geometria do InstancedMesh (pszenica, kukurydza, trawa…). |
 | `models/hats.js` | 10 | pralnia | Czapki dla zwierzaków (Pralnia): mkHat(rodzaj) → Group. Wariant mkHat w models/pirates.js — nie ładować obu. |
 | `models/landmarks.js` | 210 | ciuchcia taxi | Budynki Ciuchciowa: dworce (CIUCHCIOWO, BOCIANOWO), domki, kopalnia, tartak, las, zoo, staw z przystankiem, elektrownia. |
 | `models/nature.js` | 7 | pralnia klinika | Przyroda w stylu „słodziaków”: duck (kaczka), tree (drzewo), palm (palma) — (rodzic, x, y, z, skala). |
-| `models/people.js` | 19 | ciuchcia taxi zniwa ogrodek | Ludzie: makeFarmer(ręka w górze) — rolnik/kierowca w kapeluszu; pedGroup, pedMats — piesi na chodniku. |
+| `models/people.js` | 19 | ciuchcia taxi zniwa | Ludzie: makeFarmer(ręka w górze) — rolnik/kierowca w kapeluszu; pedGroup, pedMats — piesi na chodniku. |
 | `models/pirates.js` | 91 | piraci klinika | Piraci: ludziki (mkHuman), czapki, opaski, wojownicy (mkFighter: zwierzak z ZOO lub ludzik + broń). |
 | `models/plane.js` | 13 | taxi | Samolot (Taxi): planeBody(kolor) — kadłub ze skrzydłami i śmigłem, buildPlane — samolot jako pojazd (mkAuto). |
-| `models/plants.js` | 161 | ogrodek | Rośliny ogródka w stylu „słodziaków”: rosną, więdną gryzione, trzęsą się ze strachu. Obiekt globalny PLANTS. |
 | `models/sea.js` | 354 | arka rafa piraci | Zwierzęta morskie (z Rafy koralowej) — samodzielny moduł: geometria, materiał z animacją wierzchołków. |
 | `models/ships.js` | 141 | piraci | Okręty: kadłub (hullGeo, wymiary SH), deski, działa (mkCannon), żagle, flagi, buildShip(opcje) — maszty, wanty, załoga. |
-| `models/tractor.js` | 90 | ciuchcia taxi zniwa ogrodek | Ursus C-330: kabina, maska, koła z bieżnikiem, światła, kierowca, tablica rejestracyjna (M.uPlate). |
+| `models/tractor.js` | 90 | ciuchcia taxi zniwa | Ursus C-330: kabina, maska, koła z bieżnikiem, światła, kierowca, tablica rejestracyjna (M.uPlate). |
 | `models/trains.js` | 166 | ciuchcia taxi | Pociągi: parowóz z tendrem, wagony osobowe i towarowe, EU07, Pendolino; koła szynowe, sprzęgi, zderzaki. |
-| `models/vehicle-parts.js` | 27 | ciuchcia taxi zniwa ogrodek | Części pojazdów: makeWheel (koło z felgą i bieżnikiem), makeSteeringWheel (kierownica), gaugeNeedle (wskazówka zegara). |
+| `models/vehicle-parts.js` | 27 | ciuchcia taxi zniwa | Części pojazdów: makeWheel (koło z felgą i bieżnikiem), makeSteeringWheel (kierownica), gaugeNeedle (wskazówka zegara). |
 | `models/weapons.js` | 39 | piraci | Broń biała i pociski (Piraci): bladeGeo, mkWeapon(rodzaj) — szabla, miecz, rapier, katana, topór, łuk, kotwica, trójząb…, |
-| `models/wild-cars.js` | 547 | bryki | Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku. |
+| `models/wild-cars.js` | 636 | bryki | Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku. |
 <!-- /KATALOG -->
 
 ## Narzędzia

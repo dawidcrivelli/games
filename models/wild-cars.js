@@ -1,6 +1,6 @@
 // Bryki — groźne pojazdy inspirowane zwierzętami, „zespawane” z blach, z nitami i spawami. Bez zwierząt w środku.
 // Widok z boku (2.5D): przód = +x, góra = +y, szerokość wzdłuż z. Kreskówkowe cieniowanie + czarny kontur.
-// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz'|'zaba'|'tygrys'|'lew', kolory?) → { g, body, kind, p: części, wheels, len }
+// buildBryka('rekin'|'ptak'|'osmiornica'|'krab'|'nietoperz'|'zaba'|'tygrys'|'lew'|'kobra', kolory?) → { g, body, kind, p: części, wheels, len }
 // brykaPose(b, 'jazda'|'atak'|'moc'|'oberwal', k 0..1) · brykaTick(b, dt, prędkość) — koła, bujanie, macki, pióra
 // wymaga: lib/3d/comic.js, lib/ui/comic.js (brMat, brPart, brExt, brBox, brCyl, brLimb), THREE
 
@@ -13,6 +13,7 @@ const BRYKI_KOLORY = () => ({
   zaba: { a: 0x3f9a34, b: 0xe6e08a, c: 0xff5a8a },
   tygrys: { a: 0xf0841c, b: 0xfff1dc, c: 0x1e1a1a },
   lew: { a: 0xe0a83a, b: 0xfff0c8, c: 0x9a4a1a },
+  kobra: { a: 0x123a20, b: 0xd9c27a, c: 0x081209 },
 });
 
 // Nity: rząd od (x0,y0) do (x1,y1), po obu bokach ±z
@@ -72,7 +73,7 @@ function buildBryka(kind, kol) {
   const C = { ...BRYKI_KOLORY()[kind], ...(kol || {}) };
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = { g, body, kind, C, p: {}, wheels: [], t: 0, len: 4.6, pose: {} };
-  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz, zaba: brZaba, tygrys: brTygrys, lew: brLew })[kind](b);
+  ({ rekin: brRekin, ptak: brPtak, osmiornica: brOsmiornica, krab: brKrab, nietoperz: brNietoperz, zaba: brZaba, tygrys: brTygrys, lew: brLew, kobra: brKobra })[kind](b);
   g.userData.bryka = kind;
   return b;
 }
@@ -460,6 +461,75 @@ function brLew(b) {
   b.len = 5.2;
 }
 
+// KOBRA: długie, niskie nadwozie w łuski (ciemne romby na grzbiecie, złoty pas na bokach), z przodu głowa na szyi-wysięgniku
+// (szyja na zawiasie: w jeździe pochylona do przodu, głowa jak ozdoba na masce); kaptur za głową — złożony, w mocy rozłożony,
+// z tyłu wzór „okularów” (widać go od tyłu); złe oczy z brwiami, w mocy świecą na czerwono (b.p.red); kły na tłoczkach (b.p.fangs),
+// żuchwa na zawiasie, rozwidlony język; długi ogon z segmentów (faluje wężykiem).
+// Głowa w mocy obraca się do widza: b.lookYaw (kąt wokół pionu, domyślnie −0,6), b.lookK 0..1 (domyślnie = k pozy).
+function brKobra(b) {
+  const B = b.body, C = b.C, W = 1.8, Z = W / 2, GOLD = 0xd4a62a;
+  const top = [[-2.45, 1.05], [-2.1, 1.3], [-1.2, 1.38], [-.2, 1.42], [.6, 1.38], [1.3, 1.22], [1.9, .98], [2.25, .75]];
+  brPart(B, brExt([[-2.4, .55, 1], ...top, [2.3, .55, 1]], W, .05, 1), C.a);
+  brPart(B, brExt([[-2.35, .5], [2.25, .5], [2.25, .78], [-2.35, .74]], W + .12, .03), C.b);              // jasny brzuch
+  const roofY = x => { for (let i = 1; i < top.length; i++) if (x <= top[i][0]) { const [x0, y0] = top[i - 1], [x1, y1] = top[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); } return .75; };
+  const dia = new THREE.OctahedronGeometry(.3, 0);
+  for (let i = 0; i < 7; i++) { const x = -2.0 + i * .55; brPart(B, dia, i % 2 ? C.c : 0xd4a62a, x, roofY(x) + .02, 0, { s: [1.1, .14, 1.5], ol: .015 }); }   // romby na grzbiecie
+  for (const sd of [-1, 1]) {
+    brPart(B, brBox(4.3, .07, .03), GOLD, -.1, 1.02, sd * (Z + .02), { ol: 0 });                          // złoty pas
+    for (let i = 0; i < 8; i++) brPart(B, brBox(.2, .2, .03), C.c, -2.0 + i * .55, 1.02, sd * (Z + .03), { r: [0, 0, Math.PI / 4], ol: 0 });
+  }
+  // szyja z głową i kapturem
+  const neck = new THREE.Group(); neck.position.set(.75, 1.25, 0); B.add(neck); b.p.neck = neck;
+  brLimb(neck, [0, -.1, 0], [0, 1.25, 0], .3, .26, C.a);
+  for (let i = 0; i < 4; i++) brPart(neck, brBox(.06, .2, .34), C.b, .27, .15 + i * .27, 0, { ol: .01 });   // płytki brzuszne z przodu szyi
+  const hood = new THREE.Group(); hood.position.set(-.08, .8, 0); neck.add(hood); b.p.hood = hood;
+  brPart(hood, new THREE.SphereGeometry(1, 16, 12), C.a, 0, 0, 0, { s: [.1, .85, 1.05], ol: .025 });
+  brPart(hood, new THREE.SphereGeometry(1, 14, 10), C.b, .04, -.06, 0, { s: [.08, .68, .72], ol: 0 });     // jasny przód kaptura
+  for (const sd of [-1, 1]) {                                // „okulary” z tyłu kaptura
+    brPart(hood, new THREE.TorusGeometry(.2, .06, 6, 16), C.b, -.09, .14, sd * .38, { r: [0, Math.PI / 2, 0], ol: .01 });
+    brPart(hood, brCyl(.13, .13, .03, 12, 'x'), C.c, -.1, .14, sd * .38, { ol: 0 });
+  }
+  brPart(hood, brBox(.03, .08, .42), C.b, -.1, .06, 0, { ol: 0 });
+  const head = new THREE.Group(); head.position.set(0, 1.25, 0); head.rotation.order = 'ZYX'; head.scale.setScalar(1.22); neck.add(head); b.p.head = head;
+  brPart(head, brExt([[-.35, -.12], [-.38, .14], [-.1, .32], [.45, .3], [.85, .14], [.98, -.02], [.9, -.1], [-.35, -.12]], .9, .04, 1), C.a);
+  brPart(head, dia, GOLD, .15, .33, 0, { s: [.8, .12, .6], ol: .012 });                                    // złoty romb na czole
+  brPart(head, brBox(.5, .1, .5), 0x5a0f12, .45, -.12, 0, { ol: 0 });                                       // gardło
+  for (const sd of [-1, 1]) brPart(head, new THREE.SphereGeometry(.035, 6, 4), C.c, .9, .08, sd * .1, { ol: 0 });   // nozdrza
+  const jaw = new THREE.Group(); jaw.position.set(-.2, -.1, 0); head.add(jaw); b.p.jaw = jaw;
+  brPart(jaw, brExt([[0, 0], [1.05, .02], [.95, -.12, 1], [0, -.18]], .8, .03), C.b);
+  const fangs = new THREE.Group(); fangs.position.set(.78, -.08, 0); head.add(fangs); b.p.fangs = fangs;
+  for (const sd of [-1, 1]) brPart(fangs, new THREE.ConeGeometry(.055, .36, 6), 0xf6f3e8, 0, -.16, sd * .26, { r: [0, 0, Math.PI + .12], ol: .012 });
+  const tongue = new THREE.Group(); tongue.position.set(.85, -.07, 0); head.add(tongue); b.p.tongue = tongue;
+  brPart(tongue, brBox(.45, .03, .06), 0xd0203a, .22, 0, 0, { ol: 0 });
+  for (const sd of [-1, 1]) brPart(tongue, brBox(.18, .03, .045), 0xd0203a, .5, 0, sd * .04, { r: [0, sd * -.5, 0], ol: 0 });
+  // oczy: żółte z pionową źrenicą i groźną brwią; w mocy czerwone, świecące (z poświatą)
+  const red = new THREE.Group(); head.add(red); b.p.red = red; red.visible = false;
+  const glow = new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: .3, depthWrite: false, blending: THREE.AdditiveBlending });
+  for (const sd of [-1, 1]) {
+    brPart(head, new THREE.SphereGeometry(.13, 12, 9), brMat(0xffd23f, 'glow'), .56, .25, sd * .3, { ol: .02 });
+    brPart(head, brBox(.05, .17, .05), brMat(0x111111, 'glow'), .66, .25, sd * .36, { r: [0, sd * -.9, 0], ol: 0 });   // pionowa źrenica
+    brPart(head, brBox(.34, .06, .2), C.c, .52, .38, sd * .3, { r: [sd * .35, 0, -.5], ol: .01 });                    // brew: w dół ku nosowi
+    brPart(red, new THREE.SphereGeometry(.15, 12, 9), brMat(0xff2a1a, 'glow'), .56, .25, sd * .3, { ol: .02 });
+    const h = new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 9), glow); h.position.set(.62, .25, sd * .32); red.add(h);
+  }
+  // ogon: segmenty od tyłu nadwozia, w paski, z kolcem na końcu
+  b.p.tail = [];
+  let par = B, x0 = -2.4;
+  for (let i = 0; i < 6; i++) {
+    const sg = new THREE.Group(); sg.position.set(x0, i ? 0 : .95, 0); par.add(sg); b.p.tail.push(sg);
+    const r = .22 - i * .03;
+    brLimb(sg, [0, 0, 0], [-.42, 0, 0], r, r - .03, i % 2 ? C.c : C.a);
+    par = sg; x0 = -.42;
+  }
+  brPart(par, new THREE.ConeGeometry(.07, .3, 6), C.c, -.55, 0, 0, { r: [0, 0, Math.PI / 2], ol: .012 });
+  brPipe(B, -1.7, .95, Z + .05, .9, .6); brPipe(B, -1.7, .95, -Z - .05, .9, .6);
+  brPatch(B, -1.0, .95, .5, .3, Z + .02, 0x6a5a2a, .06);
+  brWeld(B, .2, .8, .15, 1.38, Z + .01);
+  brRivets(B, -2.2, .66, 2.0, .66, 12, Z + .07, GOLD);
+  brWheels(b, [1.3, -1.5], Z + .12, .55, .48, GOLD);
+  b.len = 5.2;
+}
+
 /* --- pozy i animacja --- */
 // k = 0..1; każda poza liczona od zera (neutralnej)
 function brykaPose(b, pose, k = 1) {
@@ -518,6 +588,18 @@ function brykaPose(b, pose, k = 1) {
     P.mane.scale.setScalar(1 + .12 * a + .45 * m);                                                       // ryk: grzywa się jeży
     B.rotation.z = .12 * m;
   }
+  if (b.kind === 'kobra') {
+    const a = pose === 'atak' ? k : 0, m = pose === 'moc' ? k : 0, L = (b.lookK ?? 1) * m;
+    const th = -1.15 + 1.25 * m - .35 * a;                                                          // szyja: pochylona → wyprostowana (moc) / wypad (atak)
+    P.neck.rotation.z = th;
+    P.head.rotation.set(0, (b.lookYaw ?? -.6) * L, -th - .25 * a + .1 * m);                         // głowa poziomo, w mocy do widza
+    P.head.scale.setScalar(1.22 * (1 + .4 * L));                                                    // groźna mina z bliska: głowa rośnie
+    P.jaw.rotation.z = -.55 * a - .4 * m;
+    P.fangs.scale.set(1, .2 + .8 * Math.max(a, m), 1);
+    P.hood.scale.set(1, .75 + .35 * m, .3 + .75 * m);
+    P.red.visible = m > .3;
+    B.position.y = -.12 * m;                                                                       // ślizg: nisko przy ziemi
+  }
   if (pose === 'oberwal') { B.rotation.z = .22 * k; B.rotation.x = .12 * k; B.position.y = .25 * k; }
   b.baseY = B.position.y;
   brykaTick(b, 0, 0);
@@ -543,5 +625,12 @@ function brykaTick(b, dt, v) {
   if (b.kind === 'ptak' && b.pose.pose === 'moc') P.wings.forEach(w => { w.rotation.z = -(1.5 + Math.sin(t * 14) * .4) * b.pose.k; });
   if (b.kind === 'rekin') P.fin.rotation.x = b.pose.pose === 'moc' ? Math.sin(t * 9) * .08 : 0;
   if (b.kind === 'tygrys' || b.kind === 'lew') P.tail.rotation.x = Math.sin(t * 3) * .25;                 // ogon się kołysze
+  if (b.kind === 'kobra') {                                                                          // ogon wężykiem, język, w mocy całe auto się wije
+    const m = b.pose.pose === 'moc' ? b.pose.k : 0;
+    P.tail.forEach((sg, i) => { sg.rotation.y = Math.sin(t * (4 + 5 * m) - i * .9) * (.16 + .3 * m); sg.rotation.z = i ? .05 : .2; });
+    const f = (t * 1.3) % 2.2; P.tongue.scale.x = f < .35 || m > 0 ? Math.max(.01, Math.sin(Math.min(1, f / .35) * Math.PI)) + m * .3 : .01;
+    P.tongue.visible = P.tongue.scale.x > .05;
+    b.body.rotation.y = Math.sin(t * 9) * .1 * m;
+  }
   if (b.kind === 'lew') P.mane.rotation.x = b.pose.pose === 'moc' ? Math.sin(t * 40) * .06 * b.pose.k : 0;
 }

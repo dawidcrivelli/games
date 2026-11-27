@@ -1,7 +1,7 @@
 // Galeria: co pokazać. Model budowany w ukrytej ramce z grą `gra` (jej silnik, materiały),
 // `js` = wyrażenie zwracające Object3D, {g|root}, geometrię albo tablicę. `typ` grupuje warianty obok siebie.
 // kategoria → plik z modelami (podpis w galerii); inny plik dla wariantu: `plik` we wpisie
-const KAT_PLIK = { 'zwierzęta': 'models/animals.js', ogródek: 'models/plants.js', pozy: 'models/animals.js', morze: 'models/sea.js', ludzie: 'models/people.js', pojazdy: 'models/cars.js', rolnicze: 'models/farm.js', 'pociągi': 'models/trains.js', piraci: 'models/pirates.js', statki: 'models/ships.js', 'broń': 'models/weapons.js', bryki: 'models/wild-cars.js', trasy: 'bryki/tracks.js', pacjenci: 'klinika/patients.js', anatomia: 'models/anatomy.js' };
+const KAT_PLIK = { 'zwierzęta': 'models/animals.js', pozy: 'models/animals.js', morze: 'models/sea.js', ludzie: 'models/people.js', pojazdy: 'models/cars.js', rolnicze: 'models/farm.js', 'pociągi': 'models/trains.js', piraci: 'models/pirates.js', statki: 'models/ships.js', 'broń': 'models/weapons.js', bryki: 'models/wild-cars.js', trasy: 'bryki/tracks.js', pacjenci: 'klinika/patients.js', anatomia: 'models/anatomy.js' };
 const KATEGORIE = Object.keys(KAT_PLIK);
 const ZOO = [['słoń', 'elephant'], ['żyrafa', 'giraffe'], ['zebra', 'zebra'], ['hipopotam', 'hippo'], ['krokodyl', 'crocodile'],
   ['lew', 'lion'], ['tygrys', 'tiger'], ['panda', 'panda'], ['pingwin', 'penguin'], ['kangur', 'kangaroo']];
@@ -16,17 +16,6 @@ const MODELE = [
   // pojazdy w żniwach: ten sam model + siedzisko
   { kat: 'zwierzęta', typ: 'słoń', gra: 'zniwa', plik: 'models/animal-rides.js', js: 'buildElephant()' },
   { kat: 'zwierzęta', typ: 'żyrafa', gra: 'zniwa', plik: 'models/animal-rides.js', js: 'buildGiraffe()' },
-  // Łakome Zwierzaki: zwierzęta z gospodarstwa i lasu (te same pozy i animacja co ZOO), dziadek, ręka z widłami
-  ...[['królik', 'rabbit'], ['kura', 'chicken'], ['krowa', 'cow'], ['koza', 'goat'], ['mysz', 'mouse']].map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'ogrodek', plik: 'models/farm-animals.js', js: `ZOO.MK.${f}()` })),
-  ...[['sarenka', 'deer'], ['kret', 'mole'], ['bóbr', 'beaver']].map(([typ, f]) => ({ kat: 'zwierzęta', typ, gra: 'ogrodek', plik: 'models/forest-animals.js', js: `ZOO.MK.${f}()` })),
-  ...['stand', 'cheer', 'swipe', 'crouch'].map(pz => ({ kat: 'ludzie', typ: 'dziadek', gra: 'ogrodek', plik: 'models/farmer.js', js: `(() => { const a = ZOO.MK.farmer(); ZOO.pose(a, '${pz}'); ZOO.anim(a, 1); ZOO.anim(a, 1); return a; })()` })),
-  { kat: 'ludzie', typ: 'ręka z widłami', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.skyHand().g' },
-  { kat: 'ludzie', typ: 'widły', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.pitchfork()' },
-  { kat: 'ludzie', typ: 'strach na wróble', gra: 'ogrodek', plik: 'models/farmer.js', js: 'ZOO.scarecrow().g' },
-  ...['beanstalk', 'carrot', 'wheat', 'cabbage', 'sunflower', 'onion', 'garlic', 'thorns', 'tree'].flatMap(k => [[1, 1], [.45, 1], [1, .35]].map(([g, h]) =>
-    ({ kat: 'ogródek', typ: k, gra: 'ogrodek', js: `(() => { const p = PLANTS.make('${k}'); PLANTS.set(p, ${g}, ${h}); PLANTS.anim(p, 0, 0); return p.g; })()` }))),
-  ...['pine', 'leafy', 'bush', 'seed', 'bean', 'apple'].map(k => ({ kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: `PLANTS.${k}()` })),
-  { kat: 'ogródek', typ: 'krajobraz', gra: 'ogrodek', js: 'PLANTS.basket(true)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0x8794a6, 0xb7c0cc, false)' },
   { kat: 'zwierzęta', typ: 'szczur', gra: 'arka', plik: 'arka/game.js', js: 'ratGeo(0xc9a27e, 0xe6cdb0, true)' },
 
@@ -78,7 +67,7 @@ const MODELE = [
 
   ...['wood', 'saber', 'bow', 'sword', 'rapier', 'axe', 'katana', 'anchor', 'trident', 'swordfish'].map(id => ({ kat: 'broń', typ: id, gra: 'piraci', js: `mkWeapon('${id}')` })),
   // Dzikie Bryki: każdy pojazd w pozach jazda / atak / moc / oberwał (brykaPose)
-  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba'], ['tygrys', 'tygrys'], ['lew', 'lew']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
+  ...[['rekin', 'rekin'], ['ptak', 'ptak'], ['ośmiornica', 'osmiornica'], ['krab', 'krab'], ['nietoperz', 'nietoperz'], ['żaba', 'zaba'], ['tygrys', 'tygrys'], ['lew', 'lew'], ['kobra', 'kobra']].flatMap(([typ, k]) => ['jazda', 'atak', 'moc', 'oberwal']
     .map(pz => ({ kat: 'bryki', typ, gra: 'bryki', js: `(() => { const b = buildBryka('${k}'); brykaPose(b, '${pz}', 1); return b.g; })()` }))),
 
   // Dzikie Bryki — trasy: przeszkody na pasach i rekwizyty przy drodze (bryki/tracks.js)

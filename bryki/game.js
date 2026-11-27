@@ -5,20 +5,20 @@
 // Tryb Infinity (diff 'inf'): sam gracz, w pionie, kamera za autem; przeszkody lecą z góry ekranu, 60 s jazdy, wynik w metrach,
 // pasek serii (bez uderzeń) przyspiesza auto, uderzenie zeruje serię i spowalnia jak w wyścigu.
 const PAS = 3.5, LANES = [-1.5, -.5, .5, 1.5].map(k => k * PAS), ROAD = 4 * PAS + .6;
-const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba', 'tygrys', 'lew'];
-const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸', tygrys: '🐯', lew: '🦁' };
-const MOC_IC = { rekin: '🌊', ptak: '🪽', osmiornica: '🐙', krab: '🛡️', nietoperz: '🦇', zaba: '🦿', tygrys: '🐾', lew: '📣' };
-const WORD_ATAK = { rekin: 'CHAP!', ptak: 'DZIOB!', osmiornica: 'PLUM!', krab: 'SZCZYP!', nietoperz: 'PIIISK!', zaba: 'MLASK!', tygrys: 'DRAP!', lew: 'GRRR!' };
-const WORD_MOC = { rekin: 'PŁETWA!', ptak: 'FRUU!', osmiornica: 'CHWYT!', krab: 'KOLCE!', nietoperz: 'RÓJ!', zaba: 'HOPSA!', tygrys: 'SUS!', lew: 'RYYYK!' };
-const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szczyp', nietoperz: 'pisk', zaba: 'jezyk', tygrys: 'drap', lew: 'grr' };
-const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna', tygrys: 'sus', lew: 'ryk' };
-const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: 'Krab', nietoperz: 'Nietoperz', zaba: 'Żaba', tygrys: 'Tygrys', lew: 'Lew',
+const KINDS = ['rekin', 'ptak', 'osmiornica', 'krab', 'nietoperz', 'zaba', 'tygrys', 'lew', 'kobra'];
+const IC = { rekin: '🦈', ptak: '🐦', osmiornica: '🐙', krab: '🦀', nietoperz: '🦇', zaba: '🐸', tygrys: '🐯', lew: '🦁', kobra: '🐍' };
+const MOC_IC = { rekin: '🌊', ptak: '🪽', osmiornica: '🐙', krab: '🛡️', nietoperz: '🦇', zaba: '🦿', tygrys: '🐾', lew: '📣', kobra: '〰️' };
+const WORD_ATAK = { rekin: 'CHAP!', ptak: 'DZIOB!', osmiornica: 'PLUM!', krab: 'SZCZYP!', nietoperz: 'PIIISK!', zaba: 'MLASK!', tygrys: 'DRAP!', lew: 'GRRR!', kobra: 'KĄS!' };
+const WORD_MOC = { rekin: 'PŁETWA!', ptak: 'FRUU!', osmiornica: 'CHWYT!', krab: 'KOLCE!', nietoperz: 'RÓJ!', zaba: 'HOPSA!', tygrys: 'SUS!', lew: 'RYYYK!', kobra: 'ŚLIZG!' };
+const SND_ATAK = { rekin: 'chap', ptak: 'dziob', osmiornica: 'tusz', krab: 'szczyp', nietoperz: 'pisk', zaba: 'jezyk', tygrys: 'drap', lew: 'grr', kobra: 'kas' };
+const SND_MOC = { rekin: 'plum', ptak: 'trzepot', osmiornica: 'slurp', krab: 'klang', nietoperz: 'roj', zaba: 'sprezyna', tygrys: 'sus', lew: 'ryk', kobra: 'slizg' };
+const NAZWY = { rekin: 'Rekin', ptak: 'Ptak', osmiornica: 'Ośmiornica', krab: 'Krab', nietoperz: 'Nietoperz', zaba: 'Żaba', tygrys: 'Tygrys', lew: 'Lew', kobra: 'Kobra',
   pustynia: 'Pustynia', zlomowisko: 'Złomowisko', wulkan: 'Wulkan', lodowiec: 'Lodowiec' };
 const LEN = 1150, CRUISE = 15, PX = -8, G = 24;              // długość trasy [m], prędkość [m/s], gracz na ekranie (x), grawitacja
 const ATAK_T = .7, ATAK_CD = 1.1, TURBO_T = 2.2, TURBO_CD = 6, MOC_FILL = 9, HIT_T = 1.0, BLINK_T = 1.4, SPIN_T = .7, GHOST_T = 1.6;
 // Moc: u każdego 3 s, ta sama prędkość i odporność; różni się tylko sposobem trafiania aut wokół
-const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3, tygrys: 3, lew: 3 };
-const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3, tygrys: 1.3, lew: 1.3 };
+const MOC_T = { rekin: 3, ptak: 3, osmiornica: 3, krab: 3, nietoperz: 3, zaba: 3, tygrys: 3, lew: 3, kobra: 3 };
+const MOC_V = { rekin: 1.3, ptak: 1.3, osmiornica: 1.3, krab: 1.3, nietoperz: 1.3, zaba: 1.3, tygrys: 1.3, lew: 1.3, kobra: 1.3 };
 const INF_T = 60, INF_V = 20;                                // Infinity: czas [s], prędkość startowa [m/s]
 // Infinity — prędkość: rośnie cały czas bez sufitu, przyspieszenie infAcc(v) = 1 + 30/v m/s² (mocne na starcie, potem słabsze):
 // czysta minuta 20 → 40 (10 s) → 71 (30 s) → ok. 110 m/s. Uderzenie: prędkość × ½ i dalej rozpędzanie od tego miejsca (bez szybkiego powrotu).
@@ -290,6 +290,7 @@ function genInf() {
 function itemMesh(it) {
   if (it.typ === 'tusz') return inkMesh();
   if (it.typ === 'jajo') return eggSplatMesh();
+  if (it.typ === 'sluz') return slimeMesh();
   if (it.typ === 'start' || it.typ === 'meta') return brMeta(ROAD, it.typ === 'meta', it.typ === 'meta');
   if (it.typ === 'tunel') return brTunel(it.half * 2, TH.tunel, ROAD);
   if (it.typ === 'most') return brMost(it.half * 2, 1.8, ROAD, TH.woda, TH.lawa, TH.luk);
@@ -299,6 +300,12 @@ function inkMesh() {
   const g = new T.Group();
   for (const [x, z, r] of [[0, 0, 1.3], [1.2, .4, .8], [-1.3, -.3, .9], [.4, -.7, .6], [-.5, .8, .5]]) brPart(g, new T.CircleGeometry(r, 14), brMat(0x101018), x, .05, z, { r: [-Math.PI / 2, 0, 0], ol: 0 });
   for (let i = 0; i < 4; i++) brPart(g, new T.SphereGeometry(.25 + i * .05, 8, 6), brMat(0x101018), rnd(-1.2, 1.2), .1, rnd(-.6, .6), { s: [1, .4, 1], ol: 0 });
+  return g;
+}
+function slimeMesh() {                                     // śluz kobry: zielona, lekko świecąca plama
+  const g = new T.Group();
+  for (const [x, z, r] of [[0, 0, 1.1], [.9, .3, .6], [-1, -.25, .7], [.3, -.6, .45]]) brPart(g, new T.CircleGeometry(r, 14), brMat(0x5ad83a, 'glow'), x, .05, z, { r: [-Math.PI / 2, 0, 0], ol: 0 });
+  for (let i = 0; i < 3; i++) brPart(g, new T.SphereGeometry(.18, 8, 6), brMat(0x9cff6a, 'glow'), rnd(-1, 1), .08, rnd(-.5, .5), { s: [1, .4, 1], ol: 0 });
   return g;
 }
 function eggSplatMesh() {
@@ -430,7 +437,7 @@ function act(c, a) {
   if (c.act || c.hitT > 0 || (c.fin && state !== 'menu')) return false;
   if (a === 'atak') { if (c.atakCd > 0) return false; c.atakCd = ATAK_CD; }
   if (a === 'moc') { if (c.moc < 3 && state !== 'menu') return false; if (state !== 'menu') c.moc = 0; }
-  c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false; c.susN = 0; c.susAir = false; c.rykT = 0;
+  c.act = a; c.at = 0; c.done = false; c.eggT = 0; c.landed = false; c.susN = 0; c.susAir = false; c.rykT = 0; c.sluzT = .6; c.slS = undefined; c.slB = false;
   if (c.kind === 'zaba' && a === 'atak') {                 // język sięga do najbliższego auta przed sobą
     const t = state === 'menu' ? null : cars.filter(o => inReach(c, o)).sort((p, q) => p.s - q.s)[0];
     c.b.tongueYaw = 0; c.b.tongueLen = t ? clamp(t.s - c.s - c.len / 2, 2, reachOf(c) + 1) : reachOf(c);
@@ -556,14 +563,15 @@ function resolveAct(c) {
     for (const it of items) if (itemInReach(c, it)) destroy(it, c);
   } else {
     if (loud) snd(SND_MOC[k]);
-    bubble(WORD_MOC[k], c, 'big');
+    if (k !== 'kobra') bubble(WORD_MOC[k], c, 'big');        // kobra: napis dopiero po obrocie głowy (nie zasłania czerwonych oczu)
     if (k === 'rekin') for (let i = 0; i < 12; i++) part({ s: c.s, y: .2, z: c.z + rnd(-1, 1), vs: rnd(-3, 6), vy: rnd(3, 7), vz: rnd(-2, 2), col: 0x6b6560, size: .22, life: .7, grav: 1, box: 1 });
     if (k === 'nietoperz') { c.batT = 0; c.orbit = new T.Group(); scene.add(c.orbit); for (let i = 0; i < 12; i++) { const m = miniBat(); m.scale.setScalar(1.9); c.orbit.add(m); } }
   }
 }
 // Moc trwa 3 s: rekin pod asfaltem podrzuca auta, ptak zrzuca jajka, krab w kolcach taranuje, ośmiornica łapie mackami na boki,
 // nietoperz krąży w roju i wysyła nietoperze na auta przed sobą, żaba jedzie górą i ląduje z hukiem,
-// tygrys robi dwa susy (lądowanie rozbija auta obok), lew ryczy falą przez całą drogę
+// tygrys robi dwa susy (lądowanie rozbija auta obok), lew ryczy falą przez całą drogę,
+// kobra pełznie wężykiem: ogon smaga auta i przeszkody na sąsiednich pasach, za sobą zostawia śliski śluz
 function mocTick(c, dt) {
   if (state === 'menu') return;
   if (c.kind === 'osmiornica') for (const o of cars) {
@@ -610,6 +618,14 @@ function mocTick(c, dt) {
   if (c.kind === 'lew' && (c.rykT -= dt) < 0) {            // co 0,9 s fala ryku przed siebie przez wszystkie pasy
     c.rykT = .9; shootRoar(c);
     if (near(c) && c.at > .5) snd('ryk');
+  }
+  if (c.kind === 'kobra') {                                 // ślizg: płasko, wężykiem; wijący się ogon smaga sąsiednie pasy, z tyłu zostaje śliski śluz
+    const L = laneOf(c), s0 = c.slS ?? c.s; c.slS = c.s;      // przeszkody: cały odcinek przejechany w tej klatce (szybkie Infinity)
+    if (!c.slB && c.at > 1.15) { c.slB = true; bubble(WORD_MOC.kobra, c, 'big'); }
+    for (const o of cars) if (o !== c && !immune(o) && o.y < 1.4 && Math.abs(laneOf(o) - L) === 1 && o.s > c.s - c.len / 2 - 3 && o.s < c.s + 1.5 && hit(o, c, 'pop')) bubble('SMAG!', o, 'small');
+    for (const it of items) if (it.alive && ['twarda', 'skrzynia', 'miekka'].includes(it.rodzaj) && Math.abs(it.lane - L) === 1 && it.s > s0 - 3.2 && it.s < c.s + 3.2) destroy(it, c);
+    if (!INF && c.at > .6 && (c.sluzT -= dt) < 0) { c.sluzT = .3; newItem({ typ: 'sluz', s: c.s - c.len / 2 - 1.5, lane: L, rodzaj: 'slisko', len: 2.2, hitBy: new Set([c]), owner: c, ttl: 5 }); }
+    if (Math.random() < dt * 25) part({ s: c.s - c.len / 2 + rnd(0, 2), y: .2, z: c.z + rnd(-.9, .9), vs: rnd(-3, 0), vy: rnd(1, 3), col: 0x7ce84a, size: .14, life: .5, grav: 1 });
   }
   if (c.kind === 'rekin' || c.kind === 'krab') for (const o of cars) {
     if (o === c || immune(o) || o.y > 1.4) continue;
@@ -669,6 +685,7 @@ function aiThink(c) {
       : c.kind === 'zaba' ? cars.some(o => o !== c && Math.abs(laneOf(o) - L) <= 1 && Math.abs(o.s - c.s) < 10)
       : c.kind === 'tygrys' ? cars.some(o => o !== c && !o.fin && Math.abs(laneOf(o) - L) <= 1 && o.s > c.s && o.s - c.s < 22)
       : c.kind === 'lew' ? cars.some(o => o !== c && !o.fin && o.s > c.s && o.s - c.s < 16)
+      : c.kind === 'kobra' ? cars.some(o => o !== c && !o.fin && ((Math.abs(laneOf(o) - L) === 1 && Math.abs(o.s - c.s) < 4) || (laneOf(o) === L && o.s < c.s && c.s - o.s < 14)))
       : cars.some(o => o !== c && laneOf(o) === L && o.s > c.s && o.s - c.s < 14) || Math.random() < .1;
     if (useful && Math.random() < .5) { act(c, 'moc'); return; }
   }
@@ -772,6 +789,12 @@ function drawCar(c, dt) {
     const d = c.act === 'atak' ? ATAK_T : MOC_T[c.kind];
     pose = c.act; k = c.act === 'atak' ? Math.min(1, c.at / .2, (d - c.at) / .3) : Math.min(1, c.at / .25, (d - c.at) / .3);
   }
+  let wig = 0;
+  if (c.kind === 'kobra') {                                // moc: najpierw głowa w górę i do kamery (czerwone oczy, kły), potem ślizg wężykiem
+    c.b.lookYaw = state === 'menu' ? -.6 : INF ? Math.PI : -1.3;
+    c.b.lookK = pose === 'moc' ? clamp(Math.min((c.at - .1) / .2, (1.25 - c.at) / .25), 0, 1) : 0;
+    if (pose === 'moc') wig = Math.sin(c.at * 8) * .45 * clamp((c.at - .9) / .3, 0, 1) * k;
+  }
   brykaPose(c.b, pose, clamp(k, 0, 1)); brykaTick(c.b, dt, c.v);
   if (c.orbit) {                                           // rój nietoperzy krąży wokół auta, póki trwa moc
     if (!(mocOn(c) && c.kind === 'nietoperz')) { scene.remove(c.orbit); c.orbit = null; }
@@ -783,7 +806,7 @@ function drawCar(c, dt) {
   }
   const g = c.b.g, x = c.s - camS, gy = H(c.s);
   const pitch = c.y < .05 ? Math.atan(Hd(c.s)) : (mocOn(c) && c.kind === 'ptak') ? 0 : clamp(Math.atan2(c.vy, Math.max(c.v, 4)), -.45, .45);
-  g.position.set(x, c.ya, c.z);
+  g.position.set(x, c.ya, c.z + wig);
   g.rotation.set(c.tilt, (c.spinT > 0 ? (1 - c.spinT / c.spinD) * Math.PI * 2 : 0) + (INF ? c.yaw : 0), pitch);
   g.visible = !(c.blinkT > 0 && c.blinkT < BLINK_T - .2 && Math.floor(c.blinkT * 12) % 2);
   c.sh.position.set(x, gy + .03, c.z); c.sh.scale.set(c.b.len * .5 / (1 + c.y * .15), 1.3 / (1 + c.y * .15), 1);

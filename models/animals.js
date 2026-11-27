@@ -227,6 +227,5 @@ function pose(a,p,rate){a.poseT=p?Object.assign({},POSE0,typeof p==='string'?POS
 const MK={elephant:mkElephant,giraffe:mkGiraffe,zebra:mkZebra,hippo:mkHippo,crocodile:mkCroc,lion:mkLion,tiger:mkTiger,panda:mkPanda,penguin:mkPenguin,kangaroo:mkKangaroo};
 // model dla innych gier: przód +Z, środek długości w 0, wysokość h; k = skala świata
 function fit(type,h){const a=MK[type](),g=new T.Group(),w=grp(g),k=h/a.dims.h;w.add(a.root);a.root.position.x=-a.cx;w.rotation.y=-PI/2;w.scale.setScalar(k);return {g,a,k:k*a.root.scale.x};}
-return {cfg,MK,fit,anim,pose,POSES,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig,
-  loft,legs,LEGS4,FOOT,eye,base,finish,whiskers};   // budulec dla innych plików z modelami (models/farm-animals.js…): nowe zwierzęta dopisują się do ZOO.MK
+return {cfg,MK,fit,anim,pose,POSES,rnd,pick,V,canvasTex,M,MT,cg,G,mesh,ball,box,grp,merge,flat,mergeC,mW,mK,MV,texGir,texZeb,texTig};
 })();
