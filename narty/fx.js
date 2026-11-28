@@ -39,24 +39,26 @@ function iceTex() {
   if (iceTexC) return iceTexC;
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), R = Math.random;
   g.beginPath(); for (let k = 0; k <= 56; k++) { const a = k/56*6.2832, r = 108 + 7*Math.sin(a*3 + 1) + 5*Math.sin(a*5 + 2) + R()*3; k ? g.lineTo(128 + Math.cos(a)*r, 128 + Math.sin(a)*r) : g.moveTo(128 + Math.cos(a)*r, 128 + Math.sin(a)*r); } g.closePath();
-  const gr = g.createRadialGradient(104, 100, 8, 128, 128, 116); gr.addColorStop(0, 'rgba(170,228,255,.8)'); gr.addColorStop(.5, 'rgba(105,185,245,.86)'); gr.addColorStop(.88, 'rgba(60,140,225,.92)'); gr.addColorStop(1, 'rgba(225,245,255,.96)');
+  const gr = g.createRadialGradient(104, 100, 8, 128, 128, 116); gr.addColorStop(0, 'rgba(150,255,250,.85)'); gr.addColorStop(.5, 'rgba(70,215,245,.88)'); gr.addColorStop(.88, 'rgba(30,150,225,.93)'); gr.addColorStop(1, 'rgba(225,250,255,.96)');
   g.fillStyle = gr; g.fill(); g.save(); g.clip();
   for (let i = 0; i < 16; i++) { const x = R()*256, y = R()*256, a = R()*6.28, l = 40 + R()*90; g.strokeStyle = 'rgba(25,95,175,.45)'; g.lineWidth = 3 + R()*4; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a)*l, y + Math.sin(a)*l); g.stroke(); }
   for (let i = 0; i < 34; i++) { let x = R()*256, y = R()*256, a = R()*6.28; g.strokeStyle = `rgba(255,255,255,${.5 + R()*.45})`; g.lineWidth = 1 + R()*2; g.beginPath(); g.moveTo(x, y);
     for (let k = 0; k < 4; k++) { a += R()*1.2 - .6; const l = 12 + R()*34; x += Math.cos(a)*l; y += Math.sin(a)*l; g.lineTo(x, y); } g.stroke(); }
   for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(255,255,255,${.25 + R()*.6})`; g.beginPath(); g.arc(R()*256, R()*256, .8 + R()*2.8, 0, 6.28); g.fill(); }
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 11; g.lineJoin = 'round'; g.lineCap = 'round';          // strzałki „szybciej” w dół stoku (v rośnie do góry płótna)
+  for (const y of [190, 140, 90]) { g.beginPath(); g.moveTo(88, y + 28); g.lineTo(128, y - 6); g.lineTo(168, y + 28); g.stroke(); }
   g.restore(); g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.7)'; g.stroke();
   const t = new T.CanvasTexture(c); t.anisotropy = 4; return iceTexC = t;
 }
 function iceMesh(p) {
   const NI = 12, NJ = 10, k = 1.18, pos = [], uv = [], idx = [];
-  for (let i = 0; i <= NI; i++) for (let j = 0; j <= NJ; j++) { const s = p.s + (i/NI - .5)*2*p.rz*k, x = p.x + (j/NJ - .5)*2*p.rx*k; pos.push(x, groundY(s, x) + .07, s); uv.push(j/NJ, i/NI); }
+  for (let i = 0; i <= NI; i++) for (let j = 0; j <= NJ; j++) { const s = p.s + (i/NI - .5)*2*p.rz*k, x = p.x + (j/NJ - .5)*2*p.rx*k; pos.push(x, groundY(s, x) + .12, s); uv.push(j/NJ, i/NI); }
   for (let i = 0; i < NI; i++) for (let j = 0; j < NJ; j++) { const a = i*(NJ + 1) + j, b = a + 1, c = a + NJ + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
   const m = new T.Mesh(g, ICE_MAT); m.renderOrder = 2; return m;
 }
-const ICE_MAT = new T.MeshPhongMaterial({ color: 0xbcd8f2, emissive: 0x0c3a6e, specular: 0xffffff, shininess: 160, reflectivity: .35, combine: T.MixOperation, transparent: true, opacity: 1, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
-function iceInit(env) { ICE_MAT.map = iceTex(); ICE_MAT.envMap = env; ICE_MAT.needsUpdate = true; }
+const ICE_MAT = new T.MeshPhongMaterial({ color: 0xc8f0ff, emissive: 0x0d6a96, specular: 0xffffff, shininess: 160, reflectivity: .3, combine: T.MixOperation, transparent: true, opacity: 1, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+function iceInit(env) { ICE_MAT.map = iceTex(); ICE_MAT.envMap = env; ICE_MAT.needsUpdate = true; for (const m of [TRACK_MAT, CRYSTAL_MAT, BLOCK_MAT]) { m.envMap = env; m.needsUpdate = true; } TRACK_MAT.map = trackIceTex(); }
 
 /* ---------- migoczący śnieg: gwiazdki rozsypane nad trasą, każda błyska w swoim rytmie (additive) ---------- */
 function glitterPoints(n, uScale) {
@@ -105,4 +107,44 @@ function sunFxUpdate(camera, sunDir) {
   at(e.glow, sx, sy); at(e.rays, sx, sy);
   const cx = W/2, cy = H/2;
   e.fl.forEach((n, i) => { const t = [.32, .62, 1.12, 1.55][i]; at(n, sx + (cx - sx)*t, sy + (cy - sy)*t); });
+}
+
+/* ---------- cała trasa to lód: głęboki, mroźny spód (kolory + żyłki) i szklista, półprzezroczysta tafla z pęknięciami nad nim ---------- */
+function tileTex(size, draw) {   // tekstura bez szwów: rysuje funkcja draw(g, size, wrap) — wrap(fn) powtarza fn z przesunięciami ±size
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+  const wrap = fn => { for (const dx of [-size, 0, size]) for (const dy of [-size, 0, size]) { g.save(); g.translate(dx, dy); fn(); g.restore(); } };
+  draw(g, size, wrap); const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 4; return t;
+}
+function frozenTex() {
+  return tileTex(512, (g, n, wrap) => { const R = Math.random; g.fillStyle = '#e8f6ff'; g.fillRect(0, 0, n, n);
+    for (let i = 0; i < 70; i++) { const x = R()*n, y = R()*n, r = 30 + R()*90, h = R(); wrap(() => { const q = g.createRadialGradient(x, y, 0, x, y, r);
+      q.addColorStop(0, h < .5 ? 'rgba(90,170,235,.38)' : 'rgba(255,255,255,.5)'); q.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = q; g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill(); }); }
+    for (let i = 0; i < 40; i++) { let x = R()*n, y = R()*n, a = R()*6.28; const pts = [[x, y]]; for (let k = 0; k < 6; k++) { a += R() - .5; x += Math.cos(a)*(20 + R()*40); y += Math.sin(a)*(20 + R()*40); pts.push([x, y]); }
+      wrap(() => { g.strokeStyle = 'rgba(35,105,185,.34)'; g.lineWidth = 2 + R()*3; g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); }); } });
+}
+function trackIceTex() {
+  return tileTex(512, (g, n, wrap) => { const R = Math.random; g.clearRect(0, 0, n, n); g.fillStyle = 'rgba(170,225,255,.42)'; g.fillRect(0, 0, n, n);
+    for (let i = 0; i < 50; i++) { const x = R()*n, y = R()*n, r = 25 + R()*80; wrap(() => { const q = g.createRadialGradient(x, y, 0, x, y, r); q.addColorStop(0, R() < .5 ? 'rgba(255,255,255,.4)' : 'rgba(60,150,230,.3)'); q.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = q; g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill(); }); }
+    for (let i = 0; i < 46; i++) { let x = R()*n, y = R()*n, a = R()*6.28; const pts = [[x, y]]; for (let k = 0; k < 5; k++) { a += R()*1.1 - .55; x += Math.cos(a)*(14 + R()*38); y += Math.sin(a)*(14 + R()*38); pts.push([x, y]); }
+      const w = .8 + R()*2.2, al = .55 + R()*.4; wrap(() => { g.strokeStyle = `rgba(255,255,255,${al})`; g.lineWidth = w; g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); }); }
+    for (let i = 0; i < 160; i++) { const x = R()*n, y = R()*n; wrap(() => { g.fillStyle = `rgba(255,255,255,${.25 + R()*.5})`; g.beginPath(); g.arc(x, y, .8 + R()*2.4, 0, 6.3); g.fill(); }); } });
+}
+const TRACK_MAT = new T.MeshPhongMaterial({ color: 0xb4dcff, emissive: 0x0a3a78, specular: 0xffffff, shininess: 220, reflectivity: .42, combine: T.MixOperation, transparent: true, opacity: .78, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const CRYSTAL_MAT = new T.MeshPhongMaterial({ color: 0x8fd8ff, emissive: 0x1a6aa8, specular: 0xffffff, shininess: 120, reflectivity: .45, combine: T.MixOperation, flatShading: true, transparent: true, opacity: .78 });
+const BLOCK_MAT = new T.MeshPhongMaterial({ color: 0xa6e2ff, emissive: 0x1d6fa6, specular: 0xffffff, shininess: 120, reflectivity: .4, combine: T.MixOperation, flatShading: true, transparent: true, opacity: .8 });
+function trackIceMesh() {
+  const HW = COURSE.W + 5, st = COURSE.STEP, s0 = -24, s1 = CRS.L + 110, nr = Math.round((s1 - s0)/st) + 1, nc = Math.round(HW*2/st) + 1, pos = new Float32Array(nr*nc*3), uv = new Float32Array(nr*nc*2), idx = [];
+  for (let i = 0; i < nr; i++) { const s = s0 + i*st, cx = centerX(s);
+    for (let j = 0; j < nc; j++) { const dx = -HW + j*st, x = cx + dx, k = i*nc + j, out = Math.max(0, Math.abs(dx) - COURSE.W - .5);
+      pos[k*3] = x; pos[k*3 + 1] = terrainY(s, x) + .06 - out*out*.35; pos[k*3 + 2] = s; uv[k*2] = x/15; uv[k*2 + 1] = s/15; } }
+  for (let i = 0; i < nr - 1; i++) for (let j = 0; j < nc - 1; j++) { const a = i*nc + j, b = a + 1, c = a + nc, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new T.Mesh(g, TRACK_MAT); m.renderOrder = 1; return m;
+}
+// kryształy lodu: kępy po bokach doliny (poza trasą, bez kolizji)
+function crystalList() {
+  const out = []; for (let s = 10; s < CRS.L + 90; s += rr(9, 15)) for (const side of [-1, 1]) { if (rnd() < .3) continue;
+    const cx = centerX(s) + side*rr(COURSE.W + 1.5, COURSE.W + 12), n = 4 + (rnd()*4 | 0), sc = rr(1, 2.4);
+    for (let k = 0; k < n; k++) out.push({ s: s + rr(-1.2, 1.2), x: cx + rr(-1.1, 1.1), sc: sc*rr(.5, 1.1), a: rr(0, TAU), tx: rr(-.35, .35), tz: rr(-.35, .35) }); }
+  return out;
 }

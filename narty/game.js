@@ -20,8 +20,8 @@ const dummy = new T.Object3D();
 const SUN_EL = 9*PI/180, SUN_AZ = -24*PI/180, SUN_D = V3(Math.sin(SUN_AZ)*Math.cos(SUN_EL), Math.sin(SUN_EL), Math.cos(SUN_AZ)*Math.cos(SUN_EL));   // słońce nisko, z przodu po lewej
 const scene = new T.Scene(); scene.background = new T.Color(0xdbebf5); scene.fog = new T.Fog(0xdbebf5, 70, 270);
 const camera = new T.PerspectiveCamera(58, 1, .3, 760); scene.add(camera);
-scene.add(new T.HemisphereLight(0xa9d2ff, 0xe8f0f8, .72));                       // niebo chłodne, odbicie od śniegu jasne
-const sunL = new T.DirectionalLight(0xffe3b5, 1.35); scene.add(sunL, sunL.target);   // słońce ciepłe
+scene.add(new T.HemisphereLight(0x9cc8ff, 0xb8d4ee, .5));                       // niebo chłodne, odbicie od śniegu jasne
+const sunL = new T.DirectionalLight(0xffe0b0, 1.05); scene.add(sunL, sunL.target);   // słońce ciepłe
 renderer.shadowMap.enabled = !LITE; renderer.shadowMap.type = T.PCFSoftShadowMap; sunL.castShadow = !LITE;
 Object.assign(sunL.shadow.camera, { left: -38, right: 38, top: 38, bottom: -38, near: 1, far: 260 }); sunL.shadow.mapSize.set(2048, 2048); sunL.shadow.bias = -.0007; sunL.shadow.normalBias = .12;
 const dome = skyDome(SUN_D, 600); scene.add(dome);
@@ -58,25 +58,29 @@ const shadow = new T.Mesh(new T.CircleGeometry(1, 18).rotateX(-PI/2), new T.Mesh
    ŚWIAT: teren, drzewa, kamienie, bałwany, skocznie, rybki, łuki, góry
    ===================================================================== */
 let glit = null, WG = null, fishB = null, fishT = null, snowmen = [], debris = [], mCount = 0;
-const mTrunk = lam(0x7a4e2c), mLeaf = lam(0xffffff), mSnowW = lam(0xf4fbff), mRock = lam(0x8d9bb0, { flatShading: true });
+const mTrunk = lam(0x7a4e2c), mLeaf = lam(0xffffff), mSnowW = lam(0xe9f4ff);
 const TREE_COL = [0x2f7d46, 0x3a8f4f, 0x2a6e44, 0x4a9a55].map(c => new T.Color(c));
 const GEO = {
   trunk: new T.CylinderGeometry(.22, .3, 1.4, 6).translate(0, .7, 0), c1: new T.ConeGeometry(1.8, 2.8, 8).translate(0, 2.7, 0), c2: new T.ConeGeometry(1.3, 2.3, 8).translate(0, 3.85, 0),
-  cap: new T.ConeGeometry(.78, 1.1, 8).translate(0, 4.65, 0), rock: new T.DodecahedronGeometry(1, 0),
+  cap: new T.ConeGeometry(.78, 1.1, 8).translate(0, 4.65, 0), crystal: new T.CylinderGeometry(.04, .3, 2.6, 6).translate(0, 1.3, 0), rock: new T.DodecahedronGeometry(1, 0),
   fishB: new T.SphereGeometry(.5, 10, 8).scale(1.1, .55, .38), fishT: new T.ConeGeometry(.3, .45, 6).rotateZ(-PI/2).scale(1, 1, .3).translate(-.72, 0, 0),
 };
 
+const FROZEN = frozenTex();
 function terrainMesh() {
   const s0 = -40, s1 = CRS.L + 140, st = COURSE.STEP, nr = Math.round((s1 - s0)/st) + 1, nc = Math.round(COURSE.HALF*2/st) + 1;
-  const pos = new Float32Array(nr*nc*3), col = new Float32Array(nr*nc*3), idx = [];
+  const pos = new Float32Array(nr*nc*3), col = new Float32Array(nr*nc*3), uv = new Float32Array(nr*nc*2), idx = [];
+  const deep = [.30, .58, .90], cyan = [.50, .84, 1.0], pale = [.80, .93, 1.0], snow = [.90, .95, 1.0], mx = (a, b, t) => [a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, a[2] + (b[2] - a[2])*t];
   for (let i = 0; i < nr; i++) { const s = s0 + i*st, cx = centerX(s);
-    for (let j = 0; j < nc; j++) { const dx = -COURSE.HALF + j*st, x = cx + dx, k = (i*nc + j)*3, e = Math.max(0, Math.abs(dx) - COURSE.W);
-      pos[k] = x; pos[k + 1] = terrainY(s, x); pos[k + 2] = s;
-      const n = .5 + .5*Math.sin(s*.9 + x*.7)*Math.sin(s*.37 - x*.5), c = .92 + .08*n - Math.min(.07, e*.004), ice = Math.abs(dx) < COURSE.W ? 0 : Math.min(1, e*.1);
-      col[k] = c*(.97 - ice*.05); col[k + 1] = c*(.985 - ice*.02); col[k + 2] = c*(1 + ice*.0); } }
+    for (let j = 0; j < nc; j++) { const dx = -COURSE.HALF + j*st, x = cx + dx, q = i*nc + j, k = q*3, e = Math.max(0, Math.abs(dx) - COURSE.W);
+      pos[k] = x; pos[k + 1] = terrainY(s, x); pos[k + 2] = s; uv[q*2] = x/20; uv[q*2 + 1] = s/20;
+      const t1 = .5 + .5*Math.sin(s*.045 + x*.06 + 2*Math.sin(x*.03)), t2 = .5 + .5*Math.sin(s*.11 - x*.09)*Math.sin(x*.07 + s*.02);
+      let c = mx(mx(deep, cyan, t1), pale, t2*.45);                                    // trasa: głęboki lód, turkus, jasne zmrożenia
+      const sn = Math.min(1, e*.11); c = mx(c, mx(snow, pale, t2*.5), sn*(t1 > .72 && sn < .8 ? .45 : 1));   // za brzegiem: śnieg (z lodowymi plamami)
+      const n = .96 + .08*Math.sin(s*.9 + x*.7)*Math.sin(s*.37 - x*.5); col[k] = c[0]*n; col[k + 1] = c[1]*n; col[k + 2] = c[2]*n; } }
   for (let i = 0; i < nr - 1; i++) for (let j = 0; j < nc - 1; j++) { const a = i*nc + j, b = a + 1, c = a + nc, d = c + 1; idx.push(a, c, b, b, c, d); }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const m = new T.Mesh(g, new T.MeshPhongMaterial({ vertexColors: true, specular: 0x6a6252, shininess: 24 })); m.receiveShadow = true; return m;
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new T.Mesh(g, new T.MeshPhongMaterial({ vertexColors: true, map: FROZEN, specular: 0x7a8ea8, shininess: 40 })); m.receiveShadow = true; return m;
 }
 function instanced(geo, mat, list, fn) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
@@ -90,7 +94,7 @@ function addTrees(g) {
   for (const k of ['c1', 'c2']) { const m = instanced(GEO[k], mLeaf, list, (d, o, i, mm) => { place(d, o); mm.setColorAt(i, TREE_COL[Math.floor((o.c !== undefined ? o.c*4 : o.a) % 4)] || TREE_COL[0]); }); g.add(m); }
   g.add(instanced(GEO.cap, mSnowW, list, place));
   const rocks = CRS.obst.filter(o => o.k === 'rock');
-  if (rocks.length) g.add(instanced(GEO.rock, mRock, rocks, (d, o) => { d.position.set(o.x, terrainY(o.s, o.x) + .15, o.s); d.rotation.set(o.a, o.a*2, 0); d.scale.set(o.sc*1.05, o.sc*.75, o.sc*.9); }));
+  if (rocks.length) g.add(instanced(GEO.rock, BLOCK_MAT, rocks, (d, o) => { d.position.set(o.x, terrainY(o.s, o.x) + .15, o.s); d.rotation.set(o.a, o.a*2, 0); d.scale.set(o.sc*1.05, o.sc*.75, o.sc*.9); }));
 }
 function snowman(o) {
   const g = new T.Group(), w = lam(0xffffff), add = (geo, mat, x, y, z) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
@@ -103,7 +107,7 @@ function snowman(o) {
 function rampMesh(r) {
   const NS = 6, NW = 2, pos = [], col = [], top = (i, j) => { const s = r.s0 + r.len*i/NS, x = r.x - r.wid/2 + r.wid*j/NW; return [x, terrainY(s, x) + r.h*i/NS + .04, s]; };
   const low = p => [p[0], terrainY(p[2], p[0]) - .3, p[2]], quad = (a, b, c, d, cl) => { for (const p of [a, b, c, a, c, d]) { pos.push(...p); col.push(cl[0], cl[1], cl[2]); } };
-  for (let i = 0; i < NS; i++) for (let j = 0; j < NW; j++) quad(top(i, j), top(i + 1, j), top(i + 1, j + 1), top(i, j + 1), i % 2 ? [.55, .78, 1] : [.85, .94, 1]);
+  for (let i = 0; i < NS; i++) for (let j = 0; j < NW; j++) quad(top(i, j), top(i + 1, j), top(i + 1, j + 1), top(i, j + 1), i % 2 ? [1, .55, .25] : [1, .95, .88]);
   for (let i = 0; i < NS; i++) { quad(top(i, 0), low(top(i, 0)), low(top(i + 1, 0)), top(i + 1, 0), [.5, .62, .8]); quad(top(i, NW), top(i + 1, NW), low(top(i + 1, NW)), low(top(i, NW)), [.5, .62, .8]); }
   for (let j = 0; j < NW; j++) quad(top(NS, j), low(top(NS, j)), low(top(NS, j + 1)), top(NS, j + 1), [.5, .62, .8]);
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
@@ -129,15 +133,16 @@ function buildWorld(sd) {
   WG.add(archMesh('START', 4, 0xff6a4a), archMesh('META', CRS.goals.finish, 0x2fa8ff));
   // rybki: instancje, co klatkę obracane (updFish)
   for (const f of CRS.fish) f.y = groundY(f.s, f.x) + f.up;
-  fishB = new T.InstancedMesh(GEO.fishB, lam(0x3aa8ff), CRS.fish.length); fishT = new T.InstancedMesh(GEO.fishT, lam(0xff9f1c), CRS.fish.length);
+  fishB = new T.InstancedMesh(GEO.fishB, lam(0xffc42e), CRS.fish.length); fishT = new T.InstancedMesh(GEO.fishT, lam(0xff6a1c), CRS.fish.length);
   fishB.frustumCulled = fishT.frustumCulled = false; WG.add(fishB, fishT);
   // lód i migotanie śniegu
-  for (const p of CRS.ice) WG.add(iceMesh(p));
-  glit = glitterPoints(LITE ? 700 : 2600, uScale); WG.add(glit);
+  WG.add(trackIceMesh()); for (const p of CRS.ice) WG.add(iceMesh(p));
+  WG.add(instanced(GEO.crystal, CRYSTAL_MAT, crystalList(), (d, o) => { d.position.set(o.x, terrainY(o.s, o.x) - .15, o.s); d.rotation.set(o.tx, o.a, o.tz); d.scale.set(o.sc, o.sc, o.sc); }));
+  glit = glitterPoints(LITE ? 900 : 3400, uScale); WG.add(glit);
   updFish(0); hud();
 }
 const FAR = new T.Group(); scene.add(FAR);
-{ const cols = [], g = new T.ConeGeometry(95, 170, 7, 3).translate(0, 85, 0), pa = g.attributes.position, fc = new T.Color(0xdbebf5), mid = new T.Color(0xaec4de), top = new T.Color(0xffffff);
+{ const cols = [], g = new T.ConeGeometry(95, 170, 7, 3).translate(0, 85, 0), pa = g.attributes.position, fc = new T.Color(0xcfe6f7), mid = new T.Color(0x86b4e6), top = new T.Color(0xffffff);
   for (let i = 0; i < pa.count; i++) { const h = pa.getY(i)/170, c = h < .3 ? fc.clone().lerp(mid, h/.3) : mid.clone().lerp(top, Math.min(1, (h - .3)/.22)); cols.push(c.r, c.g, c.b); }
   g.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
   const m = new T.MeshLambertMaterial({ vertexColors: true, flatShading: true, fog: false });
@@ -179,7 +184,7 @@ function readInput() {
   if (S.force) return S.force;
   let u = keys.right - keys.left, sy = keys.up ? 1 : keys.down ? -1 : keys.fast ? 1 : 0;
   if (tilt.on) { u = tiltCurve(tilt.x, .07, .85); sy = tiltCurve(tilt.y, .12, .85); }
-  return { u, sy };
+  return { u: -u, sy };   // u > 0 = w stronę +x świata = w LEWO na ekranie; sterowanie „w prawo” musi dać −x
 }
 // autopilot do testów: omija przeszkody i zbiera rybki
 function botInput() {
