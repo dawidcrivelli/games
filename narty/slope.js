@@ -19,9 +19,9 @@ function baseAt(s) {
   if (s >= n) return b[n];
   const i = s | 0, f = s - i; return b[i] + (b[i + 1] - b[i])*f;
 }
-const bankAt = dx => { const e = Math.max(0, Math.abs(dx) - COURSE.W); return .45*e + .012*e*e; };
+const bankAt = dx => { const e = Math.max(0, Math.abs(dx) - COURSE.W); return .22*e + .0045*e*e; };   // łagodna dolina: słońce widać nad grzbietem
 const bumpAt = (s, x) => .16*Math.sin(s*.31 + x*.2)*Math.sin(s*.13 - x*.17) + .3*Math.sin(s/17 + x/9)*ss(30, 90, s)*(1 - ss(COURSE.L - 140, COURSE.L - 60, s));
-const terrainY = (s, x) => baseAt(s) + bumpAt(s, x) + bankAt(x - centerX(s));
+const terrainY = (s, x) => baseAt(s) + bumpAt(s, x) + bankAt(x - centerX(s)) + 20*ss(COURSE.L + 40, COURSE.L + 120, s);   // za metą dolina zamyka się wzgórzem
 function rampLift(s, x) {
   let h = 0;
   for (const r of CRS.ramps) {
@@ -32,12 +32,13 @@ function rampLift(s, x) {
   return h;
 }
 const groundY = (s, x) => terrainY(s, x) + rampLift(s, x);
+const iceAt = (s, x) => CRS.ice.some(p => ((x - p.x)/p.rx)**2 + ((s - p.s)/p.rz)**2 < 1);
 
 function courseBuild(sd) {
   seed = sd|0 || 1; const L = COURSE.L;
   const base = new Float32Array(L + 2); let y = 0; for (let i = 0; i <= L + 1; i++) { base[i] = y; y -= slopeAt(i); }
   const Y0 = 14 - base[L + 1]; for (let i = 0; i <= L + 1; i++) base[i] += Y0;
-  CRS = { L, base, ramps: [], obst: [], fish: [], trees: [], seed: sd };
+  CRS = { L, base, ramps: [], obst: [], fish: [], trees: [], ice: [], seed: sd };
   // skocznie: pierwsza wcześnie, potem co 150–200 m
   for (let s = 150; s < L - 200; s += rr(150, 200)) CRS.ramps.push({ s0: s, x: centerX(s) + rr(-5, 5), len: 5, wid: 4.4, h: 2.3 });
   const nearRamp = (s, x) => CRS.ramps.some(r => s > r.s0 - 10 && s < r.s0 + r.len + 14 && Math.abs(x - r.x) < 5.5);
@@ -51,6 +52,9 @@ function courseBuild(sd) {
       if (Math.abs(dx) > 9) break;
     }
   }
+  // lód: półprzezroczyste tafle na trasie — jazda po nich przyspiesza (i trochę ślizga)
+  for (let s = 95; s < L - 130; s += rr(75, 115)) { const x = centerX(s) + rr(-6, 6), rx = rr(2.8, 3.8), rz = rr(5, 7.5);
+    if (nearRamp(s, x)) continue; CRS.ice.push({ s, x, rx, rz }); }
   // rybki: szlaczki po zakosach, a nad skoczniami łuk w powietrzu
   const clash = (s, x) => CRS.obst.some(o => Math.hypot(o.s - s, o.x - x) < o.r + 1.5);
   for (let s0 = 75; s0 < L - 90; s0 += rr(55, 75)) {
@@ -63,7 +67,7 @@ function courseBuild(sd) {
   }
   for (const r of CRS.ramps) for (let i = 0; i < 4; i++) CRS.fish.push({ s: r.s0 + r.len + 4 + i*3.6, x: r.x, up: 2.6 + Math.sin((i + .5)/4*PI)*2, got: false });
   // drzewa tła: gęsto po bokach doliny
-  for (let s = -30; s < L + 80; s += 3.1) for (const side of [-1, 1]) {
+  for (let s = -30; s < L + 130; s += 3.1) for (const side of [-1, 1]) {
     const m = rnd() < .45 ? 2 : 1;
     for (let k = 0; k < m; k++) { const e = COURSE.W + 1.8 + rr(0, 1)**1.6*34, sc = rr(.7, 1.4) + e*.018; if (s > L - 70 && e < COURSE.W + 18 && s < L + 20) continue;
       CRS.trees.push({ s: s + rr(-1.5, 1.5), x: centerX(s) + side*e, sc, a: rr(0, TAU), c: rnd() }); }

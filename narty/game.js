@@ -15,15 +15,22 @@ const GL_NAME = (() => { try { const g = document.createElement('canvas').getCon
 const LITE = !Q.has('hq') && (Q.has('lite') || /swiftshader|llvmpipe|software/i.test(GL_NAME));
 const renderer = new T.WebGLRenderer({ canvas: $('c'), antialias: !LITE, powerPreference: 'high-performance' });
 renderer.setPixelRatio(LITE ? (IS_TEST ? 1 : .6) : Math.min(devicePixelRatio || 1, 1.75));
-const scene = new T.Scene(); scene.background = new T.Color(0xa9d8f5); scene.fog = new T.Fog(0xcfe6f5, 60, 240);
-const camera = new T.PerspectiveCamera(58, 1, .3, 700); scene.add(camera);
-scene.add(new T.HemisphereLight(0xe4f1ff, 0x8fa9cc, .62));
-const sunL = new T.DirectionalLight(0xfff0d0, 1.1); sunL.position.set(-40, 80, -30); scene.add(sunL);
-const resize = fitView(renderer, camera); addEventListener('resize', resize); resize();
-ZOO.cfg.cast = false;
-particlesInit(scene, LITE ? 260 : 700);
 const V3 = (x = 0, y = 0, z = 0) => new T.Vector3(x, y, z);
 const dummy = new T.Object3D();
+const SUN_EL = 9*PI/180, SUN_AZ = -24*PI/180, SUN_D = V3(Math.sin(SUN_AZ)*Math.cos(SUN_EL), Math.sin(SUN_EL), Math.cos(SUN_AZ)*Math.cos(SUN_EL));   // słońce nisko, z przodu po lewej
+const scene = new T.Scene(); scene.background = new T.Color(0xdbebf5); scene.fog = new T.Fog(0xdbebf5, 70, 270);
+const camera = new T.PerspectiveCamera(58, 1, .3, 760); scene.add(camera);
+scene.add(new T.HemisphereLight(0xa9d2ff, 0xe8f0f8, .72));                       // niebo chłodne, odbicie od śniegu jasne
+const sunL = new T.DirectionalLight(0xffe3b5, 1.35); scene.add(sunL, sunL.target);   // słońce ciepłe
+renderer.shadowMap.enabled = !LITE; renderer.shadowMap.type = T.PCFSoftShadowMap; sunL.castShadow = !LITE;
+Object.assign(sunL.shadow.camera, { left: -38, right: 38, top: 38, bottom: -38, near: 1, far: 260 }); sunL.shadow.mapSize.set(2048, 2048); sunL.shadow.bias = -.0007; sunL.shadow.normalBias = .12;
+const dome = skyDome(SUN_D, 600); scene.add(dome);
+iceInit(skyEnv(renderer, SUN_D)); sunFxInit();
+const uScale = { value: 300 };                                                   // skala punktów (połowa wysokości bufora)
+const fitCam = fitView(renderer, camera), resize = () => { fitCam(); uScale.value = innerHeight*renderer.getPixelRatio()*.5; }; addEventListener('resize', resize); resize();
+ZOO.cfg.cast = !LITE;
+particlesInit(scene, LITE ? 260 : 700);
+const powder = powderInit(scene, LITE ? 50 : 150, uScale);
 
 /* =====================================================================
    STAN
@@ -50,7 +57,7 @@ const shadow = new T.Mesh(new T.CircleGeometry(1, 18).rotateX(-PI/2), new T.Mesh
 /* =====================================================================
    ŚWIAT: teren, drzewa, kamienie, bałwany, skocznie, rybki, łuki, góry
    ===================================================================== */
-let WG = null, fishB = null, fishT = null, snowmen = [], debris = [], mCount = 0;
+let glit = null, WG = null, fishB = null, fishT = null, snowmen = [], debris = [], mCount = 0;
 const mTrunk = lam(0x7a4e2c), mLeaf = lam(0xffffff), mSnowW = lam(0xf4fbff), mRock = lam(0x8d9bb0, { flatShading: true });
 const TREE_COL = [0x2f7d46, 0x3a8f4f, 0x2a6e44, 0x4a9a55].map(c => new T.Color(c));
 const GEO = {
@@ -60,21 +67,21 @@ const GEO = {
 };
 
 function terrainMesh() {
-  const s0 = -40, s1 = CRS.L + 90, st = COURSE.STEP, nr = Math.round((s1 - s0)/st) + 1, nc = Math.round(COURSE.HALF*2/st) + 1;
+  const s0 = -40, s1 = CRS.L + 140, st = COURSE.STEP, nr = Math.round((s1 - s0)/st) + 1, nc = Math.round(COURSE.HALF*2/st) + 1;
   const pos = new Float32Array(nr*nc*3), col = new Float32Array(nr*nc*3), idx = [];
   for (let i = 0; i < nr; i++) { const s = s0 + i*st, cx = centerX(s);
     for (let j = 0; j < nc; j++) { const dx = -COURSE.HALF + j*st, x = cx + dx, k = (i*nc + j)*3, e = Math.max(0, Math.abs(dx) - COURSE.W);
       pos[k] = x; pos[k + 1] = terrainY(s, x); pos[k + 2] = s;
-      const n = .5 + .5*Math.sin(s*.9 + x*.7)*Math.sin(s*.37 - x*.5), c = .93 + .07*n - Math.min(.1, e*.006);
-      col[k] = c*.95; col[k + 1] = c*.98; col[k + 2] = c; } }
+      const n = .5 + .5*Math.sin(s*.9 + x*.7)*Math.sin(s*.37 - x*.5), c = .92 + .08*n - Math.min(.07, e*.004), ice = Math.abs(dx) < COURSE.W ? 0 : Math.min(1, e*.1);
+      col[k] = c*(.97 - ice*.05); col[k + 1] = c*(.985 - ice*.02); col[k + 2] = c*(1 + ice*.0); } }
   for (let i = 0; i < nr - 1; i++) for (let j = 0; j < nc - 1; j++) { const a = i*nc + j, b = a + 1, c = a + nc, d = c + 1; idx.push(a, c, b, b, c, d); }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-  return new T.Mesh(g, new T.MeshLambertMaterial({ vertexColors: true }));
+  const m = new T.Mesh(g, new T.MeshPhongMaterial({ vertexColors: true, specular: 0x6a6252, shininess: 24 })); m.receiveShadow = true; return m;
 }
 function instanced(geo, mat, list, fn) {
   const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
   list.forEach((o, i) => { fn(dummy, o, i, m); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
-  m.count = list.length; m.instanceMatrix.needsUpdate = true; m.frustumCulled = false; return m;
+  m.count = list.length; m.instanceMatrix.needsUpdate = true; m.frustumCulled = false; m.castShadow = !LITE; m.receiveShadow = !LITE; return m;
 }
 function addTrees(g) {
   const list = CRS.trees.concat(CRS.obst.filter(o => o.k === 'tree'));
@@ -124,14 +131,19 @@ function buildWorld(sd) {
   for (const f of CRS.fish) f.y = groundY(f.s, f.x) + f.up;
   fishB = new T.InstancedMesh(GEO.fishB, lam(0x3aa8ff), CRS.fish.length); fishT = new T.InstancedMesh(GEO.fishT, lam(0xff9f1c), CRS.fish.length);
   fishB.frustumCulled = fishT.frustumCulled = false; WG.add(fishB, fishT);
-  // góry w oddali
-  const mt = [], L = CRS.L; for (let s = -60; s < L + 260; s += 85) for (const k of [-1, 1]) mt.push({ s, x: centerX(Math.min(s, L)) + k*(115 + rr(0, 40)), sc: rr(.8, 1.4), a: 0 });
-  for (let x = -160; x <= 160; x += 80) mt.push({ s: L + 300, x: centerX(L) + x, sc: 1.5, a: 0 });
-  WG.add(instanced(new T.ConeGeometry(70, 110, 7).translate(0, 55, 0), lam(0xd5e5f3, { flatShading: true }), mt, (d, o) => { d.position.set(o.x, baseAt(Math.min(o.s, L)) + 8, o.s); d.rotation.set(0, o.sc*3, 0); d.scale.set(o.sc, o.sc, o.sc); }));
+  // lód i migotanie śniegu
+  for (const p of CRS.ice) WG.add(iceMesh(p));
+  glit = glitterPoints(LITE ? 700 : 2600, uScale); WG.add(glit);
   updFish(0); hud();
 }
+const FAR = new T.Group(); scene.add(FAR);
+{ const cols = [], g = new T.ConeGeometry(95, 170, 7, 3).translate(0, 85, 0), pa = g.attributes.position, fc = new T.Color(0xdbebf5), mid = new T.Color(0xaec4de), top = new T.Color(0xffffff);
+  for (let i = 0; i < pa.count; i++) { const h = pa.getY(i)/170, c = h < .3 ? fc.clone().lerp(mid, h/.3) : mid.clone().lerp(top, Math.min(1, (h - .3)/.22)); cols.push(c.r, c.g, c.b); }
+  g.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
+  const m = new T.MeshLambertMaterial({ vertexColors: true, flatShading: true, fog: false });
+  [-165, -135, -104, -78, 7, 26, 47, 70, 94, 118, 145, 172].forEach((az, i) => { const a = az*PI/180, h = 1 + ((i*37) % 60)/100, mt = new T.Mesh(g, m); mt.position.set(Math.sin(a)*400, 0, Math.cos(a)*400); mt.scale.set(1.1, h, 1.1); mt.rotation.y = i; FAR.add(mt); }); }
 function updFish(t) {
-  CRS.fish.forEach((f, i) => { const k = f.got ? 0 : 1; dummy.position.set(f.x, f.y + Math.sin(t*3 + i)*.12, f.s); dummy.rotation.set(0, t*1.8 + i, Math.sin(t*2 + i)*.15); dummy.scale.setScalar(k*1.5); dummy.updateMatrix(); fishB.setMatrixAt(i, dummy.matrix); fishT.setMatrixAt(i, dummy.matrix); });
+  CRS.fish.forEach((f, i) => { const k = f.got ? 0 : 1; dummy.position.set(f.x, f.y + Math.sin(t*3 + i)*.12, f.s); dummy.rotation.set(0, t*1.8 + i, Math.sin(t*2 + i)*.15); dummy.scale.setScalar(k*1.25); dummy.updateMatrix(); fishB.setMatrixAt(i, dummy.matrix); fishT.setMatrixAt(i, dummy.matrix); });
   fishB.instanceMatrix.needsUpdate = fishT.instanceMatrix.needsUpdate = true;
 }
 
@@ -187,7 +199,8 @@ function resetPlayer() {
   Object.assign(P, { s: 4, x: centerX(4), psi: 0, v: 0, vy: 0, air: false, airT: 0, trick: false, flip: 0, rampT: 0, hit: 0, inv: 0, pitch: 0, roll: 0, camYaw: 0 });
   P.y = groundY(P.s, P.x); S.got = 0; S.hits = 0; S.tricks = 0; S.runT = 0; S.finT = 0; poseRig(0); S.camSnap = true;
 }
-function puff(x, y, z, n, sp, r = 1, g = 1, b = 1) { for (let i = 0; i < n; i++) emit(x + rr(-.4, .4), y + .2, z + rr(-.4, .4), rr(-sp, sp), rr(sp*.4, sp*1.2), rr(-sp, sp), rr(.4, .9), r, g, b, 7); }
+function puff(x, y, z, n, sp, r = 1, g = 1, b = 1) { for (let i = 0; i < n; i++) emit(x + rr(-.4, .4), y + .2, z + rr(-.4, .4), rr(-sp, sp), rr(sp*.4, sp*1.2), rr(-sp, sp), rr(.4, .9), r, g, b, 7);
+  if (r + g + b > 2.5) for (let i = 0; i < Math.ceil(n/3); i++) powder.emit(x + rr(-.5, .5), y + .3, z + rr(-.5, .5), rr(-sp, sp)*.6, rr(.4, sp*.5), rr(-sp, sp)*.6, rr(.8, 1.4), rr(1.4, 2.6)); }
 function hitObst(o) {
   if (o.k === 'snowman') { o.hit = true; S.hits++; P.v *= .85; P.inv = .35; snd.smash(); puff(o.x, groundY(o.s, o.x) + 1.4, o.s, 24, 3.4);
     for (const m of o.g.children.slice()) { scene.attach(m); debris.push({ m, vx: (m.position.x - P.x)*1.2 + rr(-1.5, 1.5), vy: rr(3, 7), vz: rr(2, 6) + P.v*.25, spin: rr(-6, 6), t: 2.2 }); }
@@ -203,13 +216,16 @@ function physics(dt) {
   const inp = count ? { u: 0, sy: 0 } : fin ? { u: 0, sy: -1 } : readInput();
   P.hit = Math.max(0, P.hit - dt); P.inv = Math.max(0, P.inv - dt); P.rampT = Math.max(0, P.rampT - dt);
   let vt = inp.sy >= 0 ? lerp(BASE_V, MAX_V, inp.sy) : lerp(BASE_V, MIN_V, -inp.sy); if (count) vt = 0; if (fin) vt = 0;
+  const onIce = !P.air && !count && iceAt(P.s, P.x); if (onIce) vt += 5;
+  if (onIce && !P.onIce) { tone(1500, .22, 'sine', .14, 2400); burst(5000, .25, .12, 0, 2); if (!S.iceSeen) { S.iceSeen = true; toast('Lód! Ale się ślizga!', 2400); lektor('Lód!'); } }
+  P.onIce = onIce;
   if (P.air) vt = Math.max(vt, P.v*.97);
   P.v += (vt - P.v)*Math.min(1, dt*(count ? 9 : vt > P.v ? .9 : fin ? 1.1 : 2.2));
   if (count) P.v = 0;
   if (run && P.v < 5) P.v = 5;
   const cx = centerX(P.s), dx = P.x - cx; let psiT = inp.u*MAX_PSI*(P.hit > 0 ? .3 : 1);
   if (Math.abs(dx) > 9 && !fin) psiT -= Math.sign(dx)*(Math.abs(dx) - 9)*.12;
-  P.psi += (psiT - P.psi)*Math.min(1, dt*(P.air ? 2 : 5.5));
+  P.psi += (psiT - P.psi)*Math.min(1, dt*(P.air ? 2 : onIce ? 2.6 : 5.5));
   P.x += P.v*Math.sin(P.psi)*dt; P.s += P.v*Math.cos(P.psi)*dt;
   const ex = P.x - centerX(P.s); if (Math.abs(ex) > 14.5) { P.x = centerX(P.s) + Math.sign(ex)*14.5; P.psi -= Math.sign(ex)*.05; P.v *= .995; }
   if (dt > 1e-4) {
@@ -227,8 +243,10 @@ function physics(dt) {
   if (run || fin) for (const f of CRS.fish) { if (f.got || Math.abs(f.s - P.s) > 2) continue; if (Math.hypot(f.s - P.s, f.x - P.x) < 1.7 && Math.abs(f.y - (P.y + .5)) < 1.9) takeFish(f); }
   if (run) { S.runT += dt; if (P.s >= CRS.goals.finish) finishRun(); }
   if (fin) { S.finT += dt; if (P.v < .6 || S.finT > 4.5) endRun(); }
-  // ślad za pingwinem
-  if (!P.air && P.v > 3 && (run || fin)) { const n = Math.min(3, Math.ceil(P.v*dt*1.4 + Math.random())); for (let i = 0; i < n; i++) emit(P.x - Math.sin(P.psi)*1.2 + rr(-.5, .5), P.y + .15, P.s - Math.cos(P.psi)*1.2, rr(-1.2, 1.2) - Math.sin(P.psi)*P.v*.12, rr(.8, 2.4), rr(-1, 1) - Math.cos(P.psi)*P.v*.12, rr(.35, .7), 1, 1, 1, 6); }
+  // puder za nartami (duże, miękkie, półprzezroczyste kłęby) + drobne iskierki; na lodzie niebieskie iskry
+  if (!P.air && P.v > 3 && (run || fin)) { const k = P.v/MAX_V, n = Math.min(2, Math.ceil(P.v*dt*.5 + Math.random()*.6)), bx = -Math.sin(P.psi), bz = -Math.cos(P.psi);
+    for (let i = 0; i < n; i++) powder.emit(P.x + bx*1.1 + rr(-.5, .5), P.y + .2, P.s + bz*1.1, rr(-1.6, 1.6) + bx*P.v*.1, rr(.4, 1.4)*(.6 + k), rr(-1, 1) + bz*P.v*.1, rr(.7, 1.3), rr(1.1, 2.2)*(.7 + k*.6));
+    if (onIce) for (let i = 0; i < 2; i++) emit(P.x + rr(-.6, .6), P.y + .2, P.s + rr(-.6, .6), rr(-2, 2), rr(1, 3), rr(-2, 2), rr(.4, .8), .7, .9, 1, 5); }
 }
 function poseRig(dt) {
   const f = V3(Math.sin(P.psi), 0, Math.cos(P.psi)), r = V3(Math.cos(P.psi), 0, -Math.sin(P.psi)), d = 1.1;
@@ -253,13 +271,13 @@ function updDebris(dt) { for (let i = debris.length - 1; i >= 0; i--) { const d 
    KAMERA
    ===================================================================== */
 function updCam(dt) {
-  if (S.mode === 'menu') { const a = S.t*.3, tx = P.x + Math.sin(a)*3.4 + 1.2, ty = P.y + 1.6, tz = P.s + 6.6 + Math.cos(a)*.6; camera.position.set(tx, Math.max(ty, terrainY(tz, tx) + 1), tz); camera.lookAt(P.x, P.y + .8, P.s); camera.fov = 52; camera.updateProjectionMatrix(); return; }
+  if (S.mode === 'menu') { const a = S.t*.25, tx = P.x + 5.5 + Math.sin(a)*2, tz = P.s + 11 + Math.cos(a)*1.2, ty = P.y + 2.4; camera.position.set(tx, Math.max(ty, terrainY(tz, tx) + 1.6), tz); camera.lookAt(P.x - 1.2, P.y + 1.6, P.s); camera.fov = 52; camera.updateProjectionMatrix(); return; }
   P.camYaw += (P.psi*.5 - P.camYaw)*Math.min(1, dt*2.5);
   const fx = Math.sin(P.camYaw), fz = Math.cos(P.camYaw), back = 6.6, tx = P.x - fx*back, tz = P.s - fz*back, ty = P.y + 2.9;
   const k = S.camSnap ? 1 : 1 - Math.exp(-dt*5), ky = S.camSnap ? 1 : 1 - Math.exp(-dt*3);
   camera.position.x += (tx - camera.position.x)*k; camera.position.z += (tz - camera.position.z)*k; camera.position.y += (ty - camera.position.y)*ky;
   camera.position.y = Math.max(camera.position.y, terrainY(camera.position.z, camera.position.x) + 1.7);
-  const lx = P.x + fx*9, lz = P.s + fz*9, ly = groundY(lz, lx) + 1.2;
+  const lx = P.x + fx*10, lz = P.s + fz*10, ly = (groundY(lz, lx) + P.y)*.5 + 1.5;
   camera.lookAt(lx, ly, lz); S.camSnap = false;
   const fov = 56 + (P.v/MAX_V)*10 + (P.air ? 3 : 0); if (Math.abs(camera.fov - fov) > .05) { camera.fov += (fov - camera.fov)*Math.min(1, dt*3); camera.updateProjectionMatrix(); }
 }
@@ -273,7 +291,9 @@ function update(dt) {
     if (n !== S.cdN) { S.cdN = n; if (n > 0) { showBig(String(n)); snd.tick(false); } else { showBig('Jazda!'); snd.tick(true); lektor('Jazda!', { pilne: true }); } }
     if (S.cd <= .15) { S.mode = 'run'; tilt.cal = true; } }
   if (S.mode === 'count' || S.mode === 'run' || S.mode === 'finish') { physics(dt); updDebris(dt); }
-  poseRig(dt); updFish(S.t); updateParticles(dt); windUpd(); updCam(dt);
+  poseRig(dt); updFish(S.t); updateParticles(dt); powder.update(dt); windUpd(); updCam(dt);
+  dome.position.copy(camera.position); dome.material.uniforms.uTime.value = S.t; FAR.position.set(camera.position.x, camera.position.y - 62, camera.position.z); if (glit) glit.material.uniforms.uTime.value = S.t;
+  sunL.position.set(P.x + SUN_D.x*140, P.y + SUN_D.y*140, P.s + SUN_D.z*140); sunL.target.position.set(P.x, P.y, P.s); sunL.target.updateMatrixWorld(); sunFxUpdate(camera, SUN_D);
   const fr = clamp(P.s/CRS.goals.finish, 0, 1); $('progI').style.left = fr*100 + '%';
 }
 function finishRun() { S.mode = 'finish'; S.finT = 0; snd.fin(); showBig('Meta!'); lektor('Meta! Brawo!', { pilne: true }); for (let i = 0; i < 40; i++) emit(P.x + rr(-5, 5), P.y + rr(2, 6), P.s + rr(-2, 4), rr(-2, 2), rr(1, 4), rr(-2, 2), rr(1, 2), Math.random(), Math.random(), Math.random(), 2); }
