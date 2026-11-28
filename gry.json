@@ -9,6 +9,7 @@
   { "id": "bryki", "title": "Dzikie Bryki", "emoji": "🦈", "opis": "Wyścig groźnych pojazdów: rekin, ptak, ośmiornica, krab, nietoperz i żaba. Gryź, dziobaj, chlap tuszem, szczyp!" },
   { "id": "klinika", "title": "Klinika Zoo", "emoji": "🩺", "opis": "Weterynarz: rentgen, połknięte kaczki, serce w nodze, szyja żyrafy, kolorowy gips, plasterki i lizak. Żyrafa, słoń, pingwin i Pan Doktor." },
   { "id": "ogrodek", "title": "Łakome Zwierzaki", "emoji": "🥕", "opis": "Sadź warzywa i broń ogródka przed głodnymi zwierzakami: królik, kura, kret, sarenka, krowa i bobry z piłą!" },
+  { "id": "narty", "title": "Narty", "emoji": "🐧", "opis": "Pingwin zjeżdża ze stoku na nartach: przechylaj telefon (żyroskop), zbieraj rybki, omijaj drzewa i skacz ze skoczni." },
   { "id": "zle-owoce", "title": "Złe Owoce", "emoji": "🍓", "opis": "Zbuduj groźnego owoca z części i pokonaj potwory (2D)." },
   { "id": "egzorcysta-vs-cholota", "title": "Egzorcysta vs Chołota", "emoji": "🧟", "opis": "Obrona zagrody przed chołotą (2D).", "url": "https://dawidcrivelli.github.io/egzorcysta-vs-cholota/" },
   { "id": "lowca-pokemonow", "title": "Łowca Pokémonów", "emoji": "⚡", "opis": "2D.", "url": "https://dawidcrivelli.github.io/lowca-pokemonow/" },

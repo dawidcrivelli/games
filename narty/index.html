@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Narty</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14385c;--font:"Baloo 2","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;--sky:#a9d8f5;--ice:#e9f6ff;--ice-d:#7fb6dc;--red:#ff6a4a;--red-d:#b83a22;--sun:#ffd23f;
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);font-family:var(--font);color:var(--ink);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;overscroll-behavior:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+button:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
+
+/* ---------- guziki ---------- */
+.btn{font:800 1.25rem/1 var(--font);background:linear-gradient(#fff,var(--ice));border:3px solid #fff;border-radius:22px;color:var(--ink);
+  box-shadow:0 5px 0 var(--ice-d),0 9px 14px rgba(20,56,92,.28);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .07s}
+.btn:active,.btn.on{transform:translateY(4px);box-shadow:0 1px 0 var(--ice-d),0 3px 6px rgba(20,56,92,.28)}
+.btn .ico{font-size:1.6rem;line-height:1}
+.go{background:linear-gradient(#ff9a7e,var(--red));border-color:#ffd9cf;color:#fff;text-shadow:0 2px 0 var(--red-d);box-shadow:0 6px 0 var(--red-d),0 11px 16px rgba(20,56,92,.3)}
+.go:active{box-shadow:0 2px 0 var(--red-d),0 4px 8px rgba(20,56,92,.3)}
+.pick{height:64px;border-radius:20px;background:rgba(255,255,255,.55);border-color:rgba(255,255,255,.8);box-shadow:none;font-size:1.05rem;flex-direction:column;gap:2px}
+.pick[aria-pressed="true"]{background:#fff;border-color:var(--sun);box-shadow:0 0 0 3px var(--sun),0 6px 14px rgba(20,56,92,.25)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud>*{position:absolute}
+.stat{display:flex;align-items:center;gap:6px;height:44px;padding:0 14px 0 10px;border-radius:22px;background:rgba(255,255,255,.85);border:3px solid #fff;
+  font:800 1.5rem/1 var(--font);box-shadow:0 4px 10px rgba(20,56,92,.25)}
+.stat small{font-size:1rem;font-weight:600;opacity:.65}
+.stat.bump{animation:bump .4s}
+@keyframes bump{40%{transform:scale(1.3)}}
+#sFish{left:calc(10px + var(--sl));top:calc(8px + var(--st))}
+#bMenu{right:calc(10px + var(--sr));top:calc(8px + var(--st));width:52px;height:52px;border-radius:50%;pointer-events:auto}
+#prog{left:50%;transform:translateX(-50%);top:calc(14px + var(--st));width:min(34vw,300px);height:14px;border-radius:7px;background:rgba(255,255,255,.7);border:2px solid #fff;box-shadow:0 3px 8px rgba(20,56,92,.25)}
+#prog i{position:absolute;top:-17px;left:0;font-style:normal;font-size:1.5rem;line-height:1;transform:translateX(-50%)}
+#prog b{position:absolute;right:-6px;top:-14px;font-size:1.3rem;line-height:1}
+#pad{inset:0;pointer-events:none}
+#pad .btn{position:absolute;bottom:calc(14px + var(--sb));width:clamp(84px,24vh,120px);height:clamp(84px,24vh,120px);border-radius:50%;pointer-events:auto;font-size:2.4rem}
+#pL{left:calc(14px + var(--sl))}#pR{left:calc(28px + var(--sl) + clamp(84px,24vh,120px))}
+#pF{right:calc(14px + var(--sr));flex-direction:column;gap:0;font-size:1rem}
+#pF small{font-size:.85rem;font-weight:800}
+#tiltBox{left:calc(10px + var(--sl));bottom:calc(12px + var(--sb));pointer-events:auto}
+#tiltBox .btn{width:64px;height:64px;border-radius:50%;flex-direction:column;gap:0;font-size:.7rem}
+body.tilt #pad{display:none}
+body:not(.tilt) #tiltBox{display:none}
+#big{left:50%;top:38%;transform:translate(-50%,-50%);font:400 clamp(70px,22vh,150px)/1 Bangers,var(--font);color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;
+  text-shadow:0 8px 0 var(--ink);opacity:0;white-space:nowrap}
+#big.pop{animation:pop .9s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}20%{transform:translate(-50%,-50%) scale(1.1);opacity:1}75%{opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+#toast{left:50%;bottom:calc(16px + var(--sb));transform:translateX(-50%);background:rgba(255,255,255,.92);border:3px solid #fff;padding:8px 18px;border-radius:18px;font-size:1.15rem;font-weight:800;
+  max-width:86vw;text-align:center;opacity:0;transition:opacity .3s;box-shadow:0 5px 12px rgba(20,56,92,.25)}
+#toast.show{opacity:1}
+
+/* ---------- plansze ---------- */
+.veil{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:auto;padding:calc(10px + var(--st)) 12px calc(10px + var(--sb));
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.25),rgba(20,56,92,.35))}
+.card{background:rgba(255,255,255,.93);border:4px solid #fff;border-radius:32px;padding:14px 20px 18px;width:min(520px,100%);margin:auto;text-align:center;box-shadow:0 14px 40px rgba(20,56,92,.4)}
+h1{font:400 clamp(2.6rem,12vmin,4rem)/.95 Bangers,var(--font);margin:0;letter-spacing:2px;color:var(--red);-webkit-text-stroke:2px var(--red-d);paint-order:stroke fill;text-shadow:0 4px 0 var(--red-d)}
+.sub{margin:6px 0 10px;font-size:1.1rem;font-weight:600}
+.q{margin:8px 0 6px;text-align:left;font-weight:800;font-size:1rem;opacity:.85}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#bGo{width:100%;height:66px;font-size:1.8rem;margin-top:14px;border-radius:26px}
+#bBack,#bAgain,#bHome,#bAgain2{width:100%;height:56px;margin-top:10px;font-size:1.25rem}
+.foot{display:flex;align-items:center;gap:10px;margin-top:12px;text-align:left}
+.foot p{margin:0;font-size:.95rem;line-height:1.25;flex:1;font-weight:600}
+#bSnd{width:50px;height:50px;border-radius:50%;flex:none}
+.stars{font-size:clamp(3rem,16vmin,4.6rem);line-height:1;letter-spacing:.06em;margin:4px 0}
+.stars .off{filter:grayscale(1) opacity(.3)}
+.res{font-size:1.25rem;font-weight:800;margin:2px 0}
+@media (orientation:landscape) and (max-height:520px){
+  .card{padding:8px 16px 12px;width:min(640px,100%)}
+  h1{font-size:2.6rem}.sub{margin:2px 0 6px}
+  .q{margin:4px 0}.pick{height:50px;flex-direction:row;gap:8px}
+  #bGo{height:54px;margin-top:8px;font-size:1.5rem}#bBack,#bAgain,#bHome,#bAgain2{height:46px;margin-top:6px}
+  .foot{margin-top:6px}.stars{font-size:3rem}
+}
+@media (prefers-reduced-motion:reduce){#big.pop{animation-duration:.01s}}
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:1.2rem;background:var(--sky)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" hidden>
+  <div class="stat" id="sFish"><span>🐟</span><span id="nFish">0</span><small id="tFish">/0</small></div>
+  <div id="prog" aria-hidden="true"><i id="progI">🐧</i><b>🏁</b></div>
+  <button class="btn" id="bMenu" aria-label="Menu"><span class="ico" style="font-size:1.4rem">⏸️</span></button>
+  <div id="pad">
+    <button class="btn" id="pL" aria-label="W lewo">◀</button>
+    <button class="btn" id="pR" aria-label="W prawo">▶</button>
+    <button class="btn" id="pF" aria-label="Szybciej"><span class="ico">💨</span><small>szybciej</small></button>
+  </div>
+  <div id="tiltBox"><button class="btn" id="bCal" aria-label="Ustaw środek przechylania"><span class="ico">🎯</span>środek</button></div>
+  <div id="big" aria-hidden="true"></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<div id="load" class="veil"><p style="font-size:1.5rem;font-weight:800;text-align:center;margin:auto">Wczytuję stok…</p></div>
+
+<div id="menu" class="veil" hidden>
+  <div class="card">
+    <h1>Narty</h1>
+    <p class="sub" id="mSub">Pingwin zjeżdża ze stoku! Zbieraj rybki i omijaj drzewa.</p>
+    <p class="q">Jak sterujesz?</p>
+    <div class="row">
+      <button class="btn pick" data-ctrl="tilt" aria-pressed="true"><span class="ico">📱</span>Przechylaj telefon</button>
+      <button class="btn pick" data-ctrl="buttons" aria-pressed="false"><span class="ico">👆</span>Guziki</button>
+    </div>
+    <button class="btn go" id="bGo">Zjeżdżamy!</button>
+    <button class="btn" id="bBack" hidden>Dalej</button>
+    <div class="foot">
+      <p id="mFoot">Pochyl telefon w lewo albo w prawo, żeby skręcić. Pochyl do przodu — jedziesz szybciej.</p>
+      <button class="btn" id="bSnd" aria-label="Dźwięk"><span class="ico" id="sndIco" style="font-size:1.4rem">🔊</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="end" class="veil" hidden>
+  <div class="card">
+    <h1>Meta!</h1>
+    <div class="stars" id="stars"></div>
+    <p class="res" id="eFish"></p>
+    <p class="res" id="eTime"></p>
+    <p class="sub" id="eBest"></p>
+    <button class="btn go" id="bAgain">Jeszcze raz!</button>
+    <button class="btn" id="bHome">Menu</button>
+  </div>
+</div>
+<div id="err">Nie udało się wczytać silnika 3D. Sprawdź internet i odśwież stronę.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../lib/3d/three.js"></script>
+<script src="../lib/common/math.js"></script>
+<script src="../lib/common/dom.js"></script>
+<script src="../lib/common/random.js"></script>
+<script src="../lib/ui/toast.js"></script>
+<script src="../lib/ui/controls.js"></script>
+<script src="../lib/input/tilt.js"></script>
+<script src="../lib/3d/shapes.js"></script>
+<script src="../lib/3d/view.js"></script>
+<script src="../lib/3d/particles.js"></script>
+<script src="../lib/audio/synth.js"></script>
+<script src="../lib/audio/critters.js"></script>
+<script src="../lib/audio/speech.js"></script>
+<script src="../models/animals.js"></script>
+<script src="slope.js"></script>
+<script src="game.js"></script>
+<script src="../lib/common/screen.js"></script>
+<script>obrotInit()</script>
+</body>
+</html>
